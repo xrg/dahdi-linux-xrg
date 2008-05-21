@@ -1,0 +1,308 @@
+#!/usr/bin/perl -w
+
+#
+# $Id$
+#
+
+use strict;
+
+my $SlicsFile = "$ENV{XPP_BASE}/$ENV{XPD_BUS}/$ENV{XPD_NAME}/slics";
+
+my @SlicNums = (0 .. 7);
+
+if ( ! -f $SlicsFile ) {
+	exit 1
+}
+
+my $debug = 0;
+# set DEBUG_CALIBRATION in /etc/default/zaptel or similar
+if (exists $ENV{DEBUG_CALIBRATION}) {
+	$debug = 1;
+}
+
+sub mysleep($) {
+	my $timeout = shift;
+	select(undef,undef,undef,$timeout);
+}
+
+sub logger($) {
+	print STDERR "LOG: @_\n";
+	system("logger @_");
+}
+
+sub debug($) {
+	logger(@_) if ($debug);
+}
+
+sub write_to_slic_file($) {
+	my $write_str = shift;
+
+	open(SLICS,">$SlicsFile") or 
+		die("Failed writing to slics file $SlicsFile");
+	print SLICS $write_str;
+	close(SLICS);
+	mysleep(0.001);
+	
+}
+
+sub read_reg($$$) {
+	my $read_slic = shift;
+	my $read_reg = shift;
+	my $direct = shift;
+	
+	write_to_slic_file(
+		sprintf("%d R%s %02X", $read_slic, $direct, $read_reg));
+	mysleep(0.001);
+	open(SLICS,$SlicsFile) or 
+		die("Failed reading from slics file $SlicsFile");
+	#awk '/^SLIC_REPLY:/{print $5}' $SLICS | cut -dx -f2
+	my @reply = ();
+	while(<SLICS>){
+		#if (/^ /) {
+		#	debug "answer line: $_";
+		#}
+		if (/^ \d*\s+[RW][DIS]\s+[[:xdigit:]]+\s+([[:xdigit:]]+)\s+([[:xdigit:]]+)/){
+			@reply = (hex($1), hex($2)); 
+			#debug "got [$reply]\n";
+			last;
+		}
+	}
+	close(SLICS);
+	if ($direct eq 'I') {
+		return @reply;
+	} else {
+		return $reply[0];
+	}
+}
+
+# TODO: rearange arguments
+sub write_reg{#($$$$$) {
+	my $read_slic = shift;
+	my $read_reg = shift;
+	my $direct = shift;
+	my $reg_val_low = shift;
+	my $reg_val_hi = shift;
+	
+	my $str  = sprintf "%d W%s %02X %02X", 
+		$read_slic, $direct, $read_reg, $reg_val_low;
+	if ($direct eq 'I') {
+		$str .= sprintf " %02X", $reg_val_hi;
+	}
+	write_to_slic_file($str);
+}
+
+sub log_calib_params() {
+	for my $i (100 .. 107) {
+		my $line="Calib Reg $i:  ";
+		for my $slic (@SlicNums) {
+			$line .= " ".read_reg($slic, $i, 'D');
+		}
+		debug($line);
+	}
+}
+
+sub init_indirect_registers() {
+	return write_to_slic_file("#
+31	WI	00	C2	55
+31	WI	01	E6	51
+31	WI	02	85	4B
+31	WI	03	37	49
+                          
+31	WI	04	33	33
+31	WI	05	02	02
+31	WI	06	02	02
+31	WI	07	98	01
+                          
+31	WI	08	98	01
+31	WI	09	11	06
+31	WI	0A	02	02
+31	WI	0B	E5	00
+                          
+31	WI	0C	1C	0A
+31	WI	0D	30	7B
+31	WI	0E	63	00
+31	WI	0F	00	00
+                          
+31	WI	10	70	78
+31	WI	11	7D	00
+31	WI	12	00	00
+31	WI	13	00	00
+                          
+31	WI	14	F0	7E
+31	WI	15	C0	01
+31	WI	16	00	00
+31	WI	17	00	20
+                          
+31	WI	18	00	20
+31	WI	19	00	00
+31	WI	1A	00	20
+31	WI	1B	00	40
+                          
+31	WI	1C	00	10
+31	WI	1D	00	36
+31	WI	1E	00	10
+31	WI	1F	00	02
+                          
+31	WI	20	C0	07
+31	WI	21	00	26
+31	WI	22	F4	0F
+31	WI	23	00	80
+
+#31	WI	24	20	03
+#31	WI	25	8C	08
+#31	WI	26	00	01
+#31	WI	27	10	00
+                          
+31	WI	24	00	08
+31	WI	25	00	08
+31	WI	26	00	08
+31	WI	27	00	08
+                          
+31	WI	28	00	0C
+31	WI	29	00	0C
+31	WI	2B	00	01
+                          
+31	WI	63	DA	00
+31	WI	64	60	6B
+31	WI	65	74	00
+31	WI	66	C0	79
+                          
+31	WI	67	20	11
+31	WI	68	E0	3B	
+#");
+}
+
+sub init_early_direct_regs() {
+	return write_to_slic_file("#
+31	WD	08 00
+31	WD	4A 34
+31	WD	4B 10
+31	WD	40	00
+#")
+}
+
+my @FilterParams = ();
+
+sub save_indirect_filter_params() {
+	for my $slic (@SlicNums) {
+		for my $reg (35 .. 39) {
+			$FilterParams[$slic][$reg] = 
+				[read_reg($slic, $reg, 'I')];
+			write_reg($slic, $reg, 'I', 0, 0x80);
+		}
+	}
+	
+}
+
+sub restore_indirect_filter_params() {
+	for my $slic (@SlicNums) {
+		for my $reg (35 .. 39) {
+			write_reg($slic, $reg, 'I', 
+				@{$FilterParams[$slic][$reg]});
+		}
+	}
+}
+
+my $ManualCalibrationSleepTime = 0.04; # 40ms
+
+sub manual_calibrate_loop($$) {
+	my $write_reg = shift;
+	my $read_reg = shift;
+	
+	# counters to count down to (at most) 0
+	my @slic_counters = ();
+	for my $i (0 .. $#SlicNums) {
+		$slic_counters[$i] = 0x1F;
+	}
+	
+	# start calibration:
+	my $calibration_in_progress = 1;
+	write_reg(31, $write_reg, 'D', 0x1F);
+	mysleep $ManualCalibrationSleepTime;
+	
+	# wait until all slics have finished calibration, or for timeout
+	while ($calibration_in_progress) {
+		$calibration_in_progress = 0; # until proven otherwise
+		my $debug_calib_str = "ManualCalib:: ";
+		for my $slic(@SlicNums) {
+			my $value = read_reg($slic, $read_reg, 'D');
+			$debug_calib_str .= " [$slic_counters[$slic]:$value]";
+			if ($value != 0 && $slic_counters[$slic] >= 0) {
+				$calibration_in_progress = 1;
+				$slic_counters[$slic]--;
+				write_reg($slic,$write_reg,'D',$slic_counters[$slic]);
+			}
+		}
+		debug($debug_calib_str);
+		# TODO: unnecessary sleep in the last round:
+		mysleep $ManualCalibrationSleepTime;
+	}
+}
+
+sub manual_calibrate() {
+	manual_calibrate_loop(98, 88);
+	manual_calibrate_loop(99, 89);
+}
+
+sub auto_calibrate($$) {
+	my $calib_96 = shift;
+	my $calib_97 = shift;
+
+	#log_calib_params();
+	# start calibration:
+	write_to_slic_file(
+		sprintf
+			"31 WD 61 %02X\n".
+			"31 WD 60 %02X\n".
+			"", $calib_96, $calib_97
+			
+	);
+	# wait until all slics have finished calibration, or for timeout
+	my $sleep_cnt = 0;
+	# time periods in seconds:
+	my $sleep_time = 0.1;
+	my $timeout_time = 2; 
+	CALIB_LOOP: for my $slic (@SlicNums) {
+		debug("checking slic $slic");
+		while(1) {
+			if ((read_reg($slic, 60, 'D')) == 0) {
+				# move to next register
+				debug("slic $slic calibrated");
+				last;
+			}
+			if ( $sleep_cnt > $timeout_time/$sleep_time) {
+				debug("Auto Calibration: Exiting on timeout: $timeout_time.");
+				last CALIB_LOOP;
+			}
+			debug("auto_calibrate not done yet: slic #$slic\n");
+			mysleep(0.1);
+			$sleep_cnt++;
+		}
+	}
+	#log_calib_params();
+}
+
+###########################################################
+#
+# main
+#
+
+# TODO: for all slics check the following reads to check communication
+#read_reg($slic, 0x08, 'D'): 0x02
+#read_reg($slic, 0x0B, 'D'): 0x33
+#read_reg($slic, 0x40, 'D'): 0x00 (?)
+
+debug "starting\n";
+
+init_indirect_registers();
+debug "after init_indirect_registers\n";
+init_early_direct_regs();
+debug "after init_early_direct_regs\n";
+auto_calibrate(0x47, 0x1E);
+debug "after auto_calibrate\n";
+manual_calibrate();
+debug "after manul_calibrate\n";
+auto_calibrate(0x40, 0x01);
+debug "after auto_calibrate 2\n";
+
+
