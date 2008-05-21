@@ -35,11 +35,9 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#ifdef STANDALONE_ZAPATA
-#include "zaptel.h"
-#else
-#include <linux/zaptel.h>
-#endif
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 #define MAX_CARDS_TO_TEST	6
 #define MAX_CHANNELS_PER_CARD   96

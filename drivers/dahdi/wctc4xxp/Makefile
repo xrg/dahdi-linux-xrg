@@ -8,7 +8,7 @@ else
 
 tests: codec_test
 
-codec_test: codec_test.c ../zaptel.h
+codec_test: codec_test.c ../../include/dahdi/kernel.h ../../include/dahdi/user.h
 	$(CC) -o $@ $< $(CFLAGS)
 
 clean:

@@ -39,14 +39,13 @@
 #ifdef CONFIG_DEVFS_FS
 #include <linux/devfs_fs_kernel.h>
 #endif
-#ifdef STANDALONE_ZAPATA
-#include "zaptel.h"
-#else
-#include <linux/zaptel.h>
-#endif
+
 #ifdef LINUX26
 #include <linux/moduleparam.h>
 #endif
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 static int debug = 0;
 static struct zt_transcoder *trans;

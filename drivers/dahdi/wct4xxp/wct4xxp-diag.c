@@ -5,7 +5,8 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <string.h>
-#include "zaptel.h"
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 #include "wct4xxp.h"
 
 static struct t4_reg_def {

@@ -79,7 +79,8 @@
 #define FAST_HDLC_NEED_TABLES
 #include "fasthdlc.h"
 
-#include "zaptel.h"
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 #ifdef LINUX26
 #include <linux/moduleparam.h>

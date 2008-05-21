@@ -46,7 +46,10 @@
 #ifdef CONFIG_DEVFS_FS
 #include <linux/devfs_fs_kernel.h>
 #endif
-#include "zaptel.h"
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 
 /* #define USE_TEST_HW */
 #define USE_TDM_CONFIG

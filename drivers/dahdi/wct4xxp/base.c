@@ -37,7 +37,10 @@
 #include <asm/io.h>
 #include <linux/version.h>
 #include <linux/delay.h>
-#include "zaptel.h"
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 #ifdef LINUX26
 #include <linux/moduleparam.h>
 #endif

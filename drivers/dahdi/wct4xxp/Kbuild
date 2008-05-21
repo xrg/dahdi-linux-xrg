@@ -19,9 +19,3 @@ $(obj)/$(FIRM_DIR)/zaptel-fw-oct6114-064.o: $(obj)/base.o
 
 $(obj)/$(FIRM_DIR)/zaptel-fw-oct6114-128.o: $(obj)/base.o
 	$(MAKE) -C $(obj)/$(FIRM_DIR) zaptel-fw-oct6114-128.o
-
-$(obj)/base.o: $(src)/vpm450m.h $(src)/wct4xxp.h
-$(obj)/base.o: $(src)/../zaptel.h
-
-$(obj)/vpm450m.o: $(src)/vpm450m.h
-$(obj)/vpm450m.o: $(src)/../oct612x/include/oct6100api/oct6100_api.h

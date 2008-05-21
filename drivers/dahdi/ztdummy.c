@@ -74,7 +74,10 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/errno.h>
-#include "zaptel.h"
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 #ifndef LINUX26
 #include <linux/usb.h>
 #include <linux/pci.h>

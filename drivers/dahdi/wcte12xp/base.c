@@ -40,7 +40,8 @@
 #include <linux/moduleparam.h>
 #endif
 
-#include "zaptel.h"
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 #include "../wct4xxp/wct4xxp.h"	/* For certain definitions */
 

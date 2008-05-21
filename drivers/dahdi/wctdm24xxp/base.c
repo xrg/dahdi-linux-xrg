@@ -50,7 +50,9 @@ Tx Gain - W/Pre-Emphasis: -23.99 to 0.00 db
 #include <linux/moduleparam.h>
 #endif
 
-#include "zaptel.h"
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 #include "proslic.h"
 #include "wctdm.h"
 

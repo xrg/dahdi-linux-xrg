@@ -32,11 +32,9 @@
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <linux/spinlock.h>
-#ifdef STANDALONE_ZAPATA
-#include "zaptel.h"
-#else
-#include <zaptel/zaptel.h>
-#endif
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 #ifdef LINUX26
 #include <linux/moduleparam.h>
 #endif

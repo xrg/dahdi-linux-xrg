@@ -32,7 +32,9 @@
 #include <linux/init.h>
 #include <linux/sched.h>
 #include <linux/interrupt.h>
-#include "zaptel.h"
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 #ifdef LINUX26
 #include <linux/moduleparam.h>
 #endif

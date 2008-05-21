@@ -2,9 +2,12 @@ ifdef ECHO_CAN_NAME
 	ECHO_CAN_CFLAGS	:= -DECHO_CAN_FROMENV -DECHO_CAN_$(ECHO_CAN_NAME)
 endif
 
-obj-m	:= $(KBUILD_OBJ_M)
+obj-m := pciradio.o tor2.o wcfxo.o wct1xxp.o wctdm.o wcte11xp.o zaptel.o ztd-eth.o ztd-loc.o ztdummy.o ztdynamic.o zttranscode.o
+obj-m += wct4xxp/ wctc4xxp/ wctdm24xxp/ wcte12xp/
 
-EXTRA_CFLAGS := -I$(src) -DSTANDALONE_ZAPATA
+CFLAGS_MODULE += -I$(DAHDI_INCLUDE)
+
+EXTRA_CFLAGS += -I$(src)
 EXTRA_CFLAGS += $(ECHO_CAN_CFLAGS)
 
 # fix typo present in CentOS and RHEL 2.6.9 kernels

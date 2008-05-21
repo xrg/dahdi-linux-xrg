@@ -34,7 +34,9 @@
 #include <linux/firmware.h> 
 #include <linux/list.h> 
 
-#include "zaptel.h"
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 #include "voicebus.h"
 
 #include "wcte12xp.h"

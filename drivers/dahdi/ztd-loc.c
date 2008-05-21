@@ -60,11 +60,9 @@
 #ifdef CONFIG_DEVFS_FS
 #include <linux/devfs_fs_kernel.h>
 #endif
-#ifdef STANDALONE_ZAPATA
-#include "zaptel.h"
-#else
-#include <zaptel/zaptel.h>
-#endif
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 #ifdef DEFINE_SPINLOCK
 static DEFINE_SPINLOCK(zlock);

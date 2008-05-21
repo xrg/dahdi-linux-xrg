@@ -32,7 +32,10 @@
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <linux/spinlock.h>
-#include "zaptel.h"
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 #ifdef LINUX26
 #include <linux/moduleparam.h>
 #endif

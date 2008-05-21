@@ -108,7 +108,9 @@ static alpha  indirect_regs[] =
 {43,66,"LOOP_CLOSE_TRES_LOW",0x1000},
 };
 
-#include "zaptel.h"
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 #include "fxo_modes.h"
 

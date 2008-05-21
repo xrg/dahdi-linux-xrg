@@ -39,7 +39,9 @@
 #include <linux/delay.h>
 #include <asm/semaphore.h>
 
-#include "zaptel.h"
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 #include "wctdm24xxp.h"
 #include "GpakCust.h"
 

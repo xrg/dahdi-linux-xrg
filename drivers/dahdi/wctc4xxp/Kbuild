@@ -14,7 +14,5 @@ ifneq ($(HOTPLUG_FIRMWARE),yes)
 wctc4xxp-objs += $(FIRM_DIR)/zaptel-fw-tc400m.o
 endif
 
-$(obj)/base.o: $(src)/../zaptel.h
-
 $(obj)/$(FIRM_DIR)/zaptel-fw-tc400m.o: $(obj)/base.o
 	$(MAKE) -C $(obj)/$(FIRM_DIR) zaptel-fw-tc400m.o

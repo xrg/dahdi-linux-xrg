@@ -53,11 +53,9 @@ With driver:	303826  (1.5 %)
 #include <asm/io.h>
 #include <asm/delay.h> 
 
-#ifdef STANDALONE_ZAPATA
-#include "zaptel.h"
-#else
-#include <zaptel/zaptel.h>
-#endif
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 #ifdef LINUX26
 #include <linux/moduleparam.h>

@@ -36,11 +36,10 @@
 #ifdef CONFIG_DEVFS_FS
 #include <linux/devfs_fs_kernel.h>
 #endif
-#ifdef STANDALONE_ZAPATA
-#include "zaptel.h"
-#else
-#include <zaptel/zaptel.h>
-#endif
+
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
+
 #ifdef LINUX26
 #include <linux/moduleparam.h>
 #endif

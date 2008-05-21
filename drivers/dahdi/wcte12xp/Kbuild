@@ -16,10 +16,3 @@ endif
 
 $(obj)/$(FIRM_DIR)/zaptel-fw-vpmadt032.o: $(obj)/base.o
 	$(MAKE) -C $(obj)/$(FIRM_DIR) zaptel-fw-vpmadt032.o
-
-$(obj)/base.o: $(src)/vpmadt032.h $(src)/wcte12xp.h
-$(obj)/base.o: $(src)/../zaptel.h
-
-$(obj)/vpmadt032.o: $(src)/vpmadt032.h
-
-$(obj)/GpakApi.o: $(src)/GpakApi.h

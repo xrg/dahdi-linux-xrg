@@ -33,7 +33,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
  */
 
-#include "zaptel.h"
+#include <dahdi/kernel.h>
+#include <dahdi/user.h>
 
 #include "GpakHpi.h"
 #include "vpmadt032.h"
