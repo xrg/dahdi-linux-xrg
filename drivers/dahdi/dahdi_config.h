@@ -1,5 +1,5 @@
 /*
- * Zaptel configuration options 
+ * DAHDI configuration options 
  *
  */
 #ifndef _ZCONFIG_H
@@ -14,7 +14,7 @@
 #endif
 #endif
 
-/* Zaptel compile time options */
+/* DAHDI compile time options */
 
 /*
  * Uncomment if you have a European phone, or any other phone with a 
@@ -48,11 +48,11 @@
 /*
  * Define if you want MMX optimizations in zaptel
  *
- * Note: CONFIG_ZAPTEL_MMX is generally incompatible with AMD 
+ * Note: CONFIG_DAHDI_MMX is generally incompatible with AMD 
  * processors and can cause system instability!
  * 
  */
-/* #define CONFIG_ZAPTEL_MMX */
+/* #define CONFIG_DAHDI_MMX */
 
 /** If defined: the user must define exactly one ECHO_CAN_ var: */
 #ifndef ECHO_CAN_FROMENV 
@@ -95,7 +95,7 @@
 /* We now use the linux kernel config to detect which options to use */
 /* You can still override them below */
 #if defined(CONFIG_HDLC) || defined(CONFIG_HDLC_MODULE)
-/* #define CONFIG_ZAPATA_NET */  /* NEVER implicitly turn on ZAPATA_NET */
+/* #define CONFIG_DAHDI_NET */  /* NEVER implicitly turn on CONFIG_DAHDI_NET */
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,4,20)
 #define CONFIG_OLD_HDLC_API
 #else
@@ -110,17 +110,17 @@
 #endif
 #endif
 #ifdef CONFIG_PPP
-#define CONFIG_ZAPATA_PPP
+#define CONFIG_DAHDI_PPP
 #endif
 
 /*
- * Uncomment CONFIG_ZAPATA_NET to enable SyncPPP, CiscoHDLC, and Frame Relay
+ * Uncomment CONFIG_DAHDI_NET to enable SyncPPP, CiscoHDLC, and Frame Relay
  * support.
  */
-/* #define CONFIG_ZAPATA_NET */
+/* #define CONFIG_DAHDI_NET */
 
 /*
- * Uncomment CONFIG_OLD_HDLC_API if your are compiling with ZAPATA_NET
+ * Uncomment CONFIG_OLD_HDLC_API if your are compiling with CONFIG_DAHDI_NET
  * defined and you are using the old kernel HDLC interface (or if you get
  * an error about ETH_P_HDLC while compiling).
  */
@@ -129,12 +129,12 @@
 /*
  * Uncomment for Generic PPP support (i.e. ZapRAS)
  */
-/* #define CONFIG_ZAPATA_PPP */
+/* #define CONFIG_DAHDI_PPP */
 /*
  * Uncomment to enable "watchdog" to monitor if interfaces
  * stop taking interrupts or otherwise misbehave
  */
-/* #define CONFIG_ZAPTEL_WATCHDOG */
+/* #define CONFIG_DAHDI_WATCHDOG */
 
 /*
  * Uncomment for Non-standard FXS groundstart start state (A=Low, B=Low)
@@ -187,7 +187,7 @@
  * Enable sync_tick() calls. Allows low-level drivers to synchronize
  * their internal clocks to the zaptel master clock.
  */
-#define ZAPTEL_SYNC_TICK
+#define DAHDI_SYNC_TICK
 
 /*
  * Skip processing PCM if low-level driver won't use it anyway

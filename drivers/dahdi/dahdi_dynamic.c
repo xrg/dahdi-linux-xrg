@@ -1,5 +1,5 @@
 /*
- * Dynamic Span Interface for Zaptel
+ * Dynamic Span Interface for DAHDI
  *
  * Written by Mark Spencer <markster@digium.com>
  *
@@ -837,7 +837,7 @@ int ztdynamic_init(void)
 #ifdef ENABLE_TASKLETS
 	tasklet_init(&ztd_tlet, ztd_tasklet, 0);
 #endif
-	printk("Zaptel Dynamic Span support LOADED\n");
+	printk("DAHDI Dynamic Span support LOADED\n");
 	return 0;
 }
 
@@ -851,7 +851,7 @@ void ztdynamic_cleanup(void)
 #endif
 	dahdi_set_dynamic_ioctl(NULL);
 	del_timer(&alarmcheck);
-	printk("Zaptel Dynamic Span support unloaded\n");
+	printk("DAHDI Dynamic Span support unloaded\n");
 }
 
 #ifdef LINUX26
@@ -859,7 +859,7 @@ module_param(debug, int, 0600);
 #else
 MODULE_PARM(debug, "i");
 #endif
-MODULE_DESCRIPTION("Zaptel Dynamic Span Support");
+MODULE_DESCRIPTION("DAHDI Dynamic Span Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");

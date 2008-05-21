@@ -2548,7 +2548,7 @@ MODULE_PARM(fxorxgain, "i");
 MODULE_PARM(fxstxgain, "i");
 MODULE_PARM(fxsrxgain, "i");
 #endif
-MODULE_DESCRIPTION("Wildcard TDM400P Zaptel Driver");
+MODULE_DESCRIPTION("Wildcard TDM400P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #if defined(MODULE_ALIAS)
 MODULE_ALIAS("wcfxs");

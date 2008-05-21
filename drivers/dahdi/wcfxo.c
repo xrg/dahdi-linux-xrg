@@ -1092,7 +1092,7 @@ MODULE_PARM(boost, "i");
 MODULE_PARM(monitor, "i");
 MODULE_PARM(opermode, "i");
 #endif
-MODULE_DESCRIPTION("Wildcard X100P Zaptel Driver");
+MODULE_DESCRIPTION("Wildcard X100P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");

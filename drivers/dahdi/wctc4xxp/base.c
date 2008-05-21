@@ -1828,7 +1828,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 			dahdi_transcoder_register(uencode);
 			dahdi_transcoder_register(udecode);
 
-			printk("Zaptel DTE (%s) Transcoder support LOADED (firm ver = %d.%d)\n", wc->complexname, dte_firmware_ver, dte_firmware_ver_minor);
+			printk("DAHDI DTE (%s) Transcoder support LOADED (firm ver = %d.%d)\n", wc->complexname, dte_firmware_ver, dte_firmware_ver_minor);
 
 
 			/* Enable bus mastering */

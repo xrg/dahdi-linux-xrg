@@ -1,5 +1,5 @@
 /*
- * Dynamic Span Interface for Zaptel (Ethernet Interface)
+ * Dynamic Span Interface for DAHDI (Ethernet Interface)
  *
  * Written by Mark Spencer <markster@digium.com>
  *
@@ -439,7 +439,7 @@ static void __exit ztdeth_exit(void)
 	dahdi_dynamic_unregister(&ztd_eth);
 }
 
-MODULE_DESCRIPTION("Zaptel Dynamic TDMoE Support");
+MODULE_DESCRIPTION("DAHDI Dynamic TDMoE Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");

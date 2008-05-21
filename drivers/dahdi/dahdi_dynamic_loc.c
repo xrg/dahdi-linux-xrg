@@ -1,5 +1,5 @@
 /*
- * Dynamic Span Interface for Zaptel (Local Interface)
+ * Dynamic Span Interface for DAHDI (Local Interface)
  *
  * Written by Nicolas Bougues <nbougues@axialys.net>
  *

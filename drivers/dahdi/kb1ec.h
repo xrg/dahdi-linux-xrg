@@ -135,7 +135,7 @@ struct echo_can_state {
 
 static void echo_can_init(void)
 {
-	printk("Zaptel Echo Canceller: KB1\n");
+	printk("DAHDI Echo Canceller: KB1\n");
 }
 
 static void echo_can_identify(char *buf, size_t len)

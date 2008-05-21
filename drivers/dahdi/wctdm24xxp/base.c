@@ -4052,7 +4052,7 @@ MODULE_PARM(vpmnlpthresh, "i");
 MODULE_PARM(vpmnlpmaxsupp, "i");
 #endif
 #endif
-MODULE_DESCRIPTION("Wildcard TDM2400P/TDM800P Zaptel Driver");
+MODULE_DESCRIPTION("Wildcard TDM2400P/TDM800P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #if defined(MODULE_ALIAS)
 MODULE_ALIAS("wctdm8xxp");

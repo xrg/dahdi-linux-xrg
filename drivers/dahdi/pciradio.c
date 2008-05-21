@@ -28,11 +28,11 @@
 
 /*
   The PCI Radio Interface card interfaces up to 4 two-way radios (either
-  a base/mobile radio or repeater system) to Zaptel channels. The driver
+  a base/mobile radio or repeater system) to DAHDI channels. The driver
   may work either independent of an application, or with it, through
   the driver;s ioctl() interface. This file gives you access to specify
   load-time parameters for Radio channels, so that the driver may run
-  by itself, and just act like a generic Zaptel radio interface.
+  by itself, and just act like a generic DAHDI radio interface.
 */
 
 /* Latency tests:
@@ -1922,7 +1922,7 @@ module_param(debug, int, 0600);
 MODULE_PARM(debug, "i");
 #endif
 
-MODULE_DESCRIPTION("Zapata Telephony PCI Radio Card Zaptel Driver");
+MODULE_DESCRIPTION("Zapata Telephony PCI Radio Card DAHDI Driver");
 MODULE_AUTHOR("Jim Dixon <jim@lambdatel.com>");
 
 #ifdef MODULE_LICENSE

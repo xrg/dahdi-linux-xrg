@@ -20,8 +20,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
  */
 
-#if !defined(_HPEC_ZAPTEL_H)
-#define _HPEC_ZAPTEL_H
+#if !defined(_HPEC_DAHDI_H)
+#define _HPEC_DAHDI_H
 
 #define DAHDI_EC_ARRAY_UPDATE
 
@@ -61,7 +61,7 @@ static void memfree(void *ptr)
 
 static void echo_can_init(void)
 {
-	printk("Zaptel Echo Canceller: Digium High-Performance Echo Canceller\n");
+	printk("DAHDI Echo Canceller: Digium High-Performance Echo Canceller\n");
 	hpec_init(logger, debug, DAHDI_CHUNKSIZE, memalloc, memfree);
 }
 
@@ -143,4 +143,4 @@ static int hpec_license_ioctl(unsigned int cmd, unsigned long data)
 	}
 }
 
-#endif /* !defined(_HPEC_ZAPTEL_H) */
+#endif /* !defined(_HPEC_DAHDI_H) */

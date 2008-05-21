@@ -36,8 +36,8 @@
    Improve double talk detector (iterative!)
 */
 
-#ifndef _ZAPTEL_SEC_H
-#define _ZAPTEL_SEC_H
+#ifndef _DAHDI_SEC_H
+#define _DAHDI_SEC_H
 
 #ifdef __KERNEL__
 #include <linux/kernel.h>
@@ -102,7 +102,7 @@ static int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int16_t rx
 
 static void echo_can_init(void)
 {
-	printk("Zaptel Echo Canceller: STEVE2%s\n", ZAPTEL_ECHO_AGGRESSIVE);
+	printk("DAHDI Echo Canceller: STEVE2%s\n", DAHDI_ECHO_AGGRESSIVE);
 }
 
 static void echo_can_identify(char *buf, size_t len)

@@ -100,7 +100,7 @@ static int find_transcoders(struct tctest_info *tctest_info)
 	int fd, res;
 
 	if ((fd = open("/dev/zap/transcode", O_RDWR)) < 0) {
-	        printf("Warning: No Zaptel transcoder support!\n");
+	        printf("Warning: No DAHDI transcoder support!\n");
 	        return 0;
 	}
 

@@ -1774,7 +1774,7 @@ static int __t4_findsync(struct t4 *wc)
 	unsigned long flags;
 	int p;
 	int nonzero;
-	int newsyncsrc = 0;			/* Zaptel span number */
+	int newsyncsrc = 0;			/* DAHDI span number */
 	int newsyncnum = 0;			/* wct4xxp card number */
 	int newsyncspan = 0;		/* span on given wct4xxp card */
 	spin_lock_irqsave(&synclock, flags);

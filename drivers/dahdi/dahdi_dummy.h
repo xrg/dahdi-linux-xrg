@@ -1,5 +1,5 @@
 /*
- * Dummy Zaptel Driver for Zapata Telephony interface
+ * Dummy DAHDI Driver for Zapata Telephony interface
  *
  * Written by Robert Pleh <robert.pleh@hermes.si>
  *

@@ -1637,7 +1637,7 @@ MODULE_PARM(clockextra, "i");
 MODULE_PARM(debug, "i");
 MODULE_PARM(j1mode, "i");
 #endif
-MODULE_DESCRIPTION("Wildcard TE110P Zaptel Driver");
+MODULE_DESCRIPTION("Wildcard TE110P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");

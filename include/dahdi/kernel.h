@@ -25,8 +25,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
  */
 
-#ifndef _LINUX_ZAPTEL_H
-#define _LINUX_ZAPTEL_H
+#ifndef _LINUX_DAHDI_H
+#define _LINUX_DAHDI_H
 
 #ifdef __KERNEL__
 #include "dahdi_config.h"
@@ -37,11 +37,11 @@
 #include <linux/fs.h>
 #include <linux/ioctl.h>
 
-#ifdef CONFIG_ZAPATA_NET	
+#ifdef CONFIG_DAHDI_NET	
 #include <linux/hdlc.h>
 #endif
 
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 #include <linux/ppp_channel.h>
 #include <linux/skbuff.h>
 #include <linux/interrupt.h>
@@ -85,7 +85,7 @@
 #include <linux/devfs_fs_kernel.h>
 #else
 #undef CONFIG_DEVFS_FS
-//#warning "Zaptel doesn't support DEVFS in post 2.4 kernels.  Disabling DEVFS in zaptel"
+//#warning "DAHDI doesn't support DEVFS in post 2.4 kernels.  Disabling DEVFS in zaptel"
 #endif
 #endif /* CONFIG_DEVFS_FS */
 #endif /* __KERNEL__ */
@@ -725,7 +725,7 @@ struct dahdi_hwgain{
 
 
 /*
- * Get the version of Zaptel that is running, and a description
+ * Get the version of DAHDI that is running, and a description
  * of the compiled-in echo canceller (if any)
  */
 #define DAHDI_GETVERSION _IOR(DAHDI_CODE, 57, struct dahdi_versioninfo)
@@ -1257,7 +1257,7 @@ struct dahdi_chardev {
 int dahdi_register_chardev(struct dahdi_chardev *dev);
 int dahdi_unregister_chardev(struct dahdi_chardev *dev);
 
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 struct dahdi_hdlc {
 #ifdef LINUX26	
 	struct net_device *netdev;
@@ -1303,11 +1303,11 @@ typedef struct
 } sf_detect_state_t;
 
 struct dahdi_chan {
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 	/* Must be first */
 	struct dahdi_hdlc *hdlcnetdev;
 #endif
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 	struct ppp_channel *ppp;
 	struct tasklet_struct ppp_calls;
 	int do_ppp_wakeup;
@@ -1317,7 +1317,7 @@ struct dahdi_chan {
 	spinlock_t lock;
 	char name[40];		/* Name */
 	/* Specified by zaptel */
-	int channo;			/* Zaptel Channel number */
+	int channo;			/* DAHDI Channel number */
 	int chanpos;
 	unsigned long flags;
 	long rxp1;
@@ -1634,7 +1634,7 @@ struct dahdi_span {
 	/* Opt: Enable maintenance modes */
 	int (*maint)(struct dahdi_span *span, int mode);
 
-#ifdef	ZAPTEL_SYNC_TICK
+#ifdef	DAHDI_SYNC_TICK
 	/* Opt: send sync to spans */
 	int (*sync_tick)(struct dahdi_span *span, int is_master);
 #endif
@@ -1694,7 +1694,7 @@ struct dahdi_span {
 	/* If the watchdog detects no received data, it will call the
 	   watchdog routine */
 	int (*watchdog)(struct dahdi_span *span, int cause);
-#ifdef CONFIG_ZAPTEL_WATCHDOG
+#ifdef CONFIG_DAHDI_WATCHDOG
 	int watchcounter;
 	int watchstate;
 #endif	
@@ -1815,10 +1815,10 @@ int dahdi_unregister(struct dahdi_span *span);
 /* Gives a name to an LBO */
 char *dahdi_lboname(int lbo);
 
-/* Tell Zaptel about changes in received rbs bits */
+/* Tell DAHDI about changes in received rbs bits */
 void dahdi_rbsbits(struct dahdi_chan *chan, int bits);
 
-/* Tell Zaptel abou changes in received signalling */
+/* Tell DAHDI abou changes in received signalling */
 void dahdi_hooksig(struct dahdi_chan *chan, dahdi_rxsig_t rxsig);
 
 /* Queue an event on a channel */
@@ -1842,7 +1842,7 @@ struct dahdi_tone *dahdi_mf_tone(const struct dahdi_chan *chan, char digit, int 
 /* Echo cancel a receive and transmit chunk for a given channel.  This
    should be called by the low-level driver as close to the interface
    as possible.  ECHO CANCELLATION IS NO LONGER AUTOMATICALLY DONE
-   AT THE ZAPTEL LEVEL.  dahdi_ec_chunk will not echo cancel if it should
+   AT THE DAHDI LEVEL.  dahdi_ec_chunk will not echo cancel if it should
    not be doing so.  rxchunk is modified in-place */
 
 void dahdi_ec_chunk(struct dahdi_chan *chan, unsigned char *rxchunk, const unsigned char *txchunk);
@@ -2104,4 +2104,4 @@ static inline void dahdi_copy_string(char *dst, const char *src, unsigned int si
 	*dst = '\0';
 }
 
-#endif /* _LINUX_ZAPTEL_H */
+#endif /* _LINUX_DAHDI_H */

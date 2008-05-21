@@ -4,6 +4,6 @@ cat << END
  * version.h 
  * Automatically generated
  */
-#define ZAPTEL_VERSION "${ZAPTELVERSION}"
+#define DAHDI_VERSION "${DAHDIVERSION}"
 
 END

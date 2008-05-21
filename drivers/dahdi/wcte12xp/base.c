@@ -1172,7 +1172,7 @@ static int t1_software_init(struct t1 *wc)
 		wc->chans[x].chanpos = x + 1;
 	}
 	if (dahdi_register(&wc->span, 0)) {
-		module_printk("Unable to register span with Zaptel\n");
+		module_printk("Unable to register span with DAHDI\n");
 		return -1;
 	}
 	wc->initialized = 1;

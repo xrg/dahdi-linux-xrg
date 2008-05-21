@@ -1111,7 +1111,7 @@ static int tor2_findsync(struct tor2 *tor)
 	unsigned long flags;
 	int p;
 	int nonzero;
-	int newsyncsrc = 0;			/* Zaptel span number */
+	int newsyncsrc = 0;			/* DAHDI span number */
 	int newsyncnum = 0;			/* tor2 card number */
 	int newsyncspan = 0;		/* span on given tor2 card */
 	spin_lock_irqsave(&synclock, flags);
@@ -1500,7 +1500,7 @@ static int tor2_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long d
 }
 
 MODULE_AUTHOR("Mark Spencer");
-MODULE_DESCRIPTION("Tormenta 2 PCI Quad T1 or E1 Zaptel Driver");
+MODULE_DESCRIPTION("Tormenta 2 PCI Quad T1 or E1 DAHDI Driver");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");
 #endif

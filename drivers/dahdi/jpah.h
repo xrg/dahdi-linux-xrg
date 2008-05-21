@@ -44,7 +44,7 @@ struct echo_can_state {
 
 static void echo_can_init(void)
 {
-	printk("Zaptel Audio Hoser: JP1\n");
+	printk("DAHDI Audio Hoser: JP1\n");
 }
 
 static void echo_can_identify(char *buf, size_t len)

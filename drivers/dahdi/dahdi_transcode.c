@@ -1,5 +1,5 @@
 /*
- * Transcoder Interface for Zaptel
+ * Transcoder Interface for DAHDI
  *
  * Written by Mark Spencer <markster@digium.com>
  *
@@ -461,7 +461,7 @@ int zttranscode_init(void)
 	if ((res = dahdi_register_chardev(&transcode_chardev)))
 		return res;
 
-	printk("Zaptel Transcoder support loaded\n");
+	printk("DAHDI Transcoder support loaded\n");
 
 	return 0;
 }
@@ -472,7 +472,7 @@ void zttranscode_cleanup(void)
 
 	dahdi_transcode_fops = NULL;
 
-	printk("Zaptel Transcoder support unloaded\n");
+	printk("DAHDI Transcoder support unloaded\n");
 }
 
 #ifdef LINUX26
@@ -480,7 +480,7 @@ module_param(debug, int, S_IRUGO | S_IWUSR);
 #else
 MODULE_PARM(debug, "i");
 #endif
-MODULE_DESCRIPTION("Zaptel Transcoder Support");
+MODULE_DESCRIPTION("DAHDI Transcoder Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");

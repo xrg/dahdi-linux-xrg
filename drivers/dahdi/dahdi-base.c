@@ -50,11 +50,11 @@
 #ifdef CONFIG_DEVFS_FS
 #include <linux/devfs_fs_kernel.h>
 #endif /* CONFIG_DEVFS_FS */
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 #include <linux/netdevice.h>
-#endif /* CONFIG_ZAPATA_NET */
+#endif /* CONFIG_DAHDI_NET */
 #include <linux/ppp_defs.h>
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 #include <linux/netdevice.h>
 #include <linux/if.h>
 #include <linux/if_ppp.h>
@@ -88,7 +88,7 @@
 
 /* Get helper arithmetic */
 #include "arith.h"
-#if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
+#if defined(CONFIG_DAHDI_MMX) || defined(ECHO_CAN_FP)
 #include <asm/i387.h>
 #endif
 
@@ -317,7 +317,7 @@ static struct dahdi_dialparams global_dialparams = {
 
 static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit);
 
-#if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
+#if defined(CONFIG_DAHDI_MMX) || defined(ECHO_CAN_FP)
 /* XXX kernel_fpu_begin() is NOT exported properly (in 2.4), so we have to make
        a local version.  Somebody fix this! XXX */
 
@@ -1022,7 +1022,7 @@ static void close_channel(struct dahdi_chan *chan)
 	struct echo_can_state *ec = NULL;
 	int oldconf;
 	short *readchunkpreec;
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 	struct ppp_channel *ppp;
 #endif
 
@@ -1030,7 +1030,7 @@ static void close_channel(struct dahdi_chan *chan)
 	if (!(chan->flags & DAHDI_FLAG_NOSTDTXRX))
 		dahdi_reallocbufs(chan, 0, 0); 
 	spin_lock_irqsave(&chan->lock, flags);
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 	ppp = chan->ppp;
 	chan->ppp = NULL;
 #endif
@@ -1103,7 +1103,7 @@ static void close_channel(struct dahdi_chan *chan)
 	if (readchunkpreec)
 		kfree(readchunkpreec);
 
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 	if (ppp) {
 		tasklet_kill(&chan->ppp_calls);
 		skb_queue_purge(&chan->ppp_rq);
@@ -1415,10 +1415,10 @@ char *dahdi_lboname(int x)
 	return dahdi_txlevelnames[x];
 }
 
-#if defined(CONFIG_ZAPATA_NET) || defined(CONFIG_ZAPATA_PPP)
+#if defined(CONFIG_DAHDI_NET) || defined(CONFIG_DAHDI_PPP)
 #endif
 
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 #ifdef NEW_HDLC_INTERFACE
 static int dahdi_net_open(struct net_device *dev)
 {
@@ -1468,7 +1468,7 @@ static int dahdi_net_open(hdlc_device *hdlc)
 #ifndef LINUX26
 	MOD_INC_USE_COUNT;
 #endif	
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 	printk("ZAPNET: Opened channel %d name %s\n", ms->channo, ms->name);
 #endif
 	return 0;
@@ -1657,7 +1657,7 @@ static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 		dev->trans_start = jiffies;
 		stats->tx_packets++;
 		stats->tx_bytes += ss->writen[oldbuf];
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("Buffered %d bytes to go out in buffer %d\n", ss->writen[oldbuf], oldbuf);
 		for (x=0;x<ss->writen[oldbuf];x++)
 		     printk("%02x ", ss->writebuf[oldbuf][x]);
@@ -1685,7 +1685,7 @@ static int dahdi_net_ioctl(hdlc_device *hdlc, struct ifreq *ifr, int cmd)
 
 #endif
 
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 
 static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 {
@@ -1758,7 +1758,7 @@ static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 			   some space for us */
 			ss->outwritebuf = oldbuf;
 		}
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("Buffered %d bytes (skblen = %d) to go out in buffer %d\n", ss->writen[oldbuf], skb->len, oldbuf);
 		for (x=0;x<ss->writen[oldbuf];x++)
 		     printk("%02x ", ss->writebuf[oldbuf][x]);
@@ -1793,7 +1793,7 @@ static void dahdi_chan_unreg(struct dahdi_chan *chan)
 {
 	int x;
 	unsigned long flags;
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 	if (chan->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 		unregister_hdlc_device(chan->hdlcnetdev->netdev);
@@ -1810,7 +1810,7 @@ static void dahdi_chan_unreg(struct dahdi_chan *chan)
 		chans[chan->channo] = NULL;
 		chan->flags &= ~DAHDI_FLAG_REGISTERED;
 	}
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 	if (chan->ppp) {
 		printk("HUH???  PPP still attached??\n");
 	}
@@ -1987,7 +1987,7 @@ static ssize_t dahdi_chan_write(struct file *file, const char *usrbuf, size_t co
 			amnt = chan->blocksize;
 	}
 
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 	printk("dahdi_chan_write(unit: %d, res: %d, outwritebuf: %d amnt: %d\n",
 		unit, chan->res, chan->outwritebuf, amnt);
 #endif
@@ -2186,7 +2186,7 @@ who cares what the sig bits are as long as they are stable */
 	} else {
 		for (x=0;x<NUM_SIGS;x++) {
 			if (outs[x][0] == chan->sig) {
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 				printk("Setting bits to %d for channel %s state %d in %d signalling\n", outs[x][txsig + 1], chan->name, txsig, chan->sig);
 #endif
 				chan->txhooksig = txsig;
@@ -3184,7 +3184,7 @@ void dahdi_alarm_notify(struct dahdi_span *span)
 		for (x=1; x<maxspans; x++) {
 			if (spans[x] && !spans[x]->alarms && (spans[x]->flags & DAHDI_FLAG_RUNNING)) {
 				if(master != spans[x])
-					printk("Zaptel: Master changed to %s\n", spans[x]->name);
+					printk("DAHDI: Master changed to %s\n", spans[x]->name);
 				master = spans[x];
 				break;
 			}
@@ -3542,7 +3542,7 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		/* release it. */
 		spin_unlock_irqrestore(&chans[j]->lock, flags);
 
-		printk(KERN_INFO "Dump of Zaptel Channel %d (%s,%d,%d):\n\n",j,
+		printk(KERN_INFO "Dump of DAHDI Channel %d (%s,%d,%d):\n\n",j,
 			mychan->name,mychan->channo,mychan->chanpos);
 		printk(KERN_INFO "flags: %x hex, writechunk: %08lx, readchunk: %08lx\n",
 			(unsigned int) mychan->flags, (long) mychan->writechunk, (long) mychan->readchunk);
@@ -3602,14 +3602,14 @@ static void recalc_slaves(struct dahdi_chan *chan)
 	if (!chan->span)
 		return;
 
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 	printk("Recalculating slaves on %s\n", chan->name);
 #endif
 
 	/* Link all slaves appropriately */
 	for (x=chan->chanpos;x<chan->span->channels;x++)
 		if (chan->span->chans[x].master == chan) {
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 			printk("Channel %s, slave to %s, last is %s, its next will be %d\n", 
 			       chan->span->chans[x].name, chan->name, last->name, x);
 #endif
@@ -3618,7 +3618,7 @@ static void recalc_slaves(struct dahdi_chan *chan)
 		}
 	/* Terminate list */
 	last->nextslave = 0;
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 	printk("Done Recalculating slaves on %s (last is %s)\n", chan->name, last->name);
 #endif
 }
@@ -3712,7 +3712,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			newmaster = chans[ch.chan];
 		}
 		spin_lock_irqsave(&chans[ch.chan]->lock, flags);
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 		if (chans[ch.chan]->flags & DAHDI_FLAG_NETDEV) {
 			if (ztchan_to_dev(chans[ch.chan])->flags & IFF_UP) {
 				spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
@@ -3734,7 +3734,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 #else
 		if (ch.sigtype == DAHDI_SIG_HDLCNET) {
 				spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
-				printk(KERN_WARNING "Zaptel networking not supported by this build.\n");
+				printk(KERN_WARNING "DAHDI networking not supported by this build.\n");
 				return -ENOSYS;
 		}
 #endif			
@@ -3812,7 +3812,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			else
 				chans[ch.chan]->flags &= ~DAHDI_FLAG_MTP2;
 		}
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 		if (!res && 
 			(newmaster == chans[ch.chan]) && 
 		        (chans[ch.chan]->sig == DAHDI_SIG_HDLCNET)) {
@@ -3889,7 +3889,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			if (y >= 0) chans[ch.chan]->rxsig = (unsigned char)y;
 			chans[ch.chan]->rxhooksig = DAHDI_RXSIG_INITIAL;
 		}
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("Configured channel %s, flags %04x, sig %04x\n", chans[ch.chan]->name, chans[ch.chan]->flags, chans[ch.chan]->sig);
 #endif			
 		spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
@@ -3999,7 +3999,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 		struct dahdi_versioninfo vi;
 
 		memset(&vi, 0, sizeof(vi));
-		dahdi_copy_string(vi.version, ZAPTEL_VERSION, sizeof(vi.version));
+		dahdi_copy_string(vi.version, DAHDI_VERSION, sizeof(vi.version));
 		echo_can_identify(vi.echo_canceller, sizeof(vi.echo_canceller) - 1);
 		if (copy_to_user((struct dahdi_versioninfo *) data, &vi, sizeof(vi)))
 			return -EFAULT;
@@ -4616,7 +4616,7 @@ static int dahdi_chanandpseudo_ioctl(struct inode *inode, struct file *file, uns
 	return 0;
 }
 
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 /*
  * This is called at softirq (BH) level when there are calls
  * we need to make to the ppp_generic layer.  We do it this
@@ -4824,7 +4824,7 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 		}
 		break;
 	case DAHDI_HDLCPPP:
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 		if (chan->sig != DAHDI_SIG_CLEAR) return (-EINVAL);
 		get_user(j, (int *)data);
 		if (j) {
@@ -4885,7 +4885,7 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 			}
 		}
 #else
-		printk("Zaptel: Zaptel PPP support not compiled in\n");
+		printk("DAHDI: DAHDI PPP support not compiled in\n");
 		return -ENOSYS;
 #endif
 		break;
@@ -5071,7 +5071,7 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 		} else
 			return -ENOSYS;
 		break;
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 	case PPPIOCGCHAN:
 		if (chan->flags & DAHDI_FLAG_PPP)
 			return put_user(ppp_channel_index(chan->ppp), (int *)data) ? -EFAULT : 0;
@@ -5806,11 +5806,11 @@ out in the later versions, and is put back now. */
 				/* Transmit a flag if this is an HDLC channel */
 				if (ms->flags & DAHDI_FLAG_HDLC)
 					fasthdlc_tx_frame_nocheck(&ms->txhdlc);
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 				if (ms->flags & DAHDI_FLAG_NETDEV)
 					netif_wake_queue(ztchan_to_dev(ms));
 #endif				
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 				if (ms->flags & DAHDI_FLAG_PPP) {
 					ms->do_ppp_wakeup = 1;
 					tasklet_schedule(&ms->ppp_calls);
@@ -6169,7 +6169,7 @@ static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, dahdi_rxsig_t rxsig)
 				dahdi_rbs_sethook(chan,DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_AFTERSTART, DAHDI_AFTERSTART_TIME);
 			}
 			chan->kewlonhook = 0;
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 			printk("Off hook on channel %d, itimer = %d, gotgs = %d\n", chan->channo, chan->itimer, chan->gotgs);
 #endif
 			if (chan->itimer) /* if timer still running */
@@ -6297,7 +6297,7 @@ static inline void __dahdi_ec_chunk(struct dahdi_chan *ss, unsigned char *rxchun
 
 	/* Perform echo cancellation on a chunk if necessary */
 	if (ss->ec) {
-#if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
+#if defined(CONFIG_DAHDI_MMX) || defined(ECHO_CAN_FP)
 		dahdi_kernel_fpu_begin();
 #endif		
 		if (ss->echostate & __ECHO_STATE_MUTE) {
@@ -6344,7 +6344,7 @@ static inline void __dahdi_ec_chunk(struct dahdi_chan *ss, unsigned char *rxchun
 				rxchunk[x] = DAHDI_LIN2X((int) rxlins[x], ss);
 #endif /* defined(DAHDI_EC_ARRAY_UPDATE) */
 		}
-#if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
+#if defined(CONFIG_DAHDI_MMX) || defined(ECHO_CAN_FP)
 		kernel_fpu_end();
 #endif		
 	}
@@ -6674,7 +6674,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 	struct dahdi_chan *ms = ss->master;
 	/* Our receive buffer */
 	unsigned char *buf;
-#if defined(CONFIG_ZAPATA_NET)  || defined(CONFIG_ZAPATA_PPP)
+#if defined(CONFIG_DAHDI_NET)  || defined(CONFIG_DAHDI_PPP)
 	/* SKB for receiving network stuff */
 	struct sk_buff *skb=NULL;
 #endif	
@@ -6685,7 +6685,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 	int left, x;
 
 	while(bytes) {
-#if defined(CONFIG_ZAPATA_NET)  || defined(CONFIG_ZAPATA_PPP)
+#if defined(CONFIG_DAHDI_NET)  || defined(CONFIG_DAHDI_PPP)
 		skb = NULL;
 #endif	
 		abort = 0;
@@ -6759,13 +6759,13 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 				oldbuf = ms->inreadbuf;
 				ms->infcs = PPP_INITFCS;
 				ms->readn[ms->inreadbuf] = ms->readidx[ms->inreadbuf];
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 				printk("EOF, len is %d\n", ms->readn[ms->inreadbuf]);
 #endif
-#if defined(CONFIG_ZAPATA_NET) || defined(CONFIG_ZAPATA_PPP)
+#if defined(CONFIG_DAHDI_NET) || defined(CONFIG_DAHDI_PPP)
 				if (ms->flags & (DAHDI_FLAG_NETDEV | DAHDI_FLAG_PPP)) {
-#ifdef CONFIG_ZAPATA_NET
-#endif /* CONFIG_ZAPATA_NET */
+#ifdef CONFIG_DAHDI_NET
+#endif /* CONFIG_DAHDI_NET */
 					/* Our network receiver logic is MUCH
 					  different.  We actually only use a single
 					  buffer */
@@ -6773,7 +6773,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 						/* Drop the FCS */
 						ms->readn[ms->inreadbuf] -= 2;
 						/* Allocate an SKB */
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 						if (!ms->do_ppp_error)
 #endif
 							skb = dev_alloc_skb(ms->readn[ms->inreadbuf]);
@@ -6781,7 +6781,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 							/* XXX Get rid of this memcpy XXX */
 							memcpy(skb->data, ms->readbuf[ms->inreadbuf], ms->readn[ms->inreadbuf]);
 							skb_put(skb, ms->readn[ms->inreadbuf]);
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 							if (ms->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 								struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
@@ -6794,7 +6794,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 #endif
 
 						} else {
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 							if (ms->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 								struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
@@ -6804,13 +6804,13 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 								stats->rx_dropped++;
 							}
 #endif
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 							if (ms->flags & DAHDI_FLAG_PPP) {
 								abort = DAHDI_EVENT_OVERRUN;
 							}
 #endif
 #if 1
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 							if (!ms->do_ppp_error)
 #endif
 								printk("Memory squeeze, dropped one\n");
@@ -6848,7 +6848,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 							/* Whoops, we're full, and have no where else
 							to store into at the moment.  We'll drop it
 							until there's a buffer available */
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 							printk("Out of storage space\n");
 #endif
 							ms->inreadbuf = -1;
@@ -6871,7 +6871,7 @@ out in the later versions, and is put back now. */
 						if (!ms->rxdisable) { /* if receiver enabled */
 							/* Notify a blocked reader that there is data available
 							to be read, unless we're waiting for it to be full */
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 							printk("Notifying reader data in block %d\n", oldbuf);
 #endif
 							wake_up_interruptible(&ms->readbufq);
@@ -6887,7 +6887,7 @@ out in the later versions, and is put back now. */
 				ms->readidx[ms->inreadbuf] = 0;
 				ms->infcs = PPP_INITFCS;
 
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 				if (ms->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 					struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
@@ -6903,7 +6903,7 @@ out in the later versions, and is put back now. */
 						stats->rx_frame_errors++;
 				} else 
 #endif			
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 				if (ms->flags & DAHDI_FLAG_PPP) {
 					ms->do_ppp_error = 1;
 					tasklet_schedule(&ms->ppp_calls);
@@ -6920,7 +6920,7 @@ out in the later versions, and is put back now. */
 			}
 		} else /* No place to receive -- drop on the floor */
 			break;
-#ifdef CONFIG_ZAPATA_NET
+#ifdef CONFIG_DAHDI_NET
 		if (skb && (ms->flags & DAHDI_FLAG_NETDEV))
 #ifdef NEW_HDLC_INTERFACE
 		{
@@ -6941,7 +6941,7 @@ out in the later versions, and is put back now. */
 			hdlc_netif_rx(&ms->hdlcnetdev->netdev, skb);
 #endif
 #endif
-#ifdef CONFIG_ZAPATA_PPP
+#ifdef CONFIG_DAHDI_PPP
 		if (skb && (ms->flags & DAHDI_FLAG_PPP)) {
 			unsigned char *tmp;
 			tmp = skb->data;
@@ -6990,7 +6990,7 @@ extern void dahdi_hdlc_putbuf(struct dahdi_chan *ss, unsigned char *rxb, int byt
 
 	spin_lock_irqsave(&ss->lock, flags);
 	if (ss->inreadbuf < 0) {
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("No place to receive HDLC frame\n");
 #endif
 		spin_unlock_irqrestore(&ss->lock, flags);
@@ -7008,7 +7008,7 @@ extern void dahdi_hdlc_putbuf(struct dahdi_chan *ss, unsigned char *rxb, int byt
 	}
 	/* Something isn't fit into buffer */
 	if (bytes) {
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("HDLC frame isn't fit into buffer space\n");
 #endif
 		__dahdi_hdlc_abort(ss, DAHDI_EVENT_OVERRUN);
@@ -7025,7 +7025,7 @@ extern void dahdi_hdlc_finish(struct dahdi_chan *ss)
 	spin_lock_irqsave(&ss->lock, flags);
 
 	if ((oldreadbuf = ss->inreadbuf) < 0) {
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("No buffers to finish\n");
 #endif
 		spin_unlock_irqrestore(&ss->lock, flags);
@@ -7033,7 +7033,7 @@ extern void dahdi_hdlc_finish(struct dahdi_chan *ss)
 	}
 
 	if (!ss->readidx[ss->inreadbuf]) {
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("Empty HDLC frame received\n");
 #endif
 		spin_unlock_irqrestore(&ss->lock, flags);
@@ -7044,7 +7044,7 @@ extern void dahdi_hdlc_finish(struct dahdi_chan *ss)
 	ss->inreadbuf = (ss->inreadbuf + 1) % ss->numbufs;
 	if (ss->inreadbuf == ss->outreadbuf) {
 		ss->inreadbuf = -1;
-#ifdef CONFIG_ZAPATA_DEBUG
+#ifdef CONFIG_DAHDI_DEBUG
 		printk("Notifying reader data in block %d\n", oldreadbuf);
 #endif
 		ss->rxdisable = 0;
@@ -7242,11 +7242,11 @@ static void __dahdi_transmit_chunk(struct dahdi_chan *chan, unsigned char *buf)
 	__dahdi_getbuf_chunk(chan, buf);
 
 	if ((chan->flags & DAHDI_FLAG_AUDIO) || (chan->confmode)) {
-#ifdef CONFIG_ZAPTEL_MMX
+#ifdef CONFIG_DAHDI_MMX
 		dahdi_kernel_fpu_begin();
 #endif
 		__dahdi_process_getaudio_chunk(chan, buf);
-#ifdef CONFIG_ZAPTEL_MMX
+#ifdef CONFIG_DAHDI_MMX
 		kernel_fpu_end();
 #endif
 	}
@@ -7327,11 +7327,11 @@ static void __dahdi_receive_chunk(struct dahdi_chan *chan, unsigned char *buf)
 		buf = waste;
 	}
 	if ((chan->flags & DAHDI_FLAG_AUDIO) || (chan->confmode)) {
-#ifdef CONFIG_ZAPTEL_MMX                         
+#ifdef CONFIG_DAHDI_MMX                         
 		dahdi_kernel_fpu_begin();
 #endif
 		__dahdi_process_putaudio_chunk(chan, buf);
-#ifdef CONFIG_ZAPTEL_MMX
+#ifdef CONFIG_DAHDI_MMX
 		kernel_fpu_end();
 #endif
 	}
@@ -7430,7 +7430,7 @@ int dahdi_receive(struct dahdi_span *span)
 	unsigned long flags, flagso;
 
 #if 1
-#ifdef CONFIG_ZAPTEL_WATCHDOG
+#ifdef CONFIG_DAHDI_WATCHDOG
 	span->watchcounter--;
 #endif	
 	for (x=0;x<span->channels;x++) {
@@ -7538,7 +7538,7 @@ int dahdi_receive(struct dahdi_span *span)
 			}
 		}
 		if (maxlinks) {
-#ifdef CONFIG_ZAPTEL_MMX
+#ifdef CONFIG_DAHDI_MMX
 			dahdi_kernel_fpu_begin();
 #endif			
 			  /* process all the conf links */
@@ -7549,7 +7549,7 @@ int dahdi_receive(struct dahdi_span *span)
 					ACSS(conf_sums[z], conf_sums[y]);
 				}
 			}
-#ifdef CONFIG_ZAPTEL_MMX
+#ifdef CONFIG_DAHDI_MMX
 			kernel_fpu_end();
 #endif			
 		}
@@ -7574,7 +7574,7 @@ int dahdi_receive(struct dahdi_span *span)
 				spin_unlock_irqrestore(&chans[x]->lock, flags);
 			}
 		}
-#ifdef	ZAPTEL_SYNC_TICK
+#ifdef	DAHDI_SYNC_TICK
 		for (x=0;x<maxspans;x++) {
 			struct dahdi_span	*s = spans[x];
 
@@ -7594,7 +7594,7 @@ MODULE_DESCRIPTION("Zapata Telephony Interface");
 MODULE_LICENSE("GPL");
 #endif
 #ifdef MODULE_VERSION
-MODULE_VERSION(ZAPTEL_VERSION);
+MODULE_VERSION(DAHDI_VERSION);
 #endif
 
 #ifdef LINUX26
@@ -7620,7 +7620,7 @@ static struct file_operations dahdi_fops = {
 	fasync: NULL,
 };
 
-#ifdef CONFIG_ZAPTEL_WATCHDOG
+#ifdef CONFIG_DAHDI_WATCHDOG
 static struct timer_list watchdogtimer;
 
 static void watchdog_check(unsigned long ignored)
@@ -7656,7 +7656,7 @@ static void watchdog_check(unsigned long ignored)
 	}
 	local_irq_restore(flags);
 	if (!wdcheck) {
-		printk("Zaptel watchdog on duty!\n");
+		printk("DAHDI watchdog on duty!\n");
 		wdcheck=1;
 	}
 	mod_timer(&watchdogtimer, jiffies + 2);
@@ -7743,19 +7743,19 @@ static int __init dahdi_init(void) {
 	}
 #else
 	if ((res = register_chrdev(DAHDI_MAJOR, "zaptel", &dahdi_fops))) {
-		printk(KERN_ERR "Unable to register Zaptel character device handler on %d\n", DAHDI_MAJOR);
+		printk(KERN_ERR "Unable to register DAHDI character device handler on %d\n", DAHDI_MAJOR);
 		return res;
 	}
 #endif /* CONFIG_DEVFS_FS */
 
 	printk(KERN_INFO "Zapata Telephony Interface Registered on major %d\n", DAHDI_MAJOR);
-	printk(KERN_INFO "Zaptel Version: %s\n", ZAPTEL_VERSION);
+	printk(KERN_INFO "DAHDI Version: %s\n", DAHDI_VERSION);
 	echo_can_init();
 	dahdi_conv_init();
 	fasthdlc_precalc();
 	rotate_sums();
 	rwlock_init(&chan_lock);
-#ifdef CONFIG_ZAPTEL_WATCHDOG
+#ifdef CONFIG_DAHDI_WATCHDOG
 	watchdog_init();
 #endif	
 	return res;
@@ -7791,7 +7791,7 @@ static void __exit dahdi_cleanup(void) {
 #endif /* CONFIG_DAHDI_UDEV */
 	unregister_chrdev(DAHDI_MAJOR, "zaptel");
 #endif
-#ifdef CONFIG_ZAPTEL_WATCHDOG
+#ifdef CONFIG_DAHDI_WATCHDOG
 	watchdog_cleanup();
 #endif
 

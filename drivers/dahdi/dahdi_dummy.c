@@ -1,5 +1,5 @@
 /*
- * Dummy Zaptel Driver for Zapata Telephony interface
+ * Dummy DAHDI Driver for Zapata Telephony interface
  *
  * Required: usb-uhci module and kernel > 2.4.4 OR kernel > 2.6.0
  *
@@ -263,9 +263,9 @@ extern uhci_t **uhci_devices;
 #endif
 
 
-#define ZAPTEL_RATE 1000                     /* zaptel ticks per second */
-#define ZAPTEL_TIME (1000000 / ZAPTEL_RATE)  /* zaptel tick time in us */
-#define ZAPTEL_TIME_NS (ZAPTEL_TIME * 1000)  /* zaptel tick time in ns */
+#define DAHDI_RATE 1000                     /* zaptel ticks per second */
+#define DAHDI_TIME (1000000 / DAHDI_RATE)  /* zaptel tick time in us */
+#define DAHDI_TIME_NS (DAHDI_TIME * 1000)  /* zaptel tick time in ns */
 
 /* Different bits of the debug variable: */
 #define DEBUG_GENERAL (1 << 0)
@@ -302,7 +302,7 @@ static void ztdummy_rtc_interrupt(void *private_data)
 
 	/* Is spinlock required here??? */
 	spin_lock_irqsave(&ztd->rtclock, flags);
-	ztd->counter += ZAPTEL_TIME;
+	ztd->counter += DAHDI_TIME;
 	while (ztd->counter >= current_rate) {
 		ztd->counter -= current_rate;
 		/* Update of RTC IRQ rate isn't possible from interrupt handler :( */
@@ -320,7 +320,7 @@ static enum hrtimer_restart ztdummy_hr_int(struct hrtimer *htmr)
 {
 	unsigned long overrun;
 	
-	/* Trigger Zaptel */
+	/* Trigger DAHDI */
 	dahdi_receive(&ztd->span);
 	dahdi_transmit(&ztd->span);
 
@@ -329,7 +329,7 @@ static enum hrtimer_restart ztdummy_hr_int(struct hrtimer *htmr)
 	 * We should worry if overrun is 2 or more; then we really missed 
 	 * a tick */
 	overrun = hrtimer_forward(&zaptimer, htmr->expires, 
-			ktime_set(0, ZAPTEL_TIME_NS));
+			ktime_set(0, DAHDI_TIME_NS));
 	if(overrun > 1) {
 		if(printk_ratelimit())
 			printk(KERN_NOTICE "ztdummy: HRTimer missed %lu ticks\n", 
@@ -354,7 +354,7 @@ static void ztdummy_timer(unsigned long param)
 	timer.expires = jiffies + 1;
 	add_timer(&timer);
 
-	ztd->counter += ZAPTEL_TIME;
+	ztd->counter += DAHDI_TIME;
 	while (ztd->counter >= HZ) {
 		ztd->counter -= HZ;
 		dahdi_receive(&ztd->span);
@@ -390,7 +390,7 @@ static int ztdummy_initialize(struct ztdummy *ztd)
 	sprintf(ztd->span.name, "ZTDUMMY/1");
 	snprintf(ztd->span.desc, sizeof(ztd->span.desc) - 1, "%s (source: " CLOCK_SRC ") %d", ztd->span.name, 1);
 	sprintf(ztd->chan.name, "ZTDUMMY/%d/%d", 1, 0);
-	dahdi_copy_string(ztd->span.devicetype, "Zaptel Dummy Timing Driver", sizeof(ztd->span.devicetype));
+	dahdi_copy_string(ztd->span.devicetype, "DAHDI Dummy Timing Driver", sizeof(ztd->span.devicetype));
 	ztd->chan.chanpos = 1;
 	ztd->span.chans = &ztd->chan;
 	ztd->span.channels = 0;		/* no channels on our span */
@@ -471,7 +471,7 @@ int init_module(void)
 	zaptimer.function = ztdummy_hr_int;
 
 	printk(KERN_DEBUG "ztdummy: Starting High Resolution Timer\n");
-	hrtimer_start(&zaptimer, ktime_set(0, ZAPTEL_TIME_NS), HRTIMER_MODE_REL);
+	hrtimer_start(&zaptimer, ktime_set(0, DAHDI_TIME_NS), HRTIMER_MODE_REL);
 	printk(KERN_INFO "ztdummy: High Resolution Timer started, good to go\n");
 #else
 	init_timer(&timer);
@@ -550,7 +550,7 @@ MODULE_PARM(debug, "i");
 #ifndef LINUX26
 MODULE_PARM(monitor, "i");
 #endif
-MODULE_DESCRIPTION("Dummy Zaptel Driver");
+MODULE_DESCRIPTION("Dummy DAHDI Driver");
 MODULE_AUTHOR("Robert Pleh <robert.pleh@hermes.si>");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");

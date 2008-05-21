@@ -1,12 +1,12 @@
-#ifndef _ZAPTEL_ARITH_H
-#define _ZAPTEL_ARITH_H
+#ifndef _DAHDI_ARITH_H
+#define _DAHDI_ARITH_H
 /*
  * Handy add/subtract functions to operate on chunks of shorts.
  * Feel free to add customizations for additional architectures
  *
  */
 
-#ifdef CONFIG_ZAPTEL_MMX
+#ifdef CONFIG_DAHDI_MMX
 #ifdef DAHDI_CHUNKSIZE
 static inline void __ACSS(volatile short *dst, const short *src)
 {
@@ -361,4 +361,4 @@ static inline short MAX16(const short *y, int len, int *pos)
 }
 
 #endif	/* MMX */
-#endif	/* _ZAPTEL_ARITH_H */
+#endif	/* _DAHDI_ARITH_H */

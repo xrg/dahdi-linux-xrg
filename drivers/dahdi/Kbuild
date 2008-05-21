@@ -52,7 +52,7 @@ $(obj)/radfw.h: $(src)/pciradio.rbt $(obj)/makefw
 $(obj)/makefw: $(src)/makefw.c
 	$(HOSTCC) -o $@ $^
 
-# set CONFIG_ZAPTEL_MMX for a number of CPU types.
+# set CONFIG_DAHDI_MMX for a number of CPU types.
 # Right now this part is not enabled, unless you build with
 # ZAPTEL_MMX_AUTO=something .
 ZAPMMX_WHITELIST_i386 = M586MMX M686 MPENTIUMII MPENTIUMIII MPENTIUMM \
@@ -68,6 +68,6 @@ ZAPMMX_CONFIG_VALS := $(strip  $(foreach var,$(ZAPMMX_CONFIG_VARS),$(var))  )
 ifneq (,$(ZAPTEL_MMX_AUTO))
   ifneq (,$(ZAPMMX_CONFIG_VALS))
     # TODO: make that 
-    CFLAGS_dahdi-base.o += -DCONFIG_ZAPTEL_MMX
+    CFLAGS_dahdi-base.o += -DCONFIG_DAHDI_MMX
   endif
 endif

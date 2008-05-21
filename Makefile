@@ -118,10 +118,10 @@ ifneq (,$(NETSCR_DIR))
 endif
 
 ifneq ($(wildcard .version),)
-  ZAPTELVERSION:=$(shell cat .version)
+  DAHDIVERSION:=$(shell cat .version)
 else
 ifneq ($(wildcard .svn),)
-  ZAPTELVERSION=SVN-$(shell build_tools/make_svn_branch_name)
+  DAHDIVERSION=SVN-$(shell build_tools/make_svn_branch_name)
 endif
 endif
 
@@ -135,7 +135,7 @@ endif
 	$(KMAKE) modules
 
 version.h:
-	@ZAPTELVERSION="${ZAPTELVERSION}" build_tools/make_version_h > $@.tmp
+	@DAHDIVERSION="${DAHDIVERSION}" build_tools/make_version_h > $@.tmp
 	@if cmp -s $@.tmp $@ ; then :; else \
 		mv $@.tmp $@ ; \
 	fi
