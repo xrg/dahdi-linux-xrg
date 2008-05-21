@@ -23,7 +23,7 @@
 #if !defined(_HPEC_ZAPTEL_H)
 #define _HPEC_ZAPTEL_H
 
-#define ZT_EC_ARRAY_UPDATE
+#define DAHDI_EC_ARRAY_UPDATE
 
 #include "hpec_user.h"
 #include "hpec.h"
@@ -62,7 +62,7 @@ static void memfree(void *ptr)
 static void echo_can_init(void)
 {
 	printk("Zaptel Echo Canceller: Digium High-Performance Echo Canceller\n");
-	hpec_init(logger, debug, ZT_CHUNKSIZE, memalloc, memfree);
+	hpec_init(logger, debug, DAHDI_CHUNKSIZE, memalloc, memfree);
 }
 
 static void echo_can_identify(char *buf, size_t len)
@@ -87,7 +87,7 @@ static inline void echo_can_array_update(struct echo_can_state *ec, short *iref,
 
 DECLARE_MUTEX(alloc_lock);
 
-static int echo_can_create(struct zt_echocanparams *ecp, struct zt_echocanparam *p,
+static int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p,
 			   struct echo_can_state **ec)
 {
 	if (ecp->param_count > 0) {
@@ -119,7 +119,7 @@ static int hpec_license_ioctl(unsigned int cmd, unsigned long data)
 	int result = 0;
 
 	switch (cmd) {
-	case ZT_EC_LICENSE_CHALLENGE:
+	case DAHDI_EC_LICENSE_CHALLENGE:
 		if (down_interruptible(&license_lock))
 			return -EINTR;
 		memset(&challenge, 0, sizeof(challenge));
@@ -129,7 +129,7 @@ static int hpec_license_ioctl(unsigned int cmd, unsigned long data)
 			result = -EFAULT;
 		up(&license_lock);
 		return result;
-	case ZT_EC_LICENSE_RESPONSE:
+	case DAHDI_EC_LICENSE_RESPONSE:
 		if (down_interruptible(&license_lock))
 			return -EINTR;
 		if (copy_from_user(&license, (unsigned char *) data, sizeof(license)))

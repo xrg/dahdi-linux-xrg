@@ -77,7 +77,7 @@ struct tcpvt {
 	int fd;
 	int fake;
 	int inuse;
-	struct zt_transcode_header *hdr;
+	struct dahdi_transcode_header *hdr;
 // 	struct ast_frame f;
 };
 
@@ -96,7 +96,7 @@ struct tctest_info {
 
 static int find_transcoders(struct tctest_info *tctest_info)
 {
-	struct zt_transcode_info info = { 0, };
+	struct dahdi_transcode_info info = { 0, };
 	int fd, res;
 
 	if ((fd = open("/dev/zap/transcode", O_RDWR)) < 0) {
@@ -105,8 +105,8 @@ static int find_transcoders(struct tctest_info *tctest_info)
 	}
 
 	tctest_info->total_chans = 0;
-	info.op = ZT_TCOP_GETINFO;
-	for (info.tcnum = 0; !(res = ioctl(fd, ZT_TRANSCODE_OP, &info)); info.tcnum++) {
+	info.op = DAHDI_TCOP_GETINFO;
+	for (info.tcnum = 0; !(res = ioctl(fd, DAHDI_TRANSCODE_OP, &info)); info.tcnum++) {
 		if (debug)
 			printf("Found transcoder %d, '%s' with %d channels.\n", info.tcnum, info.name, info.numchannels);
 		if ((info.tcnum % 2) == 0)
@@ -127,8 +127,8 @@ static int find_transcoders(struct tctest_info *tctest_info)
 static int open_transcoder(struct tcpvt *ztp, int dest, int source)
 {
 	int fd;
-	unsigned int x = ZT_TCOP_ALLOCATE;
-	struct zt_transcode_header *hdr;
+	unsigned int x = DAHDI_TCOP_ALLOCATE;
+	struct dahdi_transcode_header *hdr;
 	int flags;
 
 	if ((fd = open("/dev/zap/transcode", O_RDWR)) < 0)
@@ -146,7 +146,7 @@ static int open_transcoder(struct tcpvt *ztp, int dest, int source)
 		return -1;
 	}
 
-	if (hdr->magic != ZT_TRANSCODE_MAGIC) {
+	if (hdr->magic != DAHDI_TRANSCODE_MAGIC) {
 		printf("Transcoder header (%08x) wasn't magic.  Abandoning\n", hdr->magic);
 		munmap(hdr, sizeof(*hdr));
 		close(fd);
@@ -157,7 +157,7 @@ static int open_transcoder(struct tcpvt *ztp, int dest, int source)
 	hdr->srcfmt = source;
 	hdr->dstfmt = dest;
 
-	if (ioctl(fd, ZT_TRANSCODE_OP, &x)) {
+	if (ioctl(fd, DAHDI_TRANSCODE_OP, &x)) {
 		printf("Unable to attach transcoder: %s\n", strerror(errno));
 		munmap(hdr, sizeof(*hdr));
 		close(fd);
@@ -176,8 +176,8 @@ static void close_transcoder(struct tcpvt *ztp)
 {
 	unsigned int x;
 
-	x = ZT_TCOP_RELEASE;
-	if (ioctl(ztp->fd, ZT_TRANSCODE_OP, &x))
+	x = DAHDI_TCOP_RELEASE;
+	if (ioctl(ztp->fd, DAHDI_TRANSCODE_OP, &x))
 		printf("Failed to release transcoder channel: %s\n", strerror(errno));
 				
 	munmap(ztp->hdr, sizeof(*ztp->hdr));
@@ -187,7 +187,7 @@ static void close_transcoder(struct tcpvt *ztp)
 
 static int encode_packet(struct tcpvt *ztp, unsigned char *packet_in, unsigned char *packet_out)
 {
-	struct zt_transcode_header *hdr = ztp->hdr;
+	struct dahdi_transcode_header *hdr = ztp->hdr;
 	unsigned int x;
 
 	hdr->srcoffset = 0;
@@ -197,8 +197,8 @@ static int encode_packet(struct tcpvt *ztp, unsigned char *packet_in, unsigned c
 
 
 	hdr->dstoffset = AST_FRIENDLY_OFFSET;
-	x = ZT_TCOP_TRANSCODE;
-	if (ioctl(ztp->fd, ZT_TRANSCODE_OP, &x))
+	x = DAHDI_TCOP_TRANSCODE;
+	if (ioctl(ztp->fd, DAHDI_TRANSCODE_OP, &x))
 		printf("Failed to transcode: %s\n", strerror(errno));
 
 	usleep(20000);

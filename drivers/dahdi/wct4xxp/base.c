@@ -258,18 +258,18 @@ struct t4_span {
 #ifdef SUPPORT_GEN1
 	int e1check;			/* E1 check */
 #endif
-	struct zt_span span;
+	struct dahdi_span span;
 	unsigned char txsigs[16];	/* Transmit sigs */
 	int loopupcnt;
 	int loopdowncnt;
 #ifdef SUPPORT_GEN1
-	unsigned char ec_chunk1[31][ZT_CHUNKSIZE]; /* first EC chunk buffer */
-	unsigned char ec_chunk2[31][ZT_CHUNKSIZE]; /* second EC chunk buffer */
+	unsigned char ec_chunk1[31][DAHDI_CHUNKSIZE]; /* first EC chunk buffer */
+	unsigned char ec_chunk2[31][DAHDI_CHUNKSIZE]; /* second EC chunk buffer */
 #endif
 	int irqmisses;
 	
 	/* HDLC controller fields */
-	struct zt_chan *sigchan;
+	struct dahdi_chan *sigchan;
 	unsigned char sigmode;
 	int sigactive;
 	int frames_out;
@@ -285,7 +285,7 @@ struct t4_span {
 #ifdef ENABLE_WORKQUEUES
 	struct work_struct swork;
 #endif	
-	struct zt_chan chans[0];		/* Individual channels */
+	struct dahdi_chan chans[0];		/* Individual channels */
 };
 
 struct t4 {
@@ -355,15 +355,15 @@ static void t4_vpm450_init(struct t4 *wc);
 static void t4_vpm_set_dtmf_threshold(struct t4 *wc, unsigned int threshold);
 #endif
 static void __set_clear(struct t4 *wc, int span);
-static int t4_startup(struct zt_span *span);
-static int t4_shutdown(struct zt_span *span);
-static int t4_rbsbits(struct zt_chan *chan, int bits);
-static int t4_maint(struct zt_span *span, int cmd);
+static int t4_startup(struct dahdi_span *span);
+static int t4_shutdown(struct dahdi_span *span);
+static int t4_rbsbits(struct dahdi_chan *chan, int bits);
+static int t4_maint(struct dahdi_span *span, int cmd);
 #ifdef SUPPORT_GEN1
 static int t4_reset_dma(struct t4 *wc);
 #endif
-static void t4_hdlc_hard_xmit(struct zt_chan *chan);
-static int t4_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data);
+static void t4_hdlc_hard_xmit(struct dahdi_chan *chan);
+static int t4_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data);
 static void t4_tsi_assign(struct t4 *wc, int fromspan, int fromchan, int tospan, int tochan);
 static void t4_tsi_unassign(struct t4 *wc, int tospan, int tochan);
 static void __t4_set_timing_source(struct t4 *wc, int unit, int master, int slave);
@@ -760,20 +760,20 @@ static void t4_check_vpm450(struct t4 *wc)
 					   guessed it.  */
 					if (test_bit(channel, &wc->tspans[span]->dtmfmutemask)) {
 						unsigned long flags;
-						struct zt_chan *chan = &wc->tspans[span]->span.chans[channel];
+						struct dahdi_chan *chan = &wc->tspans[span]->span.chans[channel];
 						int y;
 						spin_lock_irqsave(&chan->lock, flags);
 						for (y=0;y<chan->numbufs;y++) {
 							if ((chan->inreadbuf > -1) && (chan->readidx[y]))
-								memset(chan->readbuf[chan->inreadbuf], ZT_XLAW(0, chan), chan->readidx[y]);
+								memset(chan->readbuf[chan->inreadbuf], DAHDI_XLAW(0, chan), chan->readidx[y]);
 						}
 						spin_unlock_irqrestore(&chan->lock, flags);
 					}
 					set_bit(channel, &wc->tspans[span]->dtmfactive);
-					zt_qevent_lock(&wc->tspans[span]->span.chans[channel], (ZT_EVENT_DTMFDOWN | tone));
+					dahdi_qevent_lock(&wc->tspans[span]->span.chans[channel], (DAHDI_EVENT_DTMFDOWN | tone));
 				} else {
 					clear_bit(channel, &wc->tspans[span]->dtmfactive);
-					zt_qevent_lock(&wc->tspans[span]->span.chans[channel], (ZT_EVENT_DTMFUP | tone));
+					dahdi_qevent_lock(&wc->tspans[span]->span.chans[channel], (DAHDI_EVENT_DTMFUP | tone));
 				}
 			}
 		}
@@ -817,26 +817,26 @@ static void t4_check_vpm400(struct t4 *wc, unsigned int newio)
 				digit = vpm_digits[regbyte];
 				if (!(wc->tspans[0]->spanflags & FLAG_VPM2GEN)) {
 					energy = t4_vpm_in(wc, x, 0x58 + channel);
-					energy = ZT_XLAW(energy, ts->chans);
+					energy = DAHDI_XLAW(energy, ts->chans);
 					ts->dtmfenergy[base] = energy;
 				}
 				set_bit(base, &ts->dtmfactive);
 				if (ts->dtmfdigit[base]) {
 					if (ts->dtmfmask & (1 << base))
-						zt_qevent_lock(&ts->span.chans[base], (ZT_EVENT_DTMFUP | ts->dtmfdigit[base]));
+						dahdi_qevent_lock(&ts->span.chans[base], (DAHDI_EVENT_DTMFUP | ts->dtmfdigit[base]));
 				}
 				ts->dtmfdigit[base] = digit;
 				if (test_bit(base, &ts->dtmfmask))
-					zt_qevent_lock(&ts->span.chans[base], (ZT_EVENT_DTMFDOWN | digit));
+					dahdi_qevent_lock(&ts->span.chans[base], (DAHDI_EVENT_DTMFDOWN | digit));
 				if (test_bit(base, &ts->dtmfmutemask)) {
 					/* Mute active receive buffer*/
 					unsigned long flags;
-					struct zt_chan *chan = &ts->span.chans[base];
+					struct dahdi_chan *chan = &ts->span.chans[base];
 					int y;
 					spin_lock_irqsave(&chan->lock, flags);
 					for (y=0;y<chan->numbufs;y++) {
 						if ((chan->inreadbuf > -1) && (chan->readidx[y]))
-							memset(chan->readbuf[chan->inreadbuf], ZT_XLAW(0, chan), chan->readidx[y]);
+							memset(chan->readbuf[chan->inreadbuf], DAHDI_XLAW(0, chan), chan->readidx[y]);
 					}
 					spin_unlock_irqrestore(&chan->lock, flags);
 				}
@@ -867,7 +867,7 @@ static void t4_check_vpm400(struct t4 *wc, unsigned int newio)
 				clear_bit(base, &ts->dtmfactive);
 				if (ts->dtmfdigit[base]) {
 					if (test_bit(base, &ts->dtmfmask))
-						zt_qevent_lock(&ts->span.chans[base], (ZT_EVENT_DTMFUP | ts->dtmfdigit[base]));
+						dahdi_qevent_lock(&ts->span.chans[base], (DAHDI_EVENT_DTMFUP | ts->dtmfdigit[base]));
 				}
 				digit = ts->dtmfdigit[base];
 				ts->dtmfdigit[base] = 0;
@@ -938,7 +938,7 @@ static inline void t4_framer_cmd_wait(struct t4 *wc, unsigned int span, int cmd)
 	t4_framer_out(wc, span, FRMR_CMDR, cmd);
 }
 
-static int hdlc_start(struct t4 *wc, unsigned int span, struct zt_chan *chan, unsigned char mode)
+static int hdlc_start(struct t4 *wc, unsigned int span, struct dahdi_chan *chan, unsigned char mode)
 {
 	struct t4_span *t = wc->tspans[span];
 	unsigned char imr0, imr1;
@@ -999,7 +999,7 @@ static void __set_clear(struct t4 *wc, int span)
 	if ((ts->spantype == TYPE_T1) || (ts->spantype == TYPE_J1)) {
 		for (i=0;i<24;i++) {
 			j = (i/8);
-			if (ts->span.chans[i].flags & ZT_FLAG_CLEAR) {
+			if (ts->span.chans[i].flags & DAHDI_FLAG_CLEAR) {
 				val |= 1 << (7 - (i % 8));
 				ts->notclear &= ~(1 << i);
 			} else
@@ -1014,7 +1014,7 @@ static void __set_clear(struct t4 *wc, int span)
 		}
 	} else {
 		for (i=0;i<31;i++) {
-			if (ts->span.chans[i].flags & ZT_FLAG_CLEAR)
+			if (ts->span.chans[i].flags & DAHDI_FLAG_CLEAR)
 				ts->notclear &= ~(1 << i);
 			else 
 				ts->notclear |= (1 << i);
@@ -1041,7 +1041,7 @@ static void set_clear(struct t4 *wc, int span)
 }
 #endif
 
-static int t4_dacs(struct zt_chan *dst, struct zt_chan *src)
+static int t4_dacs(struct dahdi_chan *dst, struct dahdi_chan *src)
 {
 	struct t4 *wc;
 	struct t4_span *ts;
@@ -1106,7 +1106,7 @@ static int t4_vpm_unit(int span, int channel)
 	return unit;
 }
 
-static int t4_echocan(struct zt_chan *chan, int eclen)
+static int t4_echocan(struct dahdi_chan *chan, int eclen)
 {
 	struct t4 *wc = chan->pvt;
 	int channel;
@@ -1145,7 +1145,7 @@ static int t4_echocan(struct zt_chan *chan, int eclen)
 }
 #endif
 
-static int t4_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data)
+static int t4_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data)
 {
 	struct t4_regs regs;
 	int x;
@@ -1175,18 +1175,18 @@ static int t4_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data)
 			return -EFAULT;
 		break;
 #ifdef VPM_SUPPORT
-	case ZT_TONEDETECT:
+	case DAHDI_TONEDETECT:
 		if (get_user(j, (int *)data))
 			return -EFAULT;
 		if (!wc->vpm)
 			return -ENOSYS;
 		if (j && (vpmdtmfsupport == 0))
 			return -ENOSYS;
-		if (j & ZT_TONEDETECT_ON)
+		if (j & DAHDI_TONEDETECT_ON)
 			set_bit(chan->chanpos - 1, &ts->dtmfmask);
 		else
 			clear_bit(chan->chanpos - 1, &ts->dtmfmask);
-		if (j & ZT_TONEDETECT_MUTE)
+		if (j & DAHDI_TONEDETECT_MUTE)
 			set_bit(chan->chanpos - 1, &ts->dtmfmutemask);
 		else
 			clear_bit(chan->chanpos - 1, &ts->dtmfmutemask);
@@ -1195,7 +1195,7 @@ static int t4_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data)
 			if (!wc->t1e1)
 				channel += (4 << 2);
 			channel |= chan->span->offset;
-			vpm450m_setdtmf(wc->vpm450m, channel, j & ZT_TONEDETECT_ON, j & ZT_TONEDETECT_MUTE);
+			vpm450m_setdtmf(wc->vpm450m, channel, j & DAHDI_TONEDETECT_ON, j & DAHDI_TONEDETECT_MUTE);
 		}
 		return 0;
 #endif
@@ -1210,7 +1210,7 @@ static void inline t4_hdlc_xmit_fifo(struct t4 *wc, unsigned int span, struct t4
 	int res, i, size = 32;
 	unsigned char buf[32];
 
-	res = zt_hdlc_getbuf(ts->sigchan, buf, &size);
+	res = dahdi_hdlc_getbuf(ts->sigchan, buf, &size);
 	if (debug & DEBUG_FRAMER) printk("Got buffer sized %d and res %d for %d\n", size, res, span);
 	if (size > 0) {
 		ts->sigactive = 1;
@@ -1243,7 +1243,7 @@ static void inline t4_hdlc_xmit_fifo(struct t4 *wc, unsigned int span, struct t4
 		ts->sigactive = 0;
 }
 
-static void t4_hdlc_hard_xmit(struct zt_chan *chan)
+static void t4_hdlc_hard_xmit(struct dahdi_chan *chan)
 {
 	struct t4 *wc = chan->pvt;
 	int span = chan->span->offset;
@@ -1264,29 +1264,29 @@ static void t4_hdlc_hard_xmit(struct zt_chan *chan)
 		t4_hdlc_xmit_fifo(wc, span, ts);
 }
 
-static int t4_maint(struct zt_span *span, int cmd)
+static int t4_maint(struct dahdi_span *span, int cmd)
 {
 	struct t4_span *ts = span->pvt;
 	struct t4 *wc = ts->owner;
 
 	if (ts->spantype == TYPE_E1) {
 		switch(cmd) {
-		case ZT_MAINT_NONE:
+		case DAHDI_MAINT_NONE:
 			printk("XXX Turn off local and remote loops E1 XXX\n");
 			break;
-		case ZT_MAINT_LOCALLOOP:
+		case DAHDI_MAINT_LOCALLOOP:
 			printk("XXX Turn on local loopback E1 XXX\n");
 			break;
-		case ZT_MAINT_REMOTELOOP:
+		case DAHDI_MAINT_REMOTELOOP:
 			printk("XXX Turn on remote loopback E1 XXX\n");
 			break;
-		case ZT_MAINT_LOOPUP:
+		case DAHDI_MAINT_LOOPUP:
 			printk("XXX Send loopup code E1 XXX\n");
 			break;
-		case ZT_MAINT_LOOPDOWN:
+		case DAHDI_MAINT_LOOPDOWN:
 			printk("XXX Send loopdown code E1 XXX\n");
 			break;
-		case ZT_MAINT_LOOPSTOP:
+		case DAHDI_MAINT_LOOPSTOP:
 			printk("XXX Stop sending loop codes E1 XXX\n");
 			break;
 		default:
@@ -1295,22 +1295,22 @@ static int t4_maint(struct zt_span *span, int cmd)
 		}
 	} else {
 		switch(cmd) {
-	    case ZT_MAINT_NONE:
+	    case DAHDI_MAINT_NONE:
 			printk("XXX Turn off local and remote loops T1 XXX\n");
 			break;
-	    case ZT_MAINT_LOCALLOOP:
+	    case DAHDI_MAINT_LOCALLOOP:
 			printk("XXX Turn on local loop and no remote loop XXX\n");
 			break;
-	    case ZT_MAINT_REMOTELOOP:
+	    case DAHDI_MAINT_REMOTELOOP:
 			printk("XXX Turn on remote loopup XXX\n");
 			break;
-	    case ZT_MAINT_LOOPUP:
+	    case DAHDI_MAINT_LOOPUP:
 			t4_framer_out(wc, span->offset, 0x21, 0x50);	/* FMR5: Nothing but RBS mode */
 			break;
-	    case ZT_MAINT_LOOPDOWN:
+	    case DAHDI_MAINT_LOOPDOWN:
 			t4_framer_out(wc, span->offset, 0x21, 0x60);	/* FMR5: Nothing but RBS mode */
 			break;
-	    case ZT_MAINT_LOOPSTOP:
+	    case DAHDI_MAINT_LOOPSTOP:
 			t4_framer_out(wc, span->offset, 0x21, 0x40);	/* FMR5: Nothing but RBS mode */
 			break;
 	    default:
@@ -1321,7 +1321,7 @@ static int t4_maint(struct zt_span *span, int cmd)
 	return 0;
 }
 
-static int t4_rbsbits(struct zt_chan *chan, int bits)
+static int t4_rbsbits(struct dahdi_chan *chan, int bits)
 {
 	u_char m,c;
 	int k,n,b;
@@ -1347,7 +1347,7 @@ static int t4_rbsbits(struct zt_chan *chan, int bits)
 		ts->txsigs[b] = c;
 		  /* output them to the chip */
 		__t4_framer_out(wc,k,0x71 + b,c); 
-	} else if (ts->span.lineconfig & ZT_CONFIG_D4) {
+	} else if (ts->span.lineconfig & DAHDI_CONFIG_D4) {
 		n = chan->chanpos - 1;
 		b = (n/4);
 		c = ts->txsigs[b];
@@ -1358,7 +1358,7 @@ static int t4_rbsbits(struct zt_chan *chan, int bits)
 		  /* output them to the chip */
 		__t4_framer_out(wc,k,0x70 + b,c); 
 		__t4_framer_out(wc,k,0x70 + b + 6,c); 
-	} else if (ts->span.lineconfig & ZT_CONFIG_ESF) {
+	} else if (ts->span.lineconfig & DAHDI_CONFIG_ESF) {
 		n = chan->chanpos - 1;
 		b = (n/2);
 		c = ts->txsigs[b];
@@ -1375,7 +1375,7 @@ static int t4_rbsbits(struct zt_chan *chan, int bits)
 	return 0;
 }
 
-static int t4_shutdown(struct zt_span *span)
+static int t4_shutdown(struct dahdi_span *span)
 {
 	int tspan;
 	int wasrunning;
@@ -1396,19 +1396,19 @@ static int t4_shutdown(struct zt_span *span)
 		hdlc_stop(wc, span->offset);
 	
 	spin_lock_irqsave(&wc->reglock, flags);
-	wasrunning = span->flags & ZT_FLAG_RUNNING;
+	wasrunning = span->flags & DAHDI_FLAG_RUNNING;
 
-	span->flags &= ~ZT_FLAG_RUNNING;
+	span->flags &= ~DAHDI_FLAG_RUNNING;
 	__t4_set_led(wc, span->offset, WC_OFF);
 	if (((wc->numspans == 4) && 
-	    (!(wc->tspans[0]->span.flags & ZT_FLAG_RUNNING)) &&
-	    (!(wc->tspans[1]->span.flags & ZT_FLAG_RUNNING)) &&
-	    (!(wc->tspans[2]->span.flags & ZT_FLAG_RUNNING)) &&
-	    (!(wc->tspans[3]->span.flags & ZT_FLAG_RUNNING)))
+	    (!(wc->tspans[0]->span.flags & DAHDI_FLAG_RUNNING)) &&
+	    (!(wc->tspans[1]->span.flags & DAHDI_FLAG_RUNNING)) &&
+	    (!(wc->tspans[2]->span.flags & DAHDI_FLAG_RUNNING)) &&
+	    (!(wc->tspans[3]->span.flags & DAHDI_FLAG_RUNNING)))
 	    			|| 
 	    ((wc->numspans == 2) && 
-	    (!(wc->tspans[0]->span.flags & ZT_FLAG_RUNNING)) &&
-	    (!(wc->tspans[1]->span.flags & ZT_FLAG_RUNNING)))) {
+	    (!(wc->tspans[0]->span.flags & DAHDI_FLAG_RUNNING)) &&
+	    (!(wc->tspans[1]->span.flags & DAHDI_FLAG_RUNNING)))) {
 		/* No longer in use, disable interrupts */
 		printk("TE%dXXP: Disabling interrupts since there are no active spans\n", wc->numspans);
 		set_bit(T4_STOP_DMA, &wc->checkflag);
@@ -1427,7 +1427,7 @@ static int t4_shutdown(struct zt_span *span)
 	return 0;
 }
 
-static int t4_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
+static int t4_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 {
 	int i;
 	struct t4_span *ts = span->pvt;
@@ -1462,20 +1462,20 @@ static int t4_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
 	clear_bit(T4_STOP_DMA, &wc->checkflag);
 	
 	/* If we're already running, then go ahead and apply the changes */
-	if (span->flags & ZT_FLAG_RUNNING)
+	if (span->flags & DAHDI_FLAG_RUNNING)
 		return t4_startup(span);
 	printk("Done with spanconfig!\n");
 	return 0;
 }
 
-static int t4_chanconfig(struct zt_chan *chan, int sigtype)
+static int t4_chanconfig(struct dahdi_chan *chan, int sigtype)
 {
 	int alreadyrunning;
 	unsigned long flags;
 	struct t4 *wc = chan->pvt;
 	struct t4_span *ts = wc->tspans[chan->span->offset];
 
-	alreadyrunning = ts->span.flags & ZT_FLAG_RUNNING;
+	alreadyrunning = ts->span.flags & DAHDI_FLAG_RUNNING;
 	if (debug & DEBUG_MAIN) {
 		if (alreadyrunning)
 			printk("TE%dXXP: Reconfigured channel %d (%s) sigtype %d\n", wc->numspans, chan->channo, chan->name, sigtype);
@@ -1491,13 +1491,13 @@ static int t4_chanconfig(struct zt_chan *chan, int sigtype)
 	spin_unlock_irqrestore(&wc->reglock, flags);	
 
 	/* (re)configure signalling channel */
-	if ((sigtype == ZT_SIG_HARDHDLC) || (ts->sigchan == chan)) {
+	if ((sigtype == DAHDI_SIG_HARDHDLC) || (ts->sigchan == chan)) {
 		if (debug & DEBUG_FRAMER)
-				printk("%sonfiguring hardware HDLC on %s\n", ((sigtype == ZT_SIG_HARDHDLC) ? "C" : "Unc"), chan->name);
+				printk("%sonfiguring hardware HDLC on %s\n", ((sigtype == DAHDI_SIG_HARDHDLC) ? "C" : "Unc"), chan->name);
 		if (alreadyrunning) {
 			if (ts->sigchan)
 				hdlc_stop(wc, ts->sigchan->span->offset);
-			if (sigtype == ZT_SIG_HARDHDLC) {
+			if (sigtype == DAHDI_SIG_HARDHDLC) {
 				if (hdlc_start(wc, chan->span->offset, chan, ts->sigmode)) {
 					printk("Error initializing signalling controller\n");
 					return -1;
@@ -1511,7 +1511,7 @@ static int t4_chanconfig(struct zt_chan *chan, int sigtype)
 		}
 		else {
 			spin_lock_irqsave(&wc->reglock, flags);
-			ts->sigchan = (sigtype == ZT_SIG_HARDHDLC) ? chan : NULL;
+			ts->sigchan = (sigtype == DAHDI_SIG_HARDHDLC) ? chan : NULL;
 			spin_unlock_irqrestore(&wc->reglock, flags);
 			ts->sigactive = 0;
 		}
@@ -1519,7 +1519,7 @@ static int t4_chanconfig(struct zt_chan *chan, int sigtype)
 	return 0;
 }
 
-static int t4_open(struct zt_chan *chan)
+static int t4_open(struct dahdi_chan *chan)
 {
 #ifndef LINUX26
 	MOD_INC_USE_COUNT;
@@ -1530,7 +1530,7 @@ static int t4_open(struct zt_chan *chan)
 	return 0;
 }
 
-static int t4_close(struct zt_chan *chan)
+static int t4_close(struct dahdi_chan *chan)
 {
 #ifndef LINUX26
 	MOD_DEC_USE_COUNT;
@@ -1603,15 +1603,15 @@ static void init_spans(struct t4 *wc)
 		
 		if (ts->spantype == TYPE_T1 || ts->spantype == TYPE_J1) {
 			ts->span.channels = 24;
-			ts->span.deflaw = ZT_LAW_MULAW;
-			ts->span.linecompat = ZT_CONFIG_AMI | ZT_CONFIG_B8ZS | ZT_CONFIG_D4 | ZT_CONFIG_ESF;
+			ts->span.deflaw = DAHDI_LAW_MULAW;
+			ts->span.linecompat = DAHDI_CONFIG_AMI | DAHDI_CONFIG_B8ZS | DAHDI_CONFIG_D4 | DAHDI_CONFIG_ESF;
 		} else {
 			ts->span.channels = 31;
-			ts->span.deflaw = ZT_LAW_ALAW;
-			ts->span.linecompat = ZT_CONFIG_HDB3 | ZT_CONFIG_CCS | ZT_CONFIG_CRC4;
+			ts->span.deflaw = DAHDI_LAW_ALAW;
+			ts->span.linecompat = DAHDI_CONFIG_HDB3 | DAHDI_CONFIG_CCS | DAHDI_CONFIG_CRC4;
 		}
 		ts->span.chans = ts->chans;
-		ts->span.flags = ZT_FLAG_RBS;
+		ts->span.flags = DAHDI_FLAG_RBS;
 		ts->span.ioctl = t4_ioctl;
 		ts->span.hdlc_hard_xmit = t4_hdlc_hard_xmit;
 		if (gen2) {
@@ -1627,10 +1627,10 @@ static void init_spans(struct t4 *wc)
 		ts->readchunk = (void *)(wc->readchunk + x * 32 * 2);
 		init_waitqueue_head(&ts->span.maintq);
 		for (y=0;y<wc->tspans[x]->span.channels;y++) {
-			struct zt_chan *mychans = ts->chans + y;
+			struct dahdi_chan *mychans = ts->chans + y;
 			sprintf(mychans->name, "TE%d/%d/%d/%d", wc->numspans, wc->num, x + 1, y + 1);
-			mychans->sigcap = ZT_SIG_EM | ZT_SIG_CLEAR | ZT_SIG_FXSLS | ZT_SIG_FXSGS | ZT_SIG_FXSKS | ZT_SIG_HARDHDLC | ZT_SIG_MTP2 |
-									 ZT_SIG_FXOLS | ZT_SIG_FXOGS | ZT_SIG_FXOKS | ZT_SIG_CAS | ZT_SIG_EM_E1 | ZT_SIG_DACS_RBS;
+			mychans->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXSKS | DAHDI_SIG_HARDHDLC | DAHDI_SIG_MTP2 |
+									 DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_FXOKS | DAHDI_SIG_CAS | DAHDI_SIG_EM_E1 | DAHDI_SIG_DACS_RBS;
 			mychans->pvt = wc;
 			mychans->chanpos = y + 1;
 			if (gen2) {
@@ -1790,8 +1790,8 @@ static int __t4_findsync(struct t4 *wc)
 					if (cards[x]->tspans[i]->syncpos) {
 						nonzero = 1;
 						if ((cards[x]->tspans[i]->syncpos == p) &&
-						    !(cards[x]->tspans[i]->span.alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE | ZT_ALARM_LOOPBACK)) &&
-							(cards[x]->tspans[i]->span.flags & ZT_FLAG_RUNNING)) {
+						    !(cards[x]->tspans[i]->span.alarms & (DAHDI_ALARM_RED | DAHDI_ALARM_BLUE | DAHDI_ALARM_LOOPBACK)) &&
+							(cards[x]->tspans[i]->span.flags & DAHDI_FLAG_RUNNING)) {
 								/* This makes a good sync source */
 								newsyncsrc = cards[x]->tspans[i]->span.spanno;
 								newsyncnum = x;
@@ -1834,8 +1834,8 @@ static void __t4_set_timing_source_auto(struct t4 *wc)
 	} else {
 		for (x=0;x<wc->numspans;x++) {
 			if (wc->tspans[x]->sync) {
-				if ((wc->tspans[wc->tspans[x]->psync - 1]->span.flags & ZT_FLAG_RUNNING) && 
-					!(wc->tspans[wc->tspans[x]->psync - 1]->span.alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE) )) {
+				if ((wc->tspans[wc->tspans[x]->psync - 1]->span.flags & DAHDI_FLAG_RUNNING) && 
+					!(wc->tspans[wc->tspans[x]->psync - 1]->span.alarms & (DAHDI_ALARM_RED | DAHDI_ALARM_BLUE) )) {
 						/* Valid timing source */
 						__t4_set_timing_source(wc, wc->tspans[x]->psync - 1, 0, 0);
 						return;
@@ -1866,14 +1866,14 @@ static void __t4_configure_t1(struct t4 *wc, int unit, int lineconfig, int txlev
 	__t4_framer_out(wc, unit, 0x1e, fmr2);
 
 	/* Configure line interface */
-	if (lineconfig & ZT_CONFIG_AMI) {
+	if (lineconfig & DAHDI_CONFIG_AMI) {
 		line = "AMI";
 		fmr0 = 0xa0;
 	} else {
 		line = "B8ZS";
 		fmr0 = 0xf0;
 	}
-	if (lineconfig & ZT_CONFIG_D4) {
+	if (lineconfig & DAHDI_CONFIG_D4) {
 		framing = "D4";
 	} else {
 		framing = "ESF";
@@ -1940,7 +1940,7 @@ static void __t4_configure_e1(struct t4 *wc, int unit, int lineconfig)
 	fmr2 = 0x03; /* FMR2: Auto transmit remote alarm, auto loss of multiframe recovery, no payload loopback */
 	if (loopback)
 		fmr2 |= 0x4;
-	if (lineconfig & ZT_CONFIG_CRC4) {
+	if (lineconfig & DAHDI_CONFIG_CRC4) {
 		fmr1 |= 0x08;	/* CRC4 transmit */
 		fmr2 |= 0xc0;	/* CRC4 receive */
 		crc4 = "/CRC4";
@@ -1949,14 +1949,14 @@ static void __t4_configure_e1(struct t4 *wc, int unit, int lineconfig)
 	__t4_framer_out(wc, unit, 0x1e, fmr2);
 
 	/* Configure line interface */
-	if (lineconfig & ZT_CONFIG_AMI) {
+	if (lineconfig & DAHDI_CONFIG_AMI) {
 		line = "AMI";
 		fmr0 = 0xa0;
 	} else {
 		line = "HDB3";
 		fmr0 = 0xf0;
 	}
-	if (lineconfig & ZT_CONFIG_CCS) {
+	if (lineconfig & DAHDI_CONFIG_CCS) {
 		framing = "CCS";
 		imr3extra = 0x28;
 	} else {
@@ -2008,7 +2008,7 @@ static void __t4_configure_e1(struct t4 *wc, int unit, int lineconfig)
 	printk("TE%dXXP: Span %d configured for %s/%s%s\n", wc->numspans, unit + 1, framing, line, crc4);
 }
 
-static int t4_startup(struct zt_span *span)
+static int t4_startup(struct dahdi_span *span)
 {
 #ifdef SUPPORT_GEN1
 	int i;
@@ -2028,16 +2028,16 @@ static int t4_startup(struct zt_span *span)
 
 	spin_lock_irqsave(&wc->reglock, flags);
 
-	alreadyrunning = span->flags & ZT_FLAG_RUNNING;
+	alreadyrunning = span->flags & DAHDI_FLAG_RUNNING;
 
 #ifdef SUPPORT_GEN1
 	/* initialize the start value for the entire chunk of last ec buffer */
 	for(i = 0; i < span->channels; i++)
 	{
 		memset(ts->ec_chunk1[i],
-			ZT_LIN2X(0,&span->chans[i]),ZT_CHUNKSIZE);
+			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
 		memset(ts->ec_chunk2[i],
-			ZT_LIN2X(0,&span->chans[i]),ZT_CHUNKSIZE);
+			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
 	}
 #endif
 	/* Force re-evaluation fo timing source */
@@ -2055,7 +2055,7 @@ static int t4_startup(struct zt_span *span)
 	__set_clear(wc, span->offset);
 	
 	if (!alreadyrunning) {
-		span->flags |= ZT_FLAG_RUNNING;
+		span->flags |= DAHDI_FLAG_RUNNING;
 		wc->spansstarted++;
 		/* enable interrupts */
 		/* Start DMA, enabling DMA interrupts on read only */
@@ -2078,7 +2078,7 @@ static int t4_startup(struct zt_span *span)
 	}
 
 	if (ts->sigchan) {
-		struct zt_chan *sigchan = ts->sigchan;
+		struct dahdi_chan *sigchan = ts->sigchan;
 
 		spin_unlock_irqrestore(&wc->reglock, flags);
 		if (hdlc_start(wc, span->offset, sigchan, ts->sigmode)) {
@@ -2118,7 +2118,7 @@ static inline void e1_check(struct t4 *wc, int span, int val)
 {
 	struct t4_span *ts = wc->tspans[span];
 	if ((ts->span.channels > 24) &&
-	    (ts->span.flags & ZT_FLAG_RUNNING) &&
+	    (ts->span.flags & DAHDI_FLAG_RUNNING) &&
 	    !(ts->span.alarms) &&
 	    (!wc->e1recover))   {
 		if (val != 0x1b) {
@@ -2154,7 +2154,7 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 			dbl = 1;
 		wc->last0 = 0;
 	} else {
-		readchunk = wc->readchunk + ZT_CHUNKSIZE * 32;
+		readchunk = wc->readchunk + DAHDI_CHUNKSIZE * 32;
 		if (wc->last0) 
 			dbl = 1;
 		wc->last0 = 1;
@@ -2165,7 +2165,7 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 		if (debug & DEBUG_MAIN)
 			printk("TE%dXXP: Double/missed interrupt detected\n", wc->numspans);
 	}
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		for (z=0;z<24;z++) {
 			/* All T1/E1 channels */
 			tmp = readchunk[z+1+offset];
@@ -2205,25 +2205,25 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 		readchunk += 32;
 	}
 	for (x=0;x<wc->numspans;x++) {
-		if (wc->tspans[x]->span.flags & ZT_FLAG_RUNNING) {
+		if (wc->tspans[x]->span.flags & DAHDI_FLAG_RUNNING) {
 			for (y=0;y<wc->tspans[x]->span.channels;y++) {
 				/* Echo cancel double buffered data */
-				zt_ec_chunk(&wc->tspans[x]->span.chans[y], 
+				dahdi_ec_chunk(&wc->tspans[x]->span.chans[y], 
 				    wc->tspans[x]->span.chans[y].readchunk, 
 					wc->tspans[x]->ec_chunk2[y]);
 				memcpy(wc->tspans[x]->ec_chunk2[y],wc->tspans[x]->ec_chunk1[y],
-					ZT_CHUNKSIZE);
+					DAHDI_CHUNKSIZE);
 				memcpy(wc->tspans[x]->ec_chunk1[y],
 					wc->tspans[x]->span.chans[y].writechunk,
-						ZT_CHUNKSIZE);
+						DAHDI_CHUNKSIZE);
 			}
-			zt_receive(&wc->tspans[x]->span);
+			dahdi_receive(&wc->tspans[x]->span);
 		}
 	}
 }
 #endif
 
-#if (ZT_CHUNKSIZE != 8)
+#if (DAHDI_CHUNKSIZE != 8)
 #error Sorry, nextgen does not support chunksize != 8
 #endif
 
@@ -2237,7 +2237,7 @@ static inline void __receive_span(struct t4_span *ts)
 		for (y=0;y<ts->span.channels;y++) {
 			/* Mute any DTMFs which are supposed to be muted */
 			if (test_bit(y, &merged)) {
-				memset(ts->span.chans[y].readchunk, ZT_XLAW(0, (ts->span.chans + y)), ZT_CHUNKSIZE);
+				memset(ts->span.chans[y].readchunk, DAHDI_XLAW(0, (ts->span.chans + y)), DAHDI_CHUNKSIZE);
 			}
 		}
 	}
@@ -2262,13 +2262,13 @@ static inline void __receive_span(struct t4_span *ts)
 	prefetch((void *)(ts->writechunk + 56));
 #endif
 
-	zt_ec_span(&ts->span);
-	zt_receive(&ts->span);
+	dahdi_ec_span(&ts->span);
+	dahdi_receive(&ts->span);
 }
 
 static inline void __transmit_span(struct t4_span *ts)
 {
-	zt_transmit(&ts->span);
+	dahdi_transmit(&ts->span);
 }
 
 #ifdef ENABLE_WORKQUEUES
@@ -2288,7 +2288,7 @@ static void t4_prep_gen2(struct t4 *wc)
 {
 	int x;
 	for (x=0;x<wc->numspans;x++) {
-		if (wc->tspans[x]->span.flags & ZT_FLAG_RUNNING) {
+		if (wc->tspans[x]->span.flags & DAHDI_FLAG_RUNNING) {
 			__receive_span(wc->tspans[x]);
 			__transmit_span(wc->tspans[x]);
 		}
@@ -2309,14 +2309,14 @@ static void t4_transmitprep(struct t4 *wc, int irq)
 		/* First part */
 		writechunk = wc->writechunk + 1;
 	} else {
-		writechunk = wc->writechunk + ZT_CHUNKSIZE * 32  + 1;
+		writechunk = wc->writechunk + DAHDI_CHUNKSIZE * 32  + 1;
 	}
 	for (y=0;y<wc->numspans;y++) {
-		if (wc->tspans[y]->span.flags & ZT_FLAG_RUNNING) 
-			zt_transmit(&wc->tspans[y]->span);
+		if (wc->tspans[y]->span.flags & DAHDI_FLAG_RUNNING) 
+			dahdi_transmit(&wc->tspans[y]->span);
 	}
 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		/* Once per chunk */
 		for (z=0;z<24;z++) {
 			/* All T1/E1 channels */
@@ -2358,46 +2358,46 @@ static void t4_check_sigbits(struct t4 *wc, int span)
 	if (debug & DEBUG_RBS)
 		printk("Checking sigbits on span %d\n", span + 1);
 
-	if (!(ts->span.flags & ZT_FLAG_RUNNING))
+	if (!(ts->span.flags & DAHDI_FLAG_RUNNING))
 		return;
 	if (ts->spantype == TYPE_E1) {
 		for (i = 0; i < 15; i++) {
 			a = t4_framer_in(wc, span, 0x71 + i);
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(ts->span.chans[i+16].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i+16].sig & DAHDI_SIG_CLEAR)) {
 				if (ts->span.chans[i+16].rxsig != rxs)
-					zt_rbsbits(&ts->span.chans[i+16], rxs);
+					dahdi_rbsbits(&ts->span.chans[i+16], rxs);
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(ts->span.chans[i].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
 				if (ts->span.chans[i].rxsig != rxs)
-					zt_rbsbits(&ts->span.chans[i], rxs);
+					dahdi_rbsbits(&ts->span.chans[i], rxs);
 			}
 		}
-	} else if (ts->span.lineconfig & ZT_CONFIG_D4) {
+	} else if (ts->span.lineconfig & DAHDI_CONFIG_D4) {
 		for (i = 0; i < 24; i+=4) {
 			a = t4_framer_in(wc, span, 0x70 + (i>>2));
 			/* Get high channel in low bits */
 			rxs = (a & 0x3) << 2;
-			if (!(ts->span.chans[i+3].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i+3].sig & DAHDI_SIG_CLEAR)) {
 				if (ts->span.chans[i+3].rxsig != rxs)
-					zt_rbsbits(&ts->span.chans[i+3], rxs);
+					dahdi_rbsbits(&ts->span.chans[i+3], rxs);
 			}
 			rxs = (a & 0xc);
-			if (!(ts->span.chans[i+2].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i+2].sig & DAHDI_SIG_CLEAR)) {
 				if (ts->span.chans[i+2].rxsig != rxs)
-					zt_rbsbits(&ts->span.chans[i+2], rxs);
+					dahdi_rbsbits(&ts->span.chans[i+2], rxs);
 			}
 			rxs = (a >> 2) & 0xc;
-			if (!(ts->span.chans[i+1].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
 				if (ts->span.chans[i+1].rxsig != rxs)
-					zt_rbsbits(&ts->span.chans[i+1], rxs);
+					dahdi_rbsbits(&ts->span.chans[i+1], rxs);
 			}
 			rxs = (a >> 4) & 0xc;
-			if (!(ts->span.chans[i].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
 				if (ts->span.chans[i].rxsig != rxs)
-					zt_rbsbits(&ts->span.chans[i], rxs);
+					dahdi_rbsbits(&ts->span.chans[i], rxs);
 			}
 		}
 	} else {
@@ -2405,17 +2405,17 @@ static void t4_check_sigbits(struct t4 *wc, int span)
 			a = t4_framer_in(wc, span, 0x70 + (i>>1));
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(ts->span.chans[i+1].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
 				/* XXX Not really reset on every trans! XXX */
 				if (ts->span.chans[i+1].rxsig != rxs) {
-					zt_rbsbits(&ts->span.chans[i+1], rxs);
+					dahdi_rbsbits(&ts->span.chans[i+1], rxs);
 				}
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(ts->span.chans[i].sig & ZT_SIG_CLEAR)) {
+			if (!(ts->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
 				/* XXX Not really reset on every trans! XXX */
 				if (ts->span.chans[i].rxsig != rxs) {
-					zt_rbsbits(&ts->span.chans[i], rxs);
+					dahdi_rbsbits(&ts->span.chans[i], rxs);
 				}
 			}
 		}
@@ -2430,7 +2430,7 @@ static void t4_check_alarms(struct t4 *wc, int span)
 	struct t4_span *ts = wc->tspans[span];
 	unsigned long flags;
 
-	if (!(ts->span.flags & ZT_FLAG_RUNNING))
+	if (!(ts->span.flags & DAHDI_FLAG_RUNNING))
 		return;
 
 	spin_lock_irqsave(&wc->reglock, flags);
@@ -2442,7 +2442,7 @@ static void t4_check_alarms(struct t4 *wc, int span)
 	alarms = 0;
 
 	/* And consider only carrier alarms */
-	ts->span.alarms &= (ZT_ALARM_RED | ZT_ALARM_BLUE | ZT_ALARM_NOTOPEN);
+	ts->span.alarms &= (DAHDI_ALARM_RED | DAHDI_ALARM_BLUE | DAHDI_ALARM_NOTOPEN);
 
 	if (ts->spantype == TYPE_E1) {
 		if (c & 0x04) {
@@ -2468,43 +2468,43 @@ static void t4_check_alarms(struct t4 *wc, int span)
 		/* Detect loopup code if we're not sending one */
 		if ((!ts->span.mainttimer) && (d & 0x08)) {
 			/* Loop-up code detected */
-			if ((ts->loopupcnt++ > 80)  && (ts->span.maintstat != ZT_MAINT_REMOTELOOP)) {
+			if ((ts->loopupcnt++ > 80)  && (ts->span.maintstat != DAHDI_MAINT_REMOTELOOP)) {
 				__t4_framer_out(wc, span, 0x36, 0x08);	/* LIM0: Disable any local loop */
 				__t4_framer_out(wc, span, 0x37, 0xf6 );	/* LIM1: Enable remote loop */
-				ts->span.maintstat = ZT_MAINT_REMOTELOOP;
+				ts->span.maintstat = DAHDI_MAINT_REMOTELOOP;
 			}
 		} else
 			ts->loopupcnt = 0;
 		/* Same for loopdown code */
 		if ((!ts->span.mainttimer) && (d & 0x10)) {
 			/* Loop-down code detected */
-			if ((ts->loopdowncnt++ > 80)  && (ts->span.maintstat == ZT_MAINT_REMOTELOOP)) {
+			if ((ts->loopdowncnt++ > 80)  && (ts->span.maintstat == DAHDI_MAINT_REMOTELOOP)) {
 				__t4_framer_out(wc, span, 0x36, 0x08);	/* LIM0: Disable any local loop */
 				__t4_framer_out(wc, span, 0x37, 0xf0 );	/* LIM1: Disable remote loop */
-				ts->span.maintstat = ZT_MAINT_NONE;
+				ts->span.maintstat = DAHDI_MAINT_NONE;
 			}
 		} else
 			ts->loopdowncnt = 0;
 	}
 
-	if (ts->span.lineconfig & ZT_CONFIG_NOTOPEN) {
+	if (ts->span.lineconfig & DAHDI_CONFIG_NOTOPEN) {
 		for (x=0,j=0;x < ts->span.channels;x++)
-			if ((ts->span.chans[x].flags & ZT_FLAG_OPEN) ||
-			    (ts->span.chans[x].flags & ZT_FLAG_NETDEV))
+			if ((ts->span.chans[x].flags & DAHDI_FLAG_OPEN) ||
+			    (ts->span.chans[x].flags & DAHDI_FLAG_NETDEV))
 				j++;
 		if (!j)
-			alarms |= ZT_ALARM_NOTOPEN;
+			alarms |= DAHDI_ALARM_NOTOPEN;
 	}
 
 	if (c & 0xa0) {
 		if (ts->alarmcount >= alarmdebounce) 
-			alarms |= ZT_ALARM_RED;
+			alarms |= DAHDI_ALARM_RED;
 		else
 			ts->alarmcount++;
 	} else
 		ts->alarmcount = 0;
 	if (c & 0x4)
-		alarms |= ZT_ALARM_BLUE;
+		alarms |= DAHDI_ALARM_BLUE;
 
 	if (((!ts->span.alarms) && alarms) || 
 	    (ts->span.alarms && (!alarms))) 
@@ -2512,9 +2512,9 @@ static void t4_check_alarms(struct t4 *wc, int span)
 
 	/* Keep track of recovering */
 	if ((!alarms) && ts->span.alarms) 
-		ts->alarmtimer = ZT_ALARMSETTLE_TIME;
+		ts->alarmtimer = DAHDI_ALARMSETTLE_TIME;
 	if (ts->alarmtimer)
-		alarms |= ZT_ALARM_RECOVER;
+		alarms |= DAHDI_ALARM_RECOVER;
 
 	/* If receiving alarms, go into Yellow alarm state */
 	if (alarms && !(ts->spanflags & FLAG_SENDINGYELLOW)) {
@@ -2540,12 +2540,12 @@ static void t4_check_alarms(struct t4 *wc, int span)
 	/* Re-check the timing source when we enter/leave alarm, not withstanding
 	   yellow alarm */
 	if (c & 0x10)
-		alarms |= ZT_ALARM_YELLOW;
+		alarms |= DAHDI_ALARM_YELLOW;
 	if (ts->span.mainttimer || ts->span.maintstat) 
-		alarms |= ZT_ALARM_LOOPBACK;
+		alarms |= DAHDI_ALARM_LOOPBACK;
 	ts->span.alarms = alarms;
 	spin_unlock_irqrestore(&wc->reglock, flags);
-	zt_alarm_notify(&ts->span);
+	dahdi_alarm_notify(&ts->span);
 }
 
 static void t4_do_counters(struct t4 *wc)
@@ -2561,13 +2561,13 @@ static void t4_do_counters(struct t4 *wc)
 		if (ts->alarmtimer) {
 			if (!--ts->alarmtimer) {
 				docheck++;
-				ts->span.alarms &= ~(ZT_ALARM_RECOVER);
+				ts->span.alarms &= ~(DAHDI_ALARM_RECOVER);
 			}
 		}
 		spin_unlock(&wc->reglock);
 		if (docheck) {
 			t4_check_alarms(wc, span);
-			zt_alarm_notify(&ts->span);
+			dahdi_alarm_notify(&ts->span);
 		}
 	}
 }
@@ -2579,8 +2579,8 @@ static inline void __handle_leds(struct t4 *wc)
 	wc->blinktimer++;
 	for (x=0;x<wc->numspans;x++) {
 		struct t4_span *ts = wc->tspans[x];
-		if (ts->span.flags & ZT_FLAG_RUNNING) {
-			if (ts->span.alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE)) {
+		if (ts->span.flags & DAHDI_FLAG_RUNNING) {
+			if (ts->span.alarms & (DAHDI_ALARM_RED | DAHDI_ALARM_BLUE)) {
 #ifdef FANCY_ALARM
 				if (wc->blinktimer == (altab[wc->alarmpos] >> 1)) {
 					__t4_set_led(wc, x, WC_RED);
@@ -2595,7 +2595,7 @@ static inline void __handle_leds(struct t4 *wc)
 					__t4_set_led(wc, x, WC_OFF);
 				}
 #endif
-			} else if (ts->span.alarms & ZT_ALARM_YELLOW) {
+			} else if (ts->span.alarms & DAHDI_ALARM_YELLOW) {
 				/* Yellow Alarm */
 				__t4_set_led(wc, x, WC_YELLOW);
 			} else if (ts->span.mainttimer || ts->span.maintstat) {
@@ -2640,7 +2640,7 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 	unsigned char gis, isr0, isr1, isr2, isr3, isr4;
 	int readsize = -1;
 	struct t4_span *ts = wc->tspans[span];
-	struct zt_chan *sigchan;
+	struct dahdi_chan *sigchan;
 	unsigned long flags;
 
 	if (debug & DEBUG_FRAMER)	
@@ -2743,26 +2743,26 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 			if (debug & DEBUG_FRAMER) printk("Received HDLC frame %d.  RSIS = 0x%x (%x)\n", ts->frames_in, rsis, rsis_reg);
 			if (!(rsis & FRMR_RSIS_CRC16)) {
 				if (debug & DEBUG_FRAMER) printk("CRC check failed %d\n", span);
-				zt_hdlc_abort(sigchan, ZT_EVENT_BADFCS);
+				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_BADFCS);
 			} else if (rsis & FRMR_RSIS_RAB) {
 				if (debug & DEBUG_FRAMER) printk("ABORT of current frame due to overflow %d\n", span);
-				zt_hdlc_abort(sigchan, ZT_EVENT_ABORT);
+				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_ABORT);
 			} else if (rsis & FRMR_RSIS_RDO) {
 				if (debug & DEBUG_FRAMER) printk("HDLC overflow occured %d\n", span);
-				zt_hdlc_abort(sigchan, ZT_EVENT_OVERRUN);
+				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_OVERRUN);
 			} else if (!(rsis & FRMR_RSIS_VFR)) {
 				if (debug & DEBUG_FRAMER) printk("Valid Frame check failed on span %d\n", span);
-				zt_hdlc_abort(sigchan, ZT_EVENT_ABORT);
+				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_ABORT);
 			} else {
-				zt_hdlc_putbuf(sigchan, readbuf, readsize - 1);
-				zt_hdlc_finish(sigchan);
+				dahdi_hdlc_putbuf(sigchan, readbuf, readsize - 1);
+				dahdi_hdlc_finish(sigchan);
 				if (debug & DEBUG_FRAMER) printk("Received valid HDLC frame on span %d\n", span);
 			}
 #if 0
 			debug = olddebug;
 #endif
 		} else if (isr0 & FRMR_ISR0_RPF)
-			zt_hdlc_putbuf(sigchan, readbuf, readsize);
+			dahdi_hdlc_putbuf(sigchan, readbuf, readsize);
 	}
 
 	/* Transmit side */
@@ -2954,20 +2954,20 @@ ZAP_IRQ_HANDLER(t4_interrupt_gen2)
 #ifdef ENABLE_WORKQUEUES
 		int cpus = num_online_cpus();
 		atomic_set(&wc->worklist, wc->numspans);
-		if (wc->tspans[0]->span.flags & ZT_FLAG_RUNNING)
+		if (wc->tspans[0]->span.flags & DAHDI_FLAG_RUNNING)
 			t4_queue_work(wc->workq, &wc->tspans[0]->swork, 0);
 		else
 			atomic_dec(&wc->worklist);
-		if (wc->tspans[1]->span.flags & ZT_FLAG_RUNNING)
+		if (wc->tspans[1]->span.flags & DAHDI_FLAG_RUNNING)
 			t4_queue_work(wc->workq, &wc->tspans[1]->swork, 1 % cpus);
 		else
 			atomic_dec(&wc->worklist);
 		if (wc->numspans == 4) {
-			if (wc->tspans[2]->span.flags & ZT_FLAG_RUNNING)
+			if (wc->tspans[2]->span.flags & DAHDI_FLAG_RUNNING)
 				t4_queue_work(wc->workq, &wc->tspans[2]->swork, 2 % cpus);
 			else
 				atomic_dec(&wc->worklist);
-			if (wc->tspans[3]->span.flags & ZT_FLAG_RUNNING)
+			if (wc->tspans[3]->span.flags & DAHDI_FLAG_RUNNING)
 				t4_queue_work(wc->workq, &wc->tspans[3]->swork, 3 % cpus);
 			else
 				atomic_dec(&wc->worklist);
@@ -3042,7 +3042,7 @@ static int t4_reset_dma(struct t4 *wc)
 	/* Turn it all back on */
 	t4_pci_out(wc, WC_RDADDR, wc->readdma);
 	t4_pci_out(wc, WC_WRADDR, wc->writedma);
-	t4_pci_out(wc, WC_COUNT, ((ZT_MAX_CHUNKSIZE * 2 * 32 - 1) << 18) | ((ZT_MAX_CHUNKSIZE * 2 * 32 - 1) << 2));
+	t4_pci_out(wc, WC_COUNT, ((DAHDI_MAX_CHUNKSIZE * 2 * 32 - 1) << 18) | ((DAHDI_MAX_CHUNKSIZE * 2 * 32 - 1) << 2));
 	t4_pci_out(wc, WC_INTR, 0);
 #ifdef VPM_SUPPORT
 	wc->dmactrl = 0xc0000000 | (1 << 29) | wc->vpm;
@@ -3442,7 +3442,7 @@ static int t4_hardware_init_1(struct t4 *wc, unsigned int cardflags)
 	if (cardflags & FLAG_2NDGEN) {
 		t4_tsi_reset(wc);
 	} else {
-		t4_pci_out(wc, WC_COUNT, ((ZT_MAX_CHUNKSIZE * 2 * 32 - 1) << 18) | ((ZT_MAX_CHUNKSIZE * 2 * 32 - 1) << 2));
+		t4_pci_out(wc, WC_COUNT, ((DAHDI_MAX_CHUNKSIZE * 2 * 32 - 1) << 18) | ((DAHDI_MAX_CHUNKSIZE * 2 * 32 - 1) << 2));
 	}
 	
 	/* Reset pending interrupts */
@@ -3484,7 +3484,7 @@ static int __devinit t4_launch(struct t4 *wc)
 {
 	int x;
 	unsigned long flags;
-	if (wc->tspans[0]->span.flags & ZT_FLAG_REGISTERED)
+	if (wc->tspans[0]->span.flags & DAHDI_FLAG_REGISTERED)
 		return 0;
 	printk("TE%dXXP: Launching card: %d\n", wc->numspans, wc->order);
 
@@ -3492,28 +3492,28 @@ static int __devinit t4_launch(struct t4 *wc)
 	for (x=0;x<4;x++)
 		t4_serial_setup(wc, x);
 
-	if (zt_register(&wc->tspans[0]->span, 0)) {
+	if (dahdi_register(&wc->tspans[0]->span, 0)) {
 		printk(KERN_ERR "Unable to register span %s\n", wc->tspans[0]->span.name);
 		return -1;
 	}
-	if (zt_register(&wc->tspans[1]->span, 0)) {
+	if (dahdi_register(&wc->tspans[1]->span, 0)) {
 		printk(KERN_ERR "Unable to register span %s\n", wc->tspans[1]->span.name);
-		zt_unregister(&wc->tspans[0]->span);
+		dahdi_unregister(&wc->tspans[0]->span);
 		return -1;
 	}
 
 	if (wc->numspans == 4) {
-		if (zt_register(&wc->tspans[2]->span, 0)) {
+		if (dahdi_register(&wc->tspans[2]->span, 0)) {
 			printk(KERN_ERR "Unable to register span %s\n", wc->tspans[2]->span.name);
-			zt_unregister(&wc->tspans[0]->span);
-			zt_unregister(&wc->tspans[1]->span);
+			dahdi_unregister(&wc->tspans[0]->span);
+			dahdi_unregister(&wc->tspans[1]->span);
 			return -1;
 		}
-		if (zt_register(&wc->tspans[3]->span, 0)) {
+		if (dahdi_register(&wc->tspans[3]->span, 0)) {
 			printk(KERN_ERR "Unable to register span %s\n", wc->tspans[3]->span.name);
-			zt_unregister(&wc->tspans[0]->span);
-			zt_unregister(&wc->tspans[1]->span);
-			zt_unregister(&wc->tspans[2]->span);
+			dahdi_unregister(&wc->tspans[0]->span);
+			dahdi_unregister(&wc->tspans[1]->span);
+			dahdi_unregister(&wc->tspans[2]->span);
 			return -1;
 		}
 	}
@@ -3547,9 +3547,9 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 			spin_lock_init(&wc->reglock);
 			dt = (struct devtype *)(ent->driver_data);
 			if (dt->flags & FLAG_2NDGEN)
-				basesize = ZT_MAX_CHUNKSIZE * 32 * 4;
+				basesize = DAHDI_MAX_CHUNKSIZE * 32 * 4;
 			else
-				basesize = ZT_MAX_CHUNKSIZE * 32 * 2 * 4;
+				basesize = DAHDI_MAX_CHUNKSIZE * 32 * 2 * 4;
 
 			if (dt->flags & FLAG_2PORT) 
 				wc->numspans = 2;
@@ -3592,9 +3592,9 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 			memset((void *)wc->writechunk,0x00, basesize);
 			memset((void *)wc->readchunk,0xff, basesize);
 #if 0
-			memset((void *)wc->readchunk,0xff,ZT_MAX_CHUNKSIZE * 2 * 32 * 4);
+			memset((void *)wc->readchunk,0xff,DAHDI_MAX_CHUNKSIZE * 2 * 32 * 4);
 			/* Initialize canary */
-			canary = (unsigned int *)(wc->readchunk + ZT_CHUNKSIZE * 64 * 4 - 4);
+			canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 * 4 - 4);
 			*canary = (CANARY << 16) | (0xffff);
 #endif			
 
@@ -3631,15 +3631,15 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 			/* Allocate pieces we need here */
 			for (x=0;x<4;x++) {
 				if (wc->t1e1 & (1 << x)) {
-					wc->tspans[x] = kmalloc(sizeof(struct t4_span) + sizeof(struct zt_chan) * 31, GFP_KERNEL);
+					wc->tspans[x] = kmalloc(sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 31, GFP_KERNEL);
 					if (wc->tspans[x]) {
-						memset(wc->tspans[x], 0, sizeof(struct t4_span) + sizeof(struct zt_chan) * 31);
+						memset(wc->tspans[x], 0, sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 31);
 						wc->tspans[x]->spantype = TYPE_E1;
 					}
 				} else {
-					wc->tspans[x] = kmalloc(sizeof(struct t4_span) + sizeof(struct zt_chan) * 24, GFP_KERNEL);
+					wc->tspans[x] = kmalloc(sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 24, GFP_KERNEL);
 					if (wc->tspans[x]) {
-						memset(wc->tspans[x], 0, sizeof(struct t4_span) + sizeof(struct zt_chan) * 24);
+						memset(wc->tspans[x], 0, sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 24);
 						if (j1mode)
 							wc->tspans[x]->spantype = TYPE_J1;
 						else
@@ -3756,15 +3756,15 @@ static void __devexit t4_remove_one(struct pci_dev *pdev)
 			release_vpm450m(wc->vpm450m);
 		wc->vpm450m = NULL;
 		/* Unregister spans */
-		if (wc->tspans[0]->span.flags & ZT_FLAG_REGISTERED)
-			zt_unregister(&wc->tspans[0]->span);
-		if (wc->tspans[1]->span.flags & ZT_FLAG_REGISTERED)
-			zt_unregister(&wc->tspans[1]->span);
+		if (wc->tspans[0]->span.flags & DAHDI_FLAG_REGISTERED)
+			dahdi_unregister(&wc->tspans[0]->span);
+		if (wc->tspans[1]->span.flags & DAHDI_FLAG_REGISTERED)
+			dahdi_unregister(&wc->tspans[1]->span);
 		if (wc->numspans == 4) {
-			if (wc->tspans[2]->span.flags & ZT_FLAG_REGISTERED)
-				zt_unregister(&wc->tspans[2]->span);
-			if (wc->tspans[3]->span.flags & ZT_FLAG_REGISTERED)
-				zt_unregister(&wc->tspans[3]->span);
+			if (wc->tspans[2]->span.flags & DAHDI_FLAG_REGISTERED)
+				dahdi_unregister(&wc->tspans[2]->span);
+			if (wc->tspans[3]->span.flags & DAHDI_FLAG_REGISTERED)
+				dahdi_unregister(&wc->tspans[3]->span);
 		}
 #ifdef ENABLE_WORKQUEUES
 		if (wc->workq) {
@@ -3781,7 +3781,7 @@ static void __devexit t4_remove_one(struct pci_dev *pdev)
 		pci_release_regions(pdev);		
 
 		/* Immediately free resources */
-		pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 32 * 4, (void *)wc->writechunk, wc->writedma);
+		pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32 * 4, (void *)wc->writechunk, wc->writedma);
 
 		order_index[wc->order]--;
 

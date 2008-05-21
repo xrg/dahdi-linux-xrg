@@ -99,8 +99,8 @@
 #endif
 
 struct ztdummy {
-	struct zt_span span;
-	struct zt_chan chan;
+	struct dahdi_span span;
+	struct dahdi_chan chan;
 #ifdef LINUX26
 	unsigned int counter;
 #ifdef USE_RTC
@@ -310,8 +310,8 @@ static void ztdummy_rtc_interrupt(void *private_data)
 			taskletpending = 1;
 			tasklet_hi_schedule(&ztd_tlet);
 		}
-		zt_receive(&ztd->span);
-		zt_transmit(&ztd->span);
+		dahdi_receive(&ztd->span);
+		dahdi_transmit(&ztd->span);
 	}
 	spin_unlock_irqrestore(&ztd->rtclock, flags);
 }
@@ -321,8 +321,8 @@ static enum hrtimer_restart ztdummy_hr_int(struct hrtimer *htmr)
 	unsigned long overrun;
 	
 	/* Trigger Zaptel */
-	zt_receive(&ztd->span);
-	zt_transmit(&ztd->span);
+	dahdi_receive(&ztd->span);
+	dahdi_transmit(&ztd->span);
 
 	/* Overrun should always return 1, since we are in the timer that 
 	 * expired.
@@ -357,8 +357,8 @@ static void ztdummy_timer(unsigned long param)
 	ztd->counter += ZAPTEL_TIME;
 	while (ztd->counter >= HZ) {
 		ztd->counter -= HZ;
-		zt_receive(&ztd->span);
-		zt_transmit(&ztd->span);
+		dahdi_receive(&ztd->span);
+		dahdi_transmit(&ztd->span);
 	}
 }
 #endif
@@ -371,8 +371,8 @@ static void ztdummy_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 	status = inw (io_addr + USBSTS);
 	if (status != 0)  {	/* interrupt from our USB port */
 		static int check_int = 0;
-		zt_receive(&ztd->span);
-		zt_transmit(&ztd->span);
+		dahdi_receive(&ztd->span);
+		dahdi_transmit(&ztd->span);
 		/* TODO: What's the relation between monitor and
 		 * DEBUG_TICKS */
 		if (monitor && check_int) {
@@ -394,11 +394,11 @@ static int ztdummy_initialize(struct ztdummy *ztd)
 	ztd->chan.chanpos = 1;
 	ztd->span.chans = &ztd->chan;
 	ztd->span.channels = 0;		/* no channels on our span */
-	ztd->span.deflaw = ZT_LAW_MULAW;
+	ztd->span.deflaw = DAHDI_LAW_MULAW;
 	init_waitqueue_head(&ztd->span.maintq);
 	ztd->span.pvt = ztd;
 	ztd->chan.pvt = ztd;
-	if (zt_register(&ztd->span, 0)) {
+	if (dahdi_register(&ztd->span, 0)) {
 		return -1;
 	}
 	return 0;
@@ -452,7 +452,7 @@ int init_module(void)
 	err = rtc_register(&ztd->rtc_task);
 	if (err < 0) {
 		printk(KERN_ERR "ztdummy: Unable to register zaptel rtc driver\n");
-		zt_unregister(&ztd->span);
+		dahdi_unregister(&ztd->span);
 		kfree(ztd);
 		return err;
 	}
@@ -526,7 +526,7 @@ void cleanup_module(void)
 #else
 	free_irq(s->irq, ztd);  /* disable interrupts */
 #endif
-	zt_unregister(&ztd->span);
+	dahdi_unregister(&ztd->span);
 	kfree(ztd);
 #ifndef LINUX26
 	unlink_td(s, td, 1);

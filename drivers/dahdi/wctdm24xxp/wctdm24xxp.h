@@ -52,7 +52,7 @@
 #define EFRAME_SIZE	108
 #define ERING_SIZE 16		/* Maximum ring size */
 #define EFRAME_GAP 20
-#define SFRAME_SIZE ((EFRAME_SIZE * ZT_CHUNKSIZE) + (EFRAME_GAP * (ZT_CHUNKSIZE - 1)))
+#define SFRAME_SIZE ((EFRAME_SIZE * DAHDI_CHUNKSIZE) + (EFRAME_GAP * (DAHDI_CHUNKSIZE - 1)))
 
 #define MAX_ALARMS 10
 
@@ -184,7 +184,7 @@ enum battery_state {
 struct wctdm {
 	char *variety;
 	char board_name[80];
-	struct zt_span span;
+	struct dahdi_span span;
 	unsigned char ios;
 	unsigned int sdi;
 	int usecount;
@@ -266,7 +266,7 @@ struct wctdm {
 #endif	
 #endif
 	struct voicebus *vb;
-	struct zt_chan chans[NUM_CARDS];
+	struct dahdi_chan chans[NUM_CARDS];
 	int initialized;
 };
 

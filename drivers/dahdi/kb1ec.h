@@ -521,7 +521,7 @@ static inline short echo_can_update(struct echo_can_state *ec, short iref, short
 	return u;
 }
 
-static int echo_can_create(struct zt_echocanparams *ecp, struct zt_echocanparam *p,
+static int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p,
 			   struct echo_can_state **ec)
 {
 	int maxy;

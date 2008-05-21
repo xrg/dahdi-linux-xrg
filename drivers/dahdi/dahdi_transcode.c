@@ -48,18 +48,18 @@
 #include <dahdi/user.h>
 
 static int debug = 0;
-static struct zt_transcoder *trans;
+static struct dahdi_transcoder *trans;
 static spinlock_t translock = SPIN_LOCK_UNLOCKED;
 
-EXPORT_SYMBOL(zt_transcoder_register);
-EXPORT_SYMBOL(zt_transcoder_unregister);
-EXPORT_SYMBOL(zt_transcoder_alert);
-EXPORT_SYMBOL(zt_transcoder_alloc);
-EXPORT_SYMBOL(zt_transcoder_free);
+EXPORT_SYMBOL(dahdi_transcoder_register);
+EXPORT_SYMBOL(dahdi_transcoder_unregister);
+EXPORT_SYMBOL(dahdi_transcoder_alert);
+EXPORT_SYMBOL(dahdi_transcoder_alloc);
+EXPORT_SYMBOL(dahdi_transcoder_free);
 
-struct zt_transcoder *zt_transcoder_alloc(int numchans)
+struct dahdi_transcoder *dahdi_transcoder_alloc(int numchans)
 {
-	struct zt_transcoder *ztc;
+	struct dahdi_transcoder *ztc;
 	unsigned int x;
 	size_t size = sizeof(*ztc) + (sizeof(ztc->channels[0]) * numchans);
 
@@ -99,15 +99,15 @@ static int schluffen(wait_queue_head_t *q)
 	return 0;
 }
 
-void zt_transcoder_free(struct zt_transcoder *ztc)
+void dahdi_transcoder_free(struct dahdi_transcoder *ztc)
 {
 	kfree(ztc);
 }
 
 /* Register a transcoder */
-int zt_transcoder_register(struct zt_transcoder *tc)
+int dahdi_transcoder_register(struct dahdi_transcoder *tc)
 {
-	struct zt_transcoder *cur;
+	struct dahdi_transcoder *cur;
 	int res = -EBUSY;
 
 	spin_lock(&translock);
@@ -129,9 +129,9 @@ int zt_transcoder_register(struct zt_transcoder *tc)
 }
 
 /* Unregister a transcoder */
-int zt_transcoder_unregister(struct zt_transcoder *tc) 
+int dahdi_transcoder_unregister(struct dahdi_transcoder *tc) 
 {
-	struct zt_transcoder *cur, *prev;
+	struct dahdi_transcoder *cur, *prev;
 	int res = -EINVAL;
 
 	spin_lock(&translock);
@@ -159,21 +159,21 @@ int zt_transcoder_unregister(struct zt_transcoder *tc)
 }
 
 /* Alert a transcoder */
-int zt_transcoder_alert(struct zt_transcoder_channel *ztc)
+int dahdi_transcoder_alert(struct dahdi_transcoder_channel *ztc)
 {
 	if (debug)
 		printk("ZT Transcoder Alert!\n");
 	if (ztc->tch)
-		ztc->tch->status &= ~ZT_TC_FLAG_BUSY;
+		ztc->tch->status &= ~DAHDI_TC_FLAG_BUSY;
 	wake_up_interruptible(&ztc->ready);
 
 	return 0;
 }
 
-static int zt_tc_open(struct inode *inode, struct file *file)
+static int dahdi_tc_open(struct inode *inode, struct file *file)
 {
-	struct zt_transcoder_channel *ztc;
-	struct zt_transcode_header *zth;
+	struct dahdi_transcoder_channel *ztc;
+	struct dahdi_transcode_header *zth;
 	struct page *page;
 
 	if (!(ztc = kmalloc(sizeof(*ztc), GFP_KERNEL)))
@@ -186,11 +186,11 @@ static int zt_tc_open(struct inode *inode, struct file *file)
 	
 	memset(ztc, 0, sizeof(*ztc));
 	memset(zth, 0, sizeof(*zth));
-	ztc->flags = ZT_TC_FLAG_TRANSIENT | ZT_TC_FLAG_BUSY;
+	ztc->flags = DAHDI_TC_FLAG_TRANSIENT | DAHDI_TC_FLAG_BUSY;
 	ztc->tch = zth;
 	if (debug)
 		printk("Allocated Transcoder Channel, header is at %p!\n", zth);
-	zth->magic = ZT_TRANSCODE_MAGIC;
+	zth->magic = DAHDI_TRANSCODE_MAGIC;
 	file->private_data = ztc;
 	for (page = virt_to_page(zth);
 	     page < virt_to_page((unsigned long) zth + sizeof(*zth));
@@ -200,15 +200,15 @@ static int zt_tc_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static void ztc_release(struct zt_transcoder_channel *ztc)
+static void ztc_release(struct dahdi_transcoder_channel *ztc)
 {
-	struct zt_transcode_header *zth = ztc->tch;
+	struct dahdi_transcode_header *zth = ztc->tch;
 	struct page *page;
 
 	if (!ztc)
 		return;
 
-	ztc->flags &= ~(ZT_TC_FLAG_BUSY);
+	ztc->flags &= ~(DAHDI_TC_FLAG_BUSY);
 
 	if(ztc->tch) {
 		for (page = virt_to_page(zth);
@@ -220,24 +220,24 @@ static void ztc_release(struct zt_transcoder_channel *ztc)
 
 	ztc->tch = NULL;
 	/* Actually reset the transcoder channel */
-	if (ztc->flags & ZT_TC_FLAG_TRANSIENT)
+	if (ztc->flags & DAHDI_TC_FLAG_TRANSIENT)
 		kfree(ztc);
 	if (debug)
 		printk("Released Transcoder!\n");
 }
 
-static int zt_tc_release(struct inode *inode, struct file *file)
+static int dahdi_tc_release(struct inode *inode, struct file *file)
 {
 	ztc_release(file->private_data);
 
 	return 0;
 }
 
-static int do_reset(struct zt_transcoder_channel **ztc)
+static int do_reset(struct dahdi_transcoder_channel **ztc)
 {
-	struct zt_transcoder_channel *newztc = NULL, *origztc = NULL;
-	struct zt_transcode_header *zth = (*ztc)->tch;
-	struct zt_transcoder *tc;
+	struct dahdi_transcoder_channel *newztc = NULL, *origztc = NULL;
+	struct dahdi_transcode_header *zth = (*ztc)->tch;
+	struct dahdi_transcoder *tc;
 	unsigned int x;
 	unsigned int match = 0;
 
@@ -254,13 +254,13 @@ static int do_reset(struct zt_transcoder_channel **ztc)
 
 			match = 1;
 			for (x = 0; x < tc->numchannels; x++) {
-				if (tc->channels[x].flags & ZT_TC_FLAG_BUSY)
+				if (tc->channels[x].flags & DAHDI_TC_FLAG_BUSY)
 					continue;
 				if ((tc->channels[x].chan_built) && ((zth->srcfmt | zth->dstfmt) != tc->channels[x].built_fmts))
 					continue;
 
 				newztc = &tc->channels[x];
-				newztc->flags = ZT_TC_FLAG_BUSY;
+				newztc->flags = DAHDI_TC_FLAG_BUSY;
 				break;
 			}
 		}
@@ -274,36 +274,36 @@ static int do_reset(struct zt_transcoder_channel **ztc)
 		(*ztc) = newztc;
 		(*ztc)->tch = origztc->tch;
 		origztc->tch = NULL;
-		(*ztc)->flags |= (origztc->flags & ~(ZT_TC_FLAG_TRANSIENT));
+		(*ztc)->flags |= (origztc->flags & ~(DAHDI_TC_FLAG_TRANSIENT));
 		ztc_release(origztc);
 	}
 
 	/* Actually reset the transcoder channel */
 	if ((*ztc)->parent && ((*ztc)->parent->operation))
-		return (*ztc)->parent->operation((*ztc), ZT_TCOP_ALLOCATE);
+		return (*ztc)->parent->operation((*ztc), DAHDI_TCOP_ALLOCATE);
 
 	return -EINVAL;
 }
 
-static int wait_busy(struct zt_transcoder_channel *ztc)
+static int wait_busy(struct dahdi_transcoder_channel *ztc)
 {
 	int ret;
 
 	for (;;) {
-		if (!(ztc->tch->status & ZT_TC_FLAG_BUSY))
+		if (!(ztc->tch->status & DAHDI_TC_FLAG_BUSY))
 			return 0;
 		if ((ret = schluffen(&ztc->ready)))
 			return ret;
 	}
 }
 
-static int zt_tc_getinfo(unsigned long data)
+static int dahdi_tc_getinfo(unsigned long data)
 {
-	struct zt_transcode_info info;
+	struct dahdi_transcode_info info;
 	unsigned int x;
-	struct zt_transcoder *tc;
+	struct dahdi_transcoder *tc;
 	
-	if (copy_from_user(&info, (struct zt_transcode_info *) data, sizeof(info)))
+	if (copy_from_user(&info, (struct dahdi_transcode_info *) data, sizeof(info)))
 		return -EFAULT;
 
 	spin_lock(&translock);
@@ -318,16 +318,16 @@ static int zt_tc_getinfo(unsigned long data)
 	info.srcfmts = tc->srcfmts;
 	info.dstfmts = tc->dstfmts;
 
-	return copy_to_user((struct zt_transcode_info *) data, &info, sizeof(info)) ? -EFAULT : 0;
+	return copy_to_user((struct dahdi_transcode_info *) data, &info, sizeof(info)) ? -EFAULT : 0;
 }
 
-static int zt_tc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data)
+static int dahdi_tc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data)
 {
 	int op;
 	int ret;
-	struct zt_transcoder_channel *ztc = file->private_data;
+	struct dahdi_transcoder_channel *ztc = file->private_data;
 
-	if (cmd != ZT_TRANSCODE_OP)
+	if (cmd != DAHDI_TRANSCODE_OP)
 		return -ENOSYS;
 
 	if (get_user(op, (int *) data))
@@ -337,33 +337,33 @@ static int zt_tc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		printk("ZT Transcode ioctl op = %d!\n", op);
 
 	switch(op) {
-	case ZT_TCOP_GETINFO:
-		ret = zt_tc_getinfo(data);
+	case DAHDI_TCOP_GETINFO:
+		ret = dahdi_tc_getinfo(data);
 		break;
-	case ZT_TCOP_ALLOCATE:
+	case DAHDI_TCOP_ALLOCATE:
 		/* Reset transcoder, possibly changing who we point to */
 		ret = do_reset(&ztc);
 		file->private_data = ztc;
 		break;
-	case ZT_TCOP_RELEASE:
-		ret = ztc->parent->operation(ztc, ZT_TCOP_RELEASE);
+	case DAHDI_TCOP_RELEASE:
+		ret = ztc->parent->operation(ztc, DAHDI_TCOP_RELEASE);
 		break;
-	case ZT_TCOP_TEST:
-		ret = ztc->parent->operation(ztc, ZT_TCOP_TEST);
+	case DAHDI_TCOP_TEST:
+		ret = ztc->parent->operation(ztc, DAHDI_TCOP_TEST);
 		break;
-	case ZT_TCOP_TRANSCODE:
+	case DAHDI_TCOP_TRANSCODE:
 		if (!ztc->parent->operation)
 			return -EINVAL;
 
-		ztc->tch->status |= ZT_TC_FLAG_BUSY;
-		if (!(ret = ztc->parent->operation(ztc, ZT_TCOP_TRANSCODE))) {
+		ztc->tch->status |= DAHDI_TC_FLAG_BUSY;
+		if (!(ret = ztc->parent->operation(ztc, DAHDI_TCOP_TRANSCODE))) {
 			/* Wait for busy to go away if we're not non-blocking */
 			if (!(file->f_flags & O_NONBLOCK)) {
 				if (!(ret = wait_busy(ztc)))
 					ret = ztc->errorstatus;
 			}
 		} else
-			ztc->tch->status &= ~ZT_TC_FLAG_BUSY;
+			ztc->tch->status &= ~DAHDI_TC_FLAG_BUSY;
 		break;
 	default:
 		ret = -ENOSYS;
@@ -372,9 +372,9 @@ static int zt_tc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	return ret;
 }
 
-static int zt_tc_mmap(struct file *file, struct vm_area_struct *vma)
+static int dahdi_tc_mmap(struct file *file, struct vm_area_struct *vma)
 {
-	struct zt_transcoder_channel *ztc = file->private_data;
+	struct dahdi_transcoder_channel *ztc = file->private_data;
 	unsigned long physical;
 	int res;
 
@@ -388,20 +388,20 @@ static int zt_tc_mmap(struct file *file, struct vm_area_struct *vma)
 		return -EINVAL;
 	}
 
-	if ((vma->vm_end - vma->vm_start) != sizeof(struct zt_transcode_header)) {
+	if ((vma->vm_end - vma->vm_start) != sizeof(struct dahdi_transcode_header)) {
 		if (debug)
-			printk("zttranscode: Attempted to mmap with size %d != %zd!\n", (int) (vma->vm_end - vma->vm_start), sizeof(struct zt_transcode_header));
+			printk("zttranscode: Attempted to mmap with size %d != %zd!\n", (int) (vma->vm_end - vma->vm_start), sizeof(struct dahdi_transcode_header));
 		return -EINVAL;
 	}
 
 	physical = (unsigned long) virt_to_phys(ztc->tch);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,10)
-	res = remap_pfn_range(vma, vma->vm_start, physical >> PAGE_SHIFT, sizeof(struct zt_transcode_header), PAGE_SHARED);
+	res = remap_pfn_range(vma, vma->vm_start, physical >> PAGE_SHIFT, sizeof(struct dahdi_transcode_header), PAGE_SHARED);
 #else
   #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-	res = remap_page_range(vma->vm_start, physical, sizeof(struct zt_transcode_header), PAGE_SHARED);
+	res = remap_page_range(vma->vm_start, physical, sizeof(struct dahdi_transcode_header), PAGE_SHARED);
   #else
-	res = remap_page_range(vma, vma->vm_start, physical, sizeof(struct zt_transcode_header), PAGE_SHARED);
+	res = remap_page_range(vma, vma->vm_start, physical, sizeof(struct dahdi_transcode_header), PAGE_SHARED);
   #endif
 #endif
 	if (res) {
@@ -416,33 +416,33 @@ static int zt_tc_mmap(struct file *file, struct vm_area_struct *vma)
 	return 0;
 }
 
-static unsigned int zt_tc_poll(struct file *file, struct poll_table_struct *wait_table)
+static unsigned int dahdi_tc_poll(struct file *file, struct poll_table_struct *wait_table)
 {
-	struct zt_transcoder_channel *ztc = file->private_data;
+	struct dahdi_transcoder_channel *ztc = file->private_data;
 
 	if (!ztc)
 		return -EINVAL;
 
 	poll_wait(file, &ztc->ready, wait_table);
-	return ztc->tch->status & ZT_TC_FLAG_BUSY ? 0 : POLLPRI;
+	return ztc->tch->status & DAHDI_TC_FLAG_BUSY ? 0 : POLLPRI;
 }
 
-static struct file_operations __zt_transcode_fops = {
+static struct file_operations __dahdi_transcode_fops = {
 	owner: THIS_MODULE,
 	llseek: NULL,
-	open: zt_tc_open,
-	release: zt_tc_release,
-	ioctl: zt_tc_ioctl,
+	open: dahdi_tc_open,
+	release: dahdi_tc_release,
+	ioctl: dahdi_tc_ioctl,
 	read: NULL,
 	write: NULL,
-	poll: zt_tc_poll,
-	mmap: zt_tc_mmap,
+	poll: dahdi_tc_poll,
+	mmap: dahdi_tc_mmap,
 	flush: NULL,
 	fsync: NULL,
 	fasync: NULL,
 };
 
-static struct zt_chardev transcode_chardev = {
+static struct dahdi_chardev transcode_chardev = {
 	.name = "transcode",
 	.minor = 250,
 };
@@ -451,14 +451,14 @@ int zttranscode_init(void)
 {
 	int res;
 
-	if (zt_transcode_fops) {
-		printk("Whoa, zt_transcode_fops already set?!\n");
+	if (dahdi_transcode_fops) {
+		printk("Whoa, dahdi_transcode_fops already set?!\n");
 		return -EBUSY;
 	}
 
-	zt_transcode_fops = &__zt_transcode_fops;
+	dahdi_transcode_fops = &__dahdi_transcode_fops;
 
-	if ((res = zt_register_chardev(&transcode_chardev)))
+	if ((res = dahdi_register_chardev(&transcode_chardev)))
 		return res;
 
 	printk("Zaptel Transcoder support loaded\n");
@@ -468,9 +468,9 @@ int zttranscode_init(void)
 
 void zttranscode_cleanup(void)
 {
-	zt_unregister_chardev(&transcode_chardev);
+	dahdi_unregister_chardev(&transcode_chardev);
 
-	zt_transcode_fops = NULL;
+	dahdi_transcode_fops = NULL;
 
 	printk("Zaptel Transcoder support unloaded\n");
 }

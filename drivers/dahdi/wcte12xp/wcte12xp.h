@@ -50,7 +50,7 @@
 #define EFRAME_SIZE	108
 #define ERING_SIZE	16		/* Maximum ring size */
 #define EFRAME_GAP	20
-#define SFRAME_SIZE	((EFRAME_SIZE * ZT_CHUNKSIZE) + (EFRAME_GAP * (ZT_CHUNKSIZE - 1)))
+#define SFRAME_SIZE	((EFRAME_SIZE * DAHDI_CHUNKSIZE) + (EFRAME_GAP * (DAHDI_CHUNKSIZE - 1)))
 
 #define PCI_WINDOW_SIZE ((2 * 2 * 2 * SFRAME_SIZE) + (2 * ERING_SIZE * 4))
 
@@ -139,10 +139,10 @@ struct t1 {
 	int initialized;
 	int *chanmap;
 	unsigned char ledtestreg;
-	unsigned char ec_chunk1[32][ZT_CHUNKSIZE];
-	unsigned char ec_chunk2[32][ZT_CHUNKSIZE];
-	struct zt_span span;						/* Span */
-	struct zt_chan chans[32];					/* Channels */
+	unsigned char ec_chunk1[32][DAHDI_CHUNKSIZE];
+	unsigned char ec_chunk2[32][DAHDI_CHUNKSIZE];
+	struct dahdi_span span;						/* Span */
+	struct dahdi_chan chans[32];					/* Channels */
 	wait_queue_head_t regq;
 	struct cmdq	cmdq;
 	struct command dummy;	/* preallocate for dummy noop command */

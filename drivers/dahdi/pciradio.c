@@ -106,8 +106,8 @@ With driver:	303826  (1.5 %)
 #define RAD_CTCSS_ACQUIRE_TIME 10
 #define RAD_CTCSS_TALKOFF_TIME 1000
 
-#define ZT_RADPAR_CTCSSACQUIRETIME 18 /* DEBUG only, this belongs in zaptel.h */
-#define ZT_RADPAR_CTCSSTALKOFFTIME 19 /* DEBUG only, this belongs in zaptel.h */
+#define DAHDI_RADPAR_CTCSSACQUIRETIME 18 /* DEBUG only, this belongs in zaptel.h */
+#define DAHDI_RADPAR_CTCSSTALKOFFTIME 19 /* DEBUG only, this belongs in zaptel.h */
 
 /*
 * MX828 Commands
@@ -151,7 +151,7 @@ struct encdec
 
 struct pciradio {
 	struct pci_dev *dev;
-	struct zt_span span;
+	struct dahdi_span span;
 	unsigned char ios;
 	int usecount;
 	unsigned int intcount;
@@ -204,7 +204,7 @@ struct pciradio {
 #define	RADMODE_IGNORECT 16
 #define	RADMODE_NOENCODE 32
 	unsigned char corthresh[NUM_CHANS];
-	struct zt_chan chans[NUM_CHANS];
+	struct dahdi_chan chans[NUM_CHANS];
 	unsigned char mx828_addr;
 	struct encdec encdec;
 	unsigned long lastremcmd;
@@ -690,12 +690,12 @@ static inline void pciradio_transmitprep(struct pciradio *rad, unsigned char int
 		/* Write is at interrupt address.  Start writing from normal offset */
 		writechunk = rad->writechunk;
 	else 
-		writechunk = rad->writechunk + ZT_CHUNKSIZE;
+		writechunk = rad->writechunk + DAHDI_CHUNKSIZE;
 
 	/* Calculate Transmission */
-	zt_transmit(&rad->span);
+	dahdi_transmit(&rad->span);
 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		/* Send a sample, as a 32-bit word */
 		writechunk[x] = 0;
 		writechunk[x] |= (rad->chans[0].writechunk[x] << 24);
@@ -711,20 +711,20 @@ static inline void pciradio_receiveprep(struct pciradio *rad, unsigned char ints
 	int x;
 
 	if (ints & 0x08)
-		readchunk = rad->readchunk + ZT_CHUNKSIZE;
+		readchunk = rad->readchunk + DAHDI_CHUNKSIZE;
 	else
 		/* Read is at interrupt address.  Valid data is available at normal offset */
 		readchunk = rad->readchunk;
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		rad->chans[0].readchunk[x] = (readchunk[x] >> 24) & 0xff;
 		rad->chans[1].readchunk[x] = (readchunk[x] >> 16) & 0xff;
 		rad->chans[2].readchunk[x] = (readchunk[x] >> 8) & 0xff;
 		rad->chans[3].readchunk[x] = (readchunk[x]) & 0xff;
 	}
 	for (x=0;x<rad->nchans;x++) {
-		zt_ec_chunk(&rad->chans[x], rad->chans[x].readchunk, rad->chans[x].writechunk);
+		dahdi_ec_chunk(&rad->chans[x], rad->chans[x].readchunk, rad->chans[x].writechunk);
 	}
-	zt_receive(&rad->span);
+	dahdi_receive(&rad->span);
 }
 
 static void pciradio_stop_dma(struct pciradio *rad);
@@ -931,10 +931,10 @@ ZAP_IRQ_HANDLER(pciradio_interrupt)
 								else
 								    printk("Chan %d got rx\n",x + 1);
 							}
-						    zt_hooksig(&rad->chans[x],ZT_RXSIG_OFFHOOK);
+						    dahdi_hooksig(&rad->chans[x],DAHDI_RXSIG_OFFHOOK);
 						} else {
 						    if (debug) printk("Chan %d lost rx\n",x + 1);
-						    zt_hooksig(&rad->chans[x],ZT_RXSIG_ONHOOK);
+						    dahdi_hooksig(&rad->chans[x],DAHDI_RXSIG_ONHOOK);
 						}
 						rad->encdec.req[x] = 1; 
 					}
@@ -981,45 +981,45 @@ ZAP_IRQ_HANDLER(pciradio_interrupt)
 	
 }
 
-static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data)
+static int pciradio_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data)
 {
 	int i,mycode;
 	unsigned long flags;
 	unsigned char byte1,byte2,mask;
 	union {
-		struct zt_radio_stat s;
-		struct zt_radio_param p;
+		struct dahdi_radio_stat s;
+		struct dahdi_radio_param p;
 	} stack;
 
 	struct pciradio *rad = chan->pvt;
 	DECLARE_WAIT_QUEUE_HEAD(mywait);
 
 	switch (cmd) {
-	case ZT_RADIO_GETPARAM:
-		if (copy_from_user(&stack.p,(struct zt_radio_param *)data,sizeof(struct zt_radio_param))) return -EFAULT;
+	case DAHDI_RADIO_GETPARAM:
+		if (copy_from_user(&stack.p,(struct dahdi_radio_param *)data,sizeof(struct dahdi_radio_param))) return -EFAULT;
 		spin_lock_irqsave(&rad->lock,flags);
 		stack.p.data = 0; /* start with 0 value in output */
 		switch(stack.p.radpar) {
-		case ZT_RADPAR_INVERTCOR:
+		case DAHDI_RADPAR_INVERTCOR:
 			if (rad->radmode[chan->chanpos - 1] & RADMODE_INVERTCOR)
 				stack.p.data = 1;
 			break;
-		case ZT_RADPAR_IGNORECOR:
+		case DAHDI_RADPAR_IGNORECOR:
 			if (rad->radmode[chan->chanpos - 1] & RADMODE_IGNORECOR)
 				stack.p.data = 1;
 			break;
-		case ZT_RADPAR_IGNORECT:
+		case DAHDI_RADPAR_IGNORECT:
 			if (rad->radmode[chan->chanpos - 1] & RADMODE_IGNORECT)
 				stack.p.data = 1;
 			break;
-		case ZT_RADPAR_NOENCODE:
+		case DAHDI_RADPAR_NOENCODE:
 			if (rad->radmode[chan->chanpos - 1] & RADMODE_NOENCODE)
 				stack.p.data = 1;
 			break;
-		case ZT_RADPAR_CORTHRESH:
+		case DAHDI_RADPAR_CORTHRESH:
 			stack.p.data = rad->corthresh[chan->chanpos - 1] & 7;
 			break;
-		case ZT_RADPAR_EXTRXTONE:
+		case DAHDI_RADPAR_EXTRXTONE:
 			if (rad->radmode[chan->chanpos - 1] & RADMODE_EXTTONE)
 			{
 				stack.p.data = 1;
@@ -1029,10 +1029,10 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 				}
 			}
 			break;
-		case ZT_RADPAR_NUMTONES:
+		case DAHDI_RADPAR_NUMTONES:
 			stack.p.data = NUM_CODES;
 			break;
-		case ZT_RADPAR_RXTONE:
+		case DAHDI_RADPAR_RXTONE:
 			if ((stack.p.index < 1) || (stack.p.index > NUM_CODES)) {
 				spin_unlock_irqrestore(&rad->lock,flags);
 				return -EINVAL;
@@ -1040,14 +1040,14 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			stack.p.data = 
 				cttable_rx[rad->rxcode[chan->chanpos - 1][stack.p.index] & 0x7fff].code;
 			break;
-		case ZT_RADPAR_RXTONECLASS:
+		case DAHDI_RADPAR_RXTONECLASS:
 			if ((stack.p.index < 1) || (stack.p.index > NUM_CODES)) {
 				spin_unlock_irqrestore(&rad->lock,flags);
 				return -EINVAL;
 			}
 			stack.p.data = rad->rxclass[chan->chanpos - 1][stack.p.index] & 0xffff;
 			break;
-		case ZT_RADPAR_TXTONE:
+		case DAHDI_RADPAR_TXTONE:
 			if (stack.p.index > NUM_CODES) {
 				spin_unlock_irqrestore(&rad->lock,flags);
 				return -EINVAL;
@@ -1057,34 +1057,34 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			if (rad->txcode[chan->chanpos - 1][stack.p.index] & 0x8000)
 				stack.p.data |= 0x8000;
 			break;
-		case ZT_RADPAR_DEBOUNCETIME:
+		case DAHDI_RADPAR_DEBOUNCETIME:
 			stack.p.data = rad->debouncetime[chan->chanpos - 1];
 			break;
 
-		case ZT_RADPAR_CTCSSACQUIRETIME:
+		case DAHDI_RADPAR_CTCSSACQUIRETIME:
 			stack.p.data = rad->ctcssacquiretime[chan->chanpos - 1];
 			break;
 
-		case ZT_RADPAR_CTCSSTALKOFFTIME:
+		case DAHDI_RADPAR_CTCSSTALKOFFTIME:
 			stack.p.data = rad->ctcsstalkofftime[chan->chanpos - 1];
 			break;
 
-		case ZT_RADPAR_BURSTTIME:
+		case DAHDI_RADPAR_BURSTTIME:
 			stack.p.data = rad->bursttime[chan->chanpos - 1];
 			break;
-		case ZT_RADPAR_UIODATA:
+		case DAHDI_RADPAR_UIODATA:
 			stack.p.data = 0;
 			byte1 = __pciradio_getcreg(rad,8);
 			if (byte1 & (1 << (chan->chanpos - 1))) stack.p.data |= 1;
 			if (byte1 & (1 << (chan->chanpos + 3))) stack.p.data |= 2;
 			break;
-		case ZT_RADPAR_UIOMODE:
+		case DAHDI_RADPAR_UIOMODE:
 			stack.p.data = 0;
 			byte1 = __pciradio_getcreg(rad,0xe);
 			if (byte1 & (1 << (chan->chanpos - 1))) stack.p.data |= 1;
 			if (byte1 & (1 << (chan->chanpos + 3))) stack.p.data |= 2;
 			break;
-		case ZT_RADPAR_REMMODE:
+		case DAHDI_RADPAR_REMMODE:
 			stack.p.data = rad->remmode[chan->chanpos - 1];
 			break;
 		default:
@@ -1092,37 +1092,37 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			return -EINVAL;
 		}
 		spin_unlock_irqrestore(&rad->lock,flags);
-		if (copy_to_user((struct zt_radio_param *)data,&stack.p,sizeof(struct zt_radio_param))) return -EFAULT;
+		if (copy_to_user((struct dahdi_radio_param *)data,&stack.p,sizeof(struct dahdi_radio_param))) return -EFAULT;
 		break;
-	case ZT_RADIO_SETPARAM:
-		if (copy_from_user(&stack.p,(struct zt_radio_param *)data,sizeof(struct zt_radio_param))) return -EFAULT;
+	case DAHDI_RADIO_SETPARAM:
+		if (copy_from_user(&stack.p,(struct dahdi_radio_param *)data,sizeof(struct dahdi_radio_param))) return -EFAULT;
 		spin_lock_irqsave(&rad->lock,flags);
 		switch(stack.p.radpar) {
-		case ZT_RADPAR_INVERTCOR:
+		case DAHDI_RADPAR_INVERTCOR:
 			if (stack.p.data)
 				rad->radmode[chan->chanpos - 1] |= RADMODE_INVERTCOR;
 			else
 				rad->radmode[chan->chanpos - 1] &= ~RADMODE_INVERTCOR;
 			break;
-		case ZT_RADPAR_IGNORECOR:
+		case DAHDI_RADPAR_IGNORECOR:
 			if (stack.p.data)
 				rad->radmode[chan->chanpos - 1] |= RADMODE_IGNORECOR;
 			else
 				rad->radmode[chan->chanpos - 1] &= ~RADMODE_IGNORECOR;
 			break;
-		case ZT_RADPAR_IGNORECT:
+		case DAHDI_RADPAR_IGNORECT:
 			if (stack.p.data)
 				rad->radmode[chan->chanpos - 1] |= RADMODE_IGNORECT;
 			else
 				rad->radmode[chan->chanpos - 1] &= ~RADMODE_IGNORECT;
 			break;
-		case ZT_RADPAR_NOENCODE:
+		case DAHDI_RADPAR_NOENCODE:
 			if (stack.p.data)
 				rad->radmode[chan->chanpos - 1] |= RADMODE_NOENCODE;
 			else
 				rad->radmode[chan->chanpos - 1] &= ~RADMODE_NOENCODE;
 			break;
-		case ZT_RADPAR_CORTHRESH:
+		case DAHDI_RADPAR_CORTHRESH:
 			if ((stack.p.data < 0) || (stack.p.data > 7)) {
 				spin_unlock_irqrestore(&rad->lock,flags);
 				return -EINVAL;
@@ -1133,7 +1133,7 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			mx828_command_wait(rad,chan->chanpos - 1, MX828_GEN_CTRL, &byte1, &byte2);
 			spin_lock_irqsave(&rad->lock,flags);
 			break;
-		case ZT_RADPAR_EXTRXTONE:
+		case DAHDI_RADPAR_EXTRXTONE:
 			if (stack.p.data)
 				rad->radmode[chan->chanpos - 1] |= RADMODE_EXTTONE;
 			else
@@ -1143,7 +1143,7 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			else
 				rad->radmode[chan->chanpos - 1] &= ~RADMODE_EXTINVERT;
 			break;
-		case ZT_RADPAR_INITTONE:
+		case DAHDI_RADPAR_INITTONE:
 			for(i = 0; i <= NUM_CODES; i++)
 			{
 				rad->rxcode[chan->chanpos - 1][i] = 0;
@@ -1163,7 +1163,7 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			}
 			spin_lock_irqsave(&rad->lock,flags);
 			break;
-		case ZT_RADPAR_RXTONE:
+		case DAHDI_RADPAR_RXTONE:
 			if (!stack.p.index) /* if RX DCS mode */
 			{
 				if ((stack.p.data < 0) || (stack.p.data > 777)) {
@@ -1198,14 +1198,14 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			rad->rxcode[chan->chanpos - 1][0] = 0;
 			rad->encdec.req[chan->chanpos - 1] = 1;
 			break;
-		case ZT_RADPAR_RXTONECLASS:
+		case DAHDI_RADPAR_RXTONECLASS:
 			if ((stack.p.index < 1) || (stack.p.index > NUM_CODES)) {
 				spin_unlock_irqrestore(&rad->lock,flags);
 				return -EINVAL;
 			}
 			rad->rxclass[chan->chanpos - 1][stack.p.index] = stack.p.data & 0xffff;
 			break;
-		case ZT_RADPAR_TXTONE:
+		case DAHDI_RADPAR_TXTONE:
 			if (stack.p.index > NUM_CODES) {
 				spin_unlock_irqrestore(&rad->lock,flags);
 				return -EINVAL;
@@ -1222,22 +1222,22 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			rad->txcode[chan->chanpos - 1][stack.p.index] = mycode;
 			rad->encdec.req[chan->chanpos - 1] = 1;
 			break;
-		case ZT_RADPAR_DEBOUNCETIME:
+		case DAHDI_RADPAR_DEBOUNCETIME:
 			rad->debouncetime[chan->chanpos - 1] = stack.p.data;
 			break;
 
-		case ZT_RADPAR_CTCSSACQUIRETIME:
+		case DAHDI_RADPAR_CTCSSACQUIRETIME:
 			rad->ctcssacquiretime[chan->chanpos - 1] = stack.p.data;
 			break;
 
-		case ZT_RADPAR_CTCSSTALKOFFTIME:
+		case DAHDI_RADPAR_CTCSSTALKOFFTIME:
 			rad->ctcsstalkofftime[chan->chanpos - 1] = stack.p.data;
 			break;
 
-		case ZT_RADPAR_BURSTTIME:
+		case DAHDI_RADPAR_BURSTTIME:
 			rad->bursttime[chan->chanpos - 1] = stack.p.data;
 			break;
-		case ZT_RADPAR_UIODATA:
+		case DAHDI_RADPAR_UIODATA:
 			byte1 = __pciradio_getcreg(rad,8);
 			byte1 &= ~(1 << (chan->chanpos - 1));
 			byte1 &= ~(1 << (chan->chanpos + 3));
@@ -1245,7 +1245,7 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			if (stack.p.data & 2) byte1 |= (1 << (chan->chanpos + 3));
 			__pciradio_setcreg(rad,8,byte1);
 			break;
-		case ZT_RADPAR_UIOMODE:
+		case DAHDI_RADPAR_UIOMODE:
 			byte1 = __pciradio_getcreg(rad,0xe);
 			byte1 &= ~(1 << (chan->chanpos - 1));
 			byte1 &= ~(1 << (chan->chanpos + 3));
@@ -1253,18 +1253,18 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			if (stack.p.data & 2) byte1 |= (1 << (chan->chanpos + 3));
 			__pciradio_setcreg(rad,0xe,byte1);
 			break;
-		case ZT_RADPAR_REMMODE:
+		case DAHDI_RADPAR_REMMODE:
 			rad->remmode[chan->chanpos - 1] = stack.p.data;
 			break;
-		case ZT_RADPAR_REMCOMMAND:
+		case DAHDI_RADPAR_REMCOMMAND:
 			/* if no remote mode, return an error */
-			if (rad->remmode[chan->chanpos - 1] == ZT_RADPAR_REM_NONE)
+			if (rad->remmode[chan->chanpos - 1] == DAHDI_RADPAR_REM_NONE)
 			{
 				spin_unlock_irqrestore(&rad->lock,flags);
 				return -EINVAL;
 			}
 			i = 0;
-			if (rad->remmode[chan->chanpos - 1] == ZT_RADPAR_REM_RBI1)
+			if (rad->remmode[chan->chanpos - 1] == DAHDI_RADPAR_REM_RBI1)
 			{
 				/* set UIOA and UIOB for output */
 				byte1 = __pciradio_getcreg(rad,0xe);
@@ -1337,7 +1337,7 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 				rad->rxbuf[rad->rxindex] = 0;
 				if ((rad->rxindex < stack.p.data) &&
 				  (rad->srxtimer < SRX_TIMEOUT) &&
-				    ((rad->remmode[chan->chanpos - 1] == ZT_RADPAR_REM_SERIAL) ||
+				    ((rad->remmode[chan->chanpos - 1] == DAHDI_RADPAR_REM_SERIAL) ||
 					(!strchr((char *)rad->rxbuf,'\r'))))
 				{
 					spin_unlock_irqrestore(&rad->lock,flags);
@@ -1354,7 +1354,7 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 				break;
 			}
 			/* wait for done if in SERIAL_ASCII mode, or if no Rx aftwards */
-			if ((rad->remmode[chan->chanpos - 1] == ZT_RADPAR_REM_SERIAL_ASCII) ||
+			if ((rad->remmode[chan->chanpos - 1] == DAHDI_RADPAR_REM_SERIAL_ASCII) ||
 				(!stack.p.data))
 			{			
 				/* wait for TX to be done if not already */
@@ -1369,9 +1369,9 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 			}
 			rad->remote_locked = 0;
 			spin_unlock_irqrestore(&rad->lock,flags);
-			if (rad->remmode[chan->chanpos - 1] == ZT_RADPAR_REM_SERIAL_ASCII)
+			if (rad->remmode[chan->chanpos - 1] == DAHDI_RADPAR_REM_SERIAL_ASCII)
 				interruptible_sleep_on_timeout(&mywait,100);
-			if (copy_to_user((struct zt_radio_stat *)data,&stack.p,sizeof(struct zt_radio_param))) return -EFAULT;
+			if (copy_to_user((struct dahdi_radio_stat *)data,&stack.p,sizeof(struct dahdi_radio_param))) return -EFAULT;
 			return 0;
 		default:
 			spin_unlock_irqrestore(&rad->lock,flags);
@@ -1379,14 +1379,14 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 		}
 		spin_unlock_irqrestore(&rad->lock,flags);
 		break;
-	case ZT_RADIO_GETSTAT:
+	case DAHDI_RADIO_GETSTAT:
 		spin_lock_irqsave(&rad->lock,flags);
 		/* start with clean object */
-		memset(&stack.s,0,sizeof(struct zt_radio_stat));
+		memset(&stack.s,0,sizeof(struct dahdi_radio_stat));
 		/* if we have rx */
 		if (rad->gotrx[chan->chanpos - 1])
 		{
-			stack.s.radstat |= ZT_RADSTAT_RX;
+			stack.s.radstat |= DAHDI_RADSTAT_RX;
 			if (rad->rxcode[chan->chanpos - 1][0])
 			    stack.s.ctcode_rx = 
 				dcstable[rad->rxcode[chan->chanpos - 1][0]].code | 0x8000;
@@ -1402,8 +1402,8 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 		{
 			unsigned short x,myindex;
 
-			stack.s.radstat |= ZT_RADSTAT_TX;
-			stack.s.radstat |= ZT_RADSTAT_TX;
+			stack.s.radstat |= DAHDI_RADSTAT_TX;
+			stack.s.radstat |= DAHDI_RADSTAT_TX;
 
 			myindex = 0;
 			if ((!rad->rxcode[chan->chanpos - 1][0]) 
@@ -1418,17 +1418,17 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 		}
 
 		if (rad->radmode[chan->chanpos - 1] & RADMODE_IGNORECOR)
-			stack.s.radstat |= ZT_RADSTAT_IGNCOR;
+			stack.s.radstat |= DAHDI_RADSTAT_IGNCOR;
 		if (rad->radmode[chan->chanpos - 1] & RADMODE_IGNORECT)
-			stack.s.radstat |= ZT_RADSTAT_IGNCT;
+			stack.s.radstat |= DAHDI_RADSTAT_IGNCT;
 		if (rad->radmode[chan->chanpos - 1] & RADMODE_NOENCODE)
-			stack.s.radstat |= ZT_RADSTAT_NOENCODE;
+			stack.s.radstat |= DAHDI_RADSTAT_NOENCODE;
 		if (rad->gotcor[chan->chanpos - 1])
-			stack.s.radstat |= ZT_RADSTAT_RXCOR;
+			stack.s.radstat |= DAHDI_RADSTAT_RXCOR;
 		if (rad->gotct[chan->chanpos - 1])
-			stack.s.radstat |= ZT_RADSTAT_RXCT;
+			stack.s.radstat |= DAHDI_RADSTAT_RXCT;
 		spin_unlock_irqrestore(&rad->lock,flags);
-		if (copy_to_user((struct zt_radio_stat *)data,&stack.s,sizeof(struct zt_radio_stat))) return -EFAULT;
+		if (copy_to_user((struct dahdi_radio_stat *)data,&stack.s,sizeof(struct dahdi_radio_stat))) return -EFAULT;
 		break;
 	default:
 		return -ENOTTY;
@@ -1437,7 +1437,7 @@ static int pciradio_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long 
 
 }
 
-static int pciradio_open(struct zt_chan *chan)
+static int pciradio_open(struct dahdi_chan *chan)
 {
 	struct pciradio *rad = chan->pvt;
 	if (rad->dead)
@@ -1449,14 +1449,14 @@ static int pciradio_open(struct zt_chan *chan)
 	return 0;
 }
 
-static int pciradio_watchdog(struct zt_span *span, int event)
+static int pciradio_watchdog(struct dahdi_span *span, int event)
 {
 	printk("PCI RADIO: Restarting DMA\n");
 	pciradio_restart_dma(span->pvt);
 	return 0;
 }
 
-static int pciradio_close(struct zt_chan *chan)
+static int pciradio_close(struct dahdi_chan *chan)
 {
 	struct pciradio *rad = chan->pvt;
 	rad->usecount--;
@@ -1469,16 +1469,16 @@ static int pciradio_close(struct zt_chan *chan)
 	return 0;
 }
 
-static int pciradio_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
+static int pciradio_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
 {
 	struct pciradio *rad = chan->pvt;
 
 	switch(txsig) {
-	case ZT_TXSIG_START:
-	case ZT_TXSIG_OFFHOOK:
+	case DAHDI_TXSIG_START:
+	case DAHDI_TXSIG_OFFHOOK:
 		rad->gottx[chan->chanpos - 1] = 1;
 		break;
-	case ZT_TXSIG_ONHOOK:
+	case DAHDI_TXSIG_ONHOOK:
 		rad->gottx[chan->chanpos - 1] = 0;
 		break;
 	default:
@@ -1497,10 +1497,10 @@ static int pciradio_initialize(struct pciradio *rad)
 	/* Zapata stuff */
 	sprintf(rad->span.name, "PCIRADIO/%d", rad->pos);
 	sprintf(rad->span.desc, "Board %d", rad->pos + 1);
-	rad->span.deflaw = ZT_LAW_MULAW;
+	rad->span.deflaw = DAHDI_LAW_MULAW;
 	for (x=0;x<rad->nchans;x++) {
 		sprintf(rad->chans[x].name, "PCIRADIO/%d/%d", rad->pos, x);
-		rad->chans[x].sigcap = ZT_SIG_SF | ZT_SIG_EM;
+		rad->chans[x].sigcap = DAHDI_SIG_SF | DAHDI_SIG_EM;
 		rad->chans[x].chanpos = x+1;
 		rad->chans[x].pvt = rad;
 		rad->debouncetime[x] = RAD_GOTRX_DEBOUNCE_TIME;
@@ -1512,13 +1512,13 @@ static int pciradio_initialize(struct pciradio *rad)
 	rad->span.hooksig = pciradio_hooksig;
 	rad->span.open = pciradio_open;
 	rad->span.close = pciradio_close;
-	rad->span.flags = ZT_FLAG_RBS;
+	rad->span.flags = DAHDI_FLAG_RBS;
 	rad->span.ioctl = pciradio_ioctl;
 	rad->span.watchdog = pciradio_watchdog;
 	init_waitqueue_head(&rad->span.maintq);
 
 	rad->span.pvt = rad;
-	if (zt_register(&rad->span, 0)) {
+	if (dahdi_register(&rad->span, 0)) {
 		printk("Unable to register span with zaptel\n");
 		return -1;
 	}
@@ -1645,12 +1645,12 @@ unsigned long endjif;
 
 	/* Setup DMA Addresses */
 	outl(rad->writedma,                    rad->ioaddr + RAD_DMAWS);		/* Write start */
-	outl(rad->writedma + ZT_CHUNKSIZE * 4 - 4, rad->ioaddr + RAD_DMAWI);		/* Middle (interrupt) */
-	outl(rad->writedma + ZT_CHUNKSIZE * 8 - 4, rad->ioaddr + RAD_DMAWE);			/* End */
+	outl(rad->writedma + DAHDI_CHUNKSIZE * 4 - 4, rad->ioaddr + RAD_DMAWI);		/* Middle (interrupt) */
+	outl(rad->writedma + DAHDI_CHUNKSIZE * 8 - 4, rad->ioaddr + RAD_DMAWE);			/* End */
 	
 	outl(rad->readdma,                    	 rad->ioaddr + RAD_DMARS);	/* Read start */
-	outl(rad->readdma + ZT_CHUNKSIZE * 4 - 4, 	 rad->ioaddr + RAD_DMARI);	/* Middle (interrupt) */
-	outl(rad->readdma + ZT_CHUNKSIZE * 8 - 4, rad->ioaddr + RAD_DMARE);	/* End */
+	outl(rad->readdma + DAHDI_CHUNKSIZE * 4 - 4, 	 rad->ioaddr + RAD_DMARI);	/* Middle (interrupt) */
+	outl(rad->readdma + DAHDI_CHUNKSIZE * 8 - 4, rad->ioaddr + RAD_DMARE);	/* End */
 	
 	/* Clear interrupts */
 	outb(0xff, rad->ioaddr + RAD_INTSTAT);
@@ -1759,7 +1759,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 
 			/* Allocate enough memory for two zt chunks, receive and transmit.  Each sample uses
 			   32 bits.  Allocate an extra set just for control too */
-			rad->writechunk = pci_alloc_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &rad->writedma);
+			rad->writechunk = pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &rad->writedma);
 			if (!rad->writechunk) {
 				printk("pciradio: Unable to allocate DMA-able memory\n");
 				if (rad->freeregion)
@@ -1767,8 +1767,8 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 				return -ENOMEM;
 			}
 
-			rad->readchunk = rad->writechunk + ZT_MAX_CHUNKSIZE * 2;	/* in doublewords */
-			rad->readdma = rad->writedma + ZT_MAX_CHUNKSIZE * 8;		/* in bytes */
+			rad->readchunk = rad->writechunk + DAHDI_MAX_CHUNKSIZE * 2;	/* in doublewords */
+			rad->readdma = rad->writedma + DAHDI_MAX_CHUNKSIZE * 8;		/* in bytes */
 
 			if (pciradio_initialize(rad)) {
 				printk("pciradio: Unable to intialize\n");
@@ -1782,7 +1782,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 				free_irq(pdev->irq, rad);
 				if (rad->freeregion)
 					release_region(rad->ioaddr, 0xff);
-				pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
+				pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
 				kfree(rad);
 				return -EIO;
 			}
@@ -1806,9 +1806,9 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 				free_irq(pdev->irq, rad);
 				if (rad->freeregion)
 					release_region(rad->ioaddr, 0xff);
-				pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
+				pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
 				pci_set_drvdata(pdev, NULL);
-				zt_unregister(&rad->span);
+				dahdi_unregister(&rad->span);
 				kfree(rad);
 				return -EIO;
 
@@ -1818,7 +1818,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 				printk("pciradio: Unable to request IRQ %d\n", pdev->irq);
 				if (rad->freeregion)
 					release_region(rad->ioaddr, 0xff);
-				pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
+				pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
 				pci_set_drvdata(pdev, NULL);
 				kfree(rad);
 				return -EIO;
@@ -1827,7 +1827,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 			/* Enable interrupts */
 			pciradio_enable_interrupts(rad);
 			/* Initialize Write/Buffers to all blank data */
-			memset((void *)rad->writechunk,0,ZT_MAX_CHUNKSIZE * 2 * 2 * 4);
+			memset((void *)rad->writechunk,0,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 4);
 
 			/* Start DMA */
 			pciradio_start_dma(rad);
@@ -1841,7 +1841,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 
 static void pciradio_release(struct pciradio *rad)
 {
-	zt_unregister(&rad->span);
+	dahdi_unregister(&rad->span);
 	if (rad->freeregion)
 		release_region(rad->ioaddr, 0xff);
 	kfree(rad);
@@ -1861,7 +1861,7 @@ static void __devexit pciradio_remove_one(struct pci_dev *pdev)
 		pciradio_disable_interrupts(rad);
 		
 		/* Immediately free resources */
-		pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
+		pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
 		free_irq(pdev->irq, rad);
 
 		/* Reset PCI chip and registers */

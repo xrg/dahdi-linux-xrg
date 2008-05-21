@@ -30,8 +30,8 @@
 #endif
 
 struct ztdummy {
-	struct zt_span span;
-	struct zt_chan chan;
+	struct dahdi_span span;
+	struct dahdi_chan chan;
 #ifdef LINUX26
 	unsigned int counter;
 #ifdef USE_RTC

@@ -92,8 +92,8 @@
 #include <asm/i387.h>
 #endif
 
-#define hdlc_to_ztchan(h) (((struct zt_hdlc *)(h))->chan)
-#define dev_to_ztchan(h) (((struct zt_hdlc *)(dev_to_hdlc(h)->priv))->chan)
+#define hdlc_to_ztchan(h) (((struct dahdi_hdlc *)(h))->chan)
+#define dev_to_ztchan(h) (((struct dahdi_hdlc *)(dev_to_hdlc(h)->priv))->chan)
 #ifdef LINUX26
 #define ztchan_to_dev(h) ((h)->hdlcnetdev->netdev)
 #else
@@ -104,7 +104,7 @@
 #define	UNIT(file) MINOR(file->f_dentry->d_inode->i_rdev)
 
 /* names of tx level settings */
-static char *zt_txlevelnames[] = {
+static char *dahdi_txlevelnames[] = {
 "0 db (CSU)/0-133 feet (DSX-1)",
 "133-266 feet (DSX-1)",
 "266-399 feet (DSX-1)",
@@ -115,41 +115,41 @@ static char *zt_txlevelnames[] = {
 "-22.5db (CSU)"
 } ;
 
-EXPORT_SYMBOL(zt_transcode_fops);
-EXPORT_SYMBOL(zt_init_tone_state);
-EXPORT_SYMBOL(zt_mf_tone);
-EXPORT_SYMBOL(zt_register);
-EXPORT_SYMBOL(zt_unregister);
-EXPORT_SYMBOL(__zt_mulaw);
-EXPORT_SYMBOL(__zt_alaw);
+EXPORT_SYMBOL(dahdi_transcode_fops);
+EXPORT_SYMBOL(dahdi_init_tone_state);
+EXPORT_SYMBOL(dahdi_mf_tone);
+EXPORT_SYMBOL(dahdi_register);
+EXPORT_SYMBOL(dahdi_unregister);
+EXPORT_SYMBOL(__dahdi_mulaw);
+EXPORT_SYMBOL(__dahdi_alaw);
 #ifdef CONFIG_CALC_XLAW
-EXPORT_SYMBOL(__zt_lineartoulaw);
-EXPORT_SYMBOL(__zt_lineartoalaw);
+EXPORT_SYMBOL(__dahdi_lineartoulaw);
+EXPORT_SYMBOL(__dahdi_lineartoalaw);
 #else
-EXPORT_SYMBOL(__zt_lin2mu);
-EXPORT_SYMBOL(__zt_lin2a);
+EXPORT_SYMBOL(__dahdi_lin2mu);
+EXPORT_SYMBOL(__dahdi_lin2a);
 #endif
-EXPORT_SYMBOL(zt_lboname);
-EXPORT_SYMBOL(zt_transmit);
-EXPORT_SYMBOL(zt_receive);
-EXPORT_SYMBOL(zt_rbsbits);
-EXPORT_SYMBOL(zt_qevent_nolock);
-EXPORT_SYMBOL(zt_qevent_lock);
-EXPORT_SYMBOL(zt_hooksig);
-EXPORT_SYMBOL(zt_alarm_notify);
-EXPORT_SYMBOL(zt_set_dynamic_ioctl);
-EXPORT_SYMBOL(zt_ec_chunk);
-EXPORT_SYMBOL(zt_ec_span);
-EXPORT_SYMBOL(zt_hdlc_abort);
-EXPORT_SYMBOL(zt_hdlc_finish);
-EXPORT_SYMBOL(zt_hdlc_getbuf);
-EXPORT_SYMBOL(zt_hdlc_putbuf);
-EXPORT_SYMBOL(zt_alarm_channel);
-EXPORT_SYMBOL(zt_register_chardev);
-EXPORT_SYMBOL(zt_unregister_chardev);
+EXPORT_SYMBOL(dahdi_lboname);
+EXPORT_SYMBOL(dahdi_transmit);
+EXPORT_SYMBOL(dahdi_receive);
+EXPORT_SYMBOL(dahdi_rbsbits);
+EXPORT_SYMBOL(dahdi_qevent_nolock);
+EXPORT_SYMBOL(dahdi_qevent_lock);
+EXPORT_SYMBOL(dahdi_hooksig);
+EXPORT_SYMBOL(dahdi_alarm_notify);
+EXPORT_SYMBOL(dahdi_set_dynamic_ioctl);
+EXPORT_SYMBOL(dahdi_ec_chunk);
+EXPORT_SYMBOL(dahdi_ec_span);
+EXPORT_SYMBOL(dahdi_hdlc_abort);
+EXPORT_SYMBOL(dahdi_hdlc_finish);
+EXPORT_SYMBOL(dahdi_hdlc_getbuf);
+EXPORT_SYMBOL(dahdi_hdlc_putbuf);
+EXPORT_SYMBOL(dahdi_alarm_channel);
+EXPORT_SYMBOL(dahdi_register_chardev);
+EXPORT_SYMBOL(dahdi_unregister_chardev);
 
 #ifdef CONFIG_PROC_FS
-static struct proc_dir_entry *proc_entries[ZT_MAX_SPANS]; 
+static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS]; 
 #endif
 
 /* Here are a couple important little additions for devfs */
@@ -231,36 +231,36 @@ __u16 fcstab[256] =
 static int debug;
 
 /* states for transmit signalling */
-typedef enum {ZT_TXSTATE_ONHOOK,ZT_TXSTATE_OFFHOOK,ZT_TXSTATE_START,
-	ZT_TXSTATE_PREWINK,ZT_TXSTATE_WINK,ZT_TXSTATE_PREFLASH,
-	ZT_TXSTATE_FLASH,ZT_TXSTATE_DEBOUNCE,ZT_TXSTATE_AFTERSTART,
-	ZT_TXSTATE_RINGON,ZT_TXSTATE_RINGOFF,ZT_TXSTATE_KEWL,
-	ZT_TXSTATE_AFTERKEWL,ZT_TXSTATE_PULSEBREAK,ZT_TXSTATE_PULSEMAKE,
-	ZT_TXSTATE_PULSEAFTER
-	} ZT_TXSTATE_t;
+typedef enum {DAHDI_TXSTATE_ONHOOK,DAHDI_TXSTATE_OFFHOOK,DAHDI_TXSTATE_START,
+	DAHDI_TXSTATE_PREWINK,DAHDI_TXSTATE_WINK,DAHDI_TXSTATE_PREFLASH,
+	DAHDI_TXSTATE_FLASH,DAHDI_TXSTATE_DEBOUNCE,DAHDI_TXSTATE_AFTERSTART,
+	DAHDI_TXSTATE_RINGON,DAHDI_TXSTATE_RINGOFF,DAHDI_TXSTATE_KEWL,
+	DAHDI_TXSTATE_AFTERKEWL,DAHDI_TXSTATE_PULSEBREAK,DAHDI_TXSTATE_PULSEMAKE,
+	DAHDI_TXSTATE_PULSEAFTER
+	} DAHDI_TXSTATE_t;
 
-typedef short sumtype[ZT_MAX_CHUNKSIZE];
+typedef short sumtype[DAHDI_MAX_CHUNKSIZE];
 
-static sumtype sums[(ZT_MAX_CONF + 1) * 3];
+static sumtype sums[(DAHDI_MAX_CONF + 1) * 3];
 
 /* Translate conference aliases into actual conferences 
    and vice-versa */
-static short confalias[ZT_MAX_CONF + 1];
-static short confrev[ZT_MAX_CONF + 1];
+static short confalias[DAHDI_MAX_CONF + 1];
+static short confrev[DAHDI_MAX_CONF + 1];
 
 static sumtype *conf_sums_next;
 static sumtype *conf_sums;
 static sumtype *conf_sums_prev;
 
-static struct zt_span *master;
-static struct file_operations zt_fops;
-struct file_operations *zt_transcode_fops = NULL;
+static struct dahdi_span *master;
+static struct file_operations dahdi_fops;
+struct file_operations *dahdi_transcode_fops = NULL;
 
 static struct
 {
 	int	src;	/* source conf number */
 	int	dst;	/* dst conf number */
-} conf_links[ZT_MAX_CONF + 1];
+} conf_links[DAHDI_MAX_CONF + 1];
 
 
 /* There are three sets of conference sum accumulators. One for the current
@@ -309,13 +309,13 @@ of the next sample chunk's data (next time around the world).
 
 #include "digits.h"
 
-static struct zt_dialparams global_dialparams = {
+static struct dahdi_dialparams global_dialparams = {
 	.dtmf_tonelen = DEFAULT_DTMF_LENGTH,
 	.mfv1_tonelen = DEFAULT_MFR1_LENGTH,
 	.mfr2_tonelen = DEFAULT_MFR2_LENGTH,
 };
 
-static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit);
+static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit);
 
 #if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
 /* XXX kernel_fpu_begin() is NOT exported properly (in 2.4), so we have to make
@@ -334,7 +334,7 @@ static inline void __save_init_fpu( struct task_struct *tsk )
 	tsk->flags &= ~PF_USEDFPU;
 }
 
-static inline void zt_kernel_fpu_begin(void)
+static inline void dahdi_kernel_fpu_begin(void)
 {
 	struct task_struct *tsk = current;
 	if (tsk->flags & PF_USEDFPU) {
@@ -344,16 +344,16 @@ static inline void zt_kernel_fpu_begin(void)
 	clts();
 }
 #else
-#define zt_kernel_fpu_begin kernel_fpu_begin
+#define dahdi_kernel_fpu_begin kernel_fpu_begin
 #endif /* LINUX26 */
 #endif	
 
-static struct zt_timer {
+static struct dahdi_timer {
 	int ms;			/* Countdown */
 	int pos;		/* Position */
 	int ping;		/* Whether we've been ping'd */
 	int tripped;	/* Whether we're tripped */
-	struct zt_timer *next;	/* Linked list */
+	struct dahdi_timer *next;	/* Linked list */
 	wait_queue_head_t sel;
 } *zaptimers = NULL;
 
@@ -365,26 +365,26 @@ static spinlock_t zaptimerlock = SPIN_LOCK_UNLOCKED;
 static spinlock_t bigzaplock = SPIN_LOCK_UNLOCKED;
 #endif
 
-struct zt_zone {
+struct dahdi_zone {
 	atomic_t refcount;
 	char name[40];	/* Informational, only */
-	int ringcadence[ZT_MAX_CADENCE];
-	struct zt_tone *tones[ZT_TONE_MAX]; 
+	int ringcadence[DAHDI_MAX_CADENCE];
+	struct dahdi_tone *tones[DAHDI_TONE_MAX]; 
 	/* Each of these is a circular list
-	   of zt_tones to generate what we
+	   of dahdi_tones to generate what we
 	   want.  Use NULL if the tone is
 	   unavailable */
-	struct zt_tone dtmf[16];		/* DTMF tones for this zone, with desired length */
-	struct zt_tone dtmf_continuous[16];	/* DTMF tones for this zone, continuous play */
-	struct zt_tone mfr1[15];		/* MFR1 tones for this zone, with desired length */
-	struct zt_tone mfr2_fwd[15];		/* MFR2 FWD tones for this zone, with desired length */
-	struct zt_tone mfr2_rev[15];		/* MFR2 REV tones for this zone, with desired length */
-	struct zt_tone mfr2_fwd_continuous[16];	/* MFR2 FWD tones for this zone, continuous play */
-	struct zt_tone mfr2_rev_continuous[16];	/* MFR2 REV tones for this zone, continuous play */
+	struct dahdi_tone dtmf[16];		/* DTMF tones for this zone, with desired length */
+	struct dahdi_tone dtmf_continuous[16];	/* DTMF tones for this zone, continuous play */
+	struct dahdi_tone mfr1[15];		/* MFR1 tones for this zone, with desired length */
+	struct dahdi_tone mfr2_fwd[15];		/* MFR2 FWD tones for this zone, with desired length */
+	struct dahdi_tone mfr2_rev[15];		/* MFR2 REV tones for this zone, with desired length */
+	struct dahdi_tone mfr2_fwd_continuous[16];	/* MFR2 FWD tones for this zone, continuous play */
+	struct dahdi_tone mfr2_rev_continuous[16];	/* MFR2 REV tones for this zone, continuous play */
 };
 
-static struct zt_span *spans[ZT_MAX_SPANS];
-static struct zt_chan *chans[ZT_MAX_CHANNELS]; 
+static struct dahdi_span *spans[DAHDI_MAX_SPANS];
+static struct dahdi_chan *chans[DAHDI_MAX_CHANNELS]; 
 
 static int maxspans = 0;
 static int maxchans = 0;
@@ -393,13 +393,13 @@ static int maxlinks = 0;
 
 static int default_zone = -1;
 
-short __zt_mulaw[256];
-short __zt_alaw[256];
+short __dahdi_mulaw[256];
+short __dahdi_alaw[256];
 
 #ifndef CONFIG_CALC_XLAW
-u_char __zt_lin2mu[16384];
+u_char __dahdi_lin2mu[16384];
 
-u_char __zt_lin2a[16384];
+u_char __dahdi_lin2a[16384];
 #endif
 
 static u_char defgain[256];
@@ -412,7 +412,7 @@ static rwlock_t zone_lock = RW_LOCK_UNLOCKED;
 static rwlock_t chan_lock = RW_LOCK_UNLOCKED;
 #endif
 
-static struct zt_zone *tone_zones[ZT_TONE_ZONE_MAX];
+static struct dahdi_zone *tone_zones[DAHDI_TONE_ZONE_MAX];
 
 #define NUM_SIGS	10	
 
@@ -436,37 +436,37 @@ static inline void rotate_sums(void)
 {
 	/* Rotate where we sum and so forth */
 	static int pos = 0;
-	conf_sums_prev = sums + (ZT_MAX_CONF + 1) * pos;
-	conf_sums = sums + (ZT_MAX_CONF + 1) * ((pos + 1) % 3);
-	conf_sums_next = sums + (ZT_MAX_CONF + 1) * ((pos + 2) % 3);
+	conf_sums_prev = sums + (DAHDI_MAX_CONF + 1) * pos;
+	conf_sums = sums + (DAHDI_MAX_CONF + 1) * ((pos + 1) % 3);
+	conf_sums_next = sums + (DAHDI_MAX_CONF + 1) * ((pos + 2) % 3);
 	pos = (pos + 1) % 3;
 	memset(conf_sums_next, 0, maxconfs * sizeof(sumtype));
 }
 
   /* return quiescent (idle) signalling states, for the various signalling types */
-static int zt_q_sig(struct zt_chan *chan)
+static int dahdi_q_sig(struct dahdi_chan *chan)
 {
 int	x;
 
 static unsigned int in_sig[NUM_SIGS][2] = {
-	{ ZT_SIG_NONE, 0},
-	{ ZT_SIG_EM, 0 | (ZT_ABIT << 8)},
-	{ ZT_SIG_FXSLS,ZT_BBIT | (ZT_BBIT << 8)},
-	{ ZT_SIG_FXSGS,ZT_ABIT | ZT_BBIT | ((ZT_ABIT | ZT_BBIT) << 8)},
-	{ ZT_SIG_FXSKS,ZT_BBIT | ZT_BBIT | ((ZT_ABIT | ZT_BBIT) << 8)},
-	{ ZT_SIG_FXOLS,0 | (ZT_ABIT << 8)},
-	{ ZT_SIG_FXOGS,ZT_BBIT | ((ZT_ABIT | ZT_BBIT) << 8)},
-	{ ZT_SIG_FXOKS,0 | (ZT_ABIT << 8)},
-	{ ZT_SIG_SF, 0},
-	{ ZT_SIG_EM_E1, ZT_DBIT | ((ZT_ABIT | ZT_DBIT) << 8) },
+	{ DAHDI_SIG_NONE, 0},
+	{ DAHDI_SIG_EM, 0 | (DAHDI_ABIT << 8)},
+	{ DAHDI_SIG_FXSLS,DAHDI_BBIT | (DAHDI_BBIT << 8)},
+	{ DAHDI_SIG_FXSGS,DAHDI_ABIT | DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8)},
+	{ DAHDI_SIG_FXSKS,DAHDI_BBIT | DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8)},
+	{ DAHDI_SIG_FXOLS,0 | (DAHDI_ABIT << 8)},
+	{ DAHDI_SIG_FXOGS,DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8)},
+	{ DAHDI_SIG_FXOKS,0 | (DAHDI_ABIT << 8)},
+	{ DAHDI_SIG_SF, 0},
+	{ DAHDI_SIG_EM_E1, DAHDI_DBIT | ((DAHDI_ABIT | DAHDI_DBIT) << 8) },
 	} ;
 
 	/* must have span to begin with */
 	if (!chan->span) return(-1);
 	  /* if RBS does not apply, return error */
-	if (!(chan->span->flags & ZT_FLAG_RBS) || 
+	if (!(chan->span->flags & DAHDI_FLAG_RBS) || 
 		!chan->span->rbsbits) return(-1);
-	if (chan->sig == ZT_SIG_CAS)
+	if (chan->sig == DAHDI_SIG_CAS)
 		return chan->idlebits;
 	for (x=0;x<NUM_SIGS;x++) {
 		if (in_sig[x][0] == chan->sig) return(in_sig[x][1]);
@@ -477,45 +477,45 @@ static unsigned int in_sig[NUM_SIGS][2] = {
 static char *sigstr(int sig)
 {
 	switch (sig) {
-		case ZT_SIG_FXSLS:
+		case DAHDI_SIG_FXSLS:
 			return "FXSLS";
-		case ZT_SIG_FXSKS:
+		case DAHDI_SIG_FXSKS:
 			return "FXSKS";
-		case ZT_SIG_FXSGS:
+		case DAHDI_SIG_FXSGS:
 			return "FXSGS";
-		case ZT_SIG_FXOLS:
+		case DAHDI_SIG_FXOLS:
 			return "FXOLS";
-		case ZT_SIG_FXOKS:
+		case DAHDI_SIG_FXOKS:
 			return "FXOKS";
-		case ZT_SIG_FXOGS:
+		case DAHDI_SIG_FXOGS:
 			return "FXOGS";
-		case ZT_SIG_EM:
+		case DAHDI_SIG_EM:
 			return "E&M";
-		case ZT_SIG_EM_E1:
+		case DAHDI_SIG_EM_E1:
 			return "E&M-E1";
-		case ZT_SIG_CLEAR:
+		case DAHDI_SIG_CLEAR:
 			return "Clear";
-		case ZT_SIG_HDLCRAW:
+		case DAHDI_SIG_HDLCRAW:
 			return "HDLCRAW";
-		case ZT_SIG_HDLCFCS:
+		case DAHDI_SIG_HDLCFCS:
 			return "HDLCFCS";
-		case ZT_SIG_HDLCNET:
+		case DAHDI_SIG_HDLCNET:
 			return "HDLCNET";
-		case ZT_SIG_HARDHDLC:
+		case DAHDI_SIG_HARDHDLC:
 			return "Hardware-assisted HDLC";
-		case ZT_SIG_MTP2:
+		case DAHDI_SIG_MTP2:
 			return "MTP2";
-		case ZT_SIG_SLAVE:
+		case DAHDI_SIG_SLAVE:
 			return "Slave";
-		case ZT_SIG_CAS:
+		case DAHDI_SIG_CAS:
 			return "CAS";
-		case ZT_SIG_DACS:
+		case DAHDI_SIG_DACS:
 			return "DACS";
-		case ZT_SIG_DACS_RBS:
+		case DAHDI_SIG_DACS_RBS:
 			return "DACS+RBS";
-		case ZT_SIG_SF:
+		case DAHDI_SIG_SF:
 			return "SF (ToneOnly)";
-		case ZT_SIG_NONE:
+		case DAHDI_SIG_NONE:
 		default:
 			return "Unconfigured";
 	}
@@ -527,17 +527,17 @@ static inline int fill_alarm_string(char *buf, int count, int alarms)
 	int	len = 0;
 
 	if (alarms > 0) {
-		if (alarms & ZT_ALARM_BLUE)
+		if (alarms & DAHDI_ALARM_BLUE)
 			len += snprintf(buf + len, count - len, "BLUE ");
-		if (alarms & ZT_ALARM_YELLOW)
+		if (alarms & DAHDI_ALARM_YELLOW)
 			len += snprintf(buf + len, count - len, "YELLOW ");
-		if (alarms & ZT_ALARM_RED)
+		if (alarms & DAHDI_ALARM_RED)
 			len += snprintf(buf + len, count - len, "RED ");
-		if (alarms & ZT_ALARM_LOOPBACK)
+		if (alarms & DAHDI_ALARM_LOOPBACK)
 			len += snprintf(buf + len, count - len, "LOOP ");
-		if (alarms & ZT_ALARM_RECOVER)
+		if (alarms & DAHDI_ALARM_RECOVER)
 			len += snprintf(buf + len, count - len, "RECOVERING ");
-		if (alarms & ZT_ALARM_NOTOPEN)
+		if (alarms & DAHDI_ALARM_NOTOPEN)
 			len += snprintf(buf + len, count - len, "NOTOPEN ");
 	}
 	if(len > 0) {
@@ -571,21 +571,21 @@ static int zaptel_proc_read(char *page, char **start, off_t off, int count, int 
 
 	if (spans[span]->lineconfig) {
 		/* framing first */
-		if (spans[span]->lineconfig & ZT_CONFIG_B8ZS)
+		if (spans[span]->lineconfig & DAHDI_CONFIG_B8ZS)
 			len += sprintf(page + len, " B8ZS/");
-		else if (spans[span]->lineconfig & ZT_CONFIG_AMI)
+		else if (spans[span]->lineconfig & DAHDI_CONFIG_AMI)
 			len += sprintf(page + len, " AMI/");
-		else if (spans[span]->lineconfig & ZT_CONFIG_HDB3)
+		else if (spans[span]->lineconfig & DAHDI_CONFIG_HDB3)
 			len += sprintf(page + len, " HDB3/");
 		/* then coding */
-		if (spans[span]->lineconfig & ZT_CONFIG_ESF)
+		if (spans[span]->lineconfig & DAHDI_CONFIG_ESF)
 			len += sprintf(page + len, "ESF");
-		else if (spans[span]->lineconfig & ZT_CONFIG_D4)
+		else if (spans[span]->lineconfig & DAHDI_CONFIG_D4)
 			len += sprintf(page + len, "D4");
-		else if (spans[span]->lineconfig & ZT_CONFIG_CCS)
+		else if (spans[span]->lineconfig & DAHDI_CONFIG_CCS)
 			len += sprintf(page + len, "CCS");
 		/* E1's can enable CRC checking */
-		if (spans[span]->lineconfig & ZT_CONFIG_CRC4)
+		if (spans[span]->lineconfig & DAHDI_CONFIG_CRC4)
 			len += sprintf(page + len, "/CRC4");
 	}
 
@@ -611,13 +611,13 @@ static int zaptel_proc_read(char *page, char **start, off_t off, int count, int 
 	len += sprintf(page + len, "\n");
 
 
-        for (x=1;x<ZT_MAX_CHANNELS;x++) {	
+        for (x=1;x<DAHDI_MAX_CHANNELS;x++) {	
 		if (chans[x]) {
 			if (chans[x]->span && (chans[x]->span->spanno == span)) {
 				if (chans[x]->name)
 					len += sprintf(page + len, "\t%4d %s ", x, chans[x]->name);
 				if (chans[x]->sig) {
-					if (chans[x]->sig == ZT_SIG_SLAVE)
+					if (chans[x]->sig == DAHDI_SIG_SLAVE)
 						len += sprintf(page + len, "%s ", sigstr(chans[x]->master->sig));
 					else {
 						len += sprintf(page + len, "%s ", sigstr(chans[x]->sig));
@@ -625,7 +625,7 @@ static int zaptel_proc_read(char *page, char **start, off_t off, int count, int 
 							len += sprintf(page + len, "Master ");
 					}
 				}
-				if ((chans[x]->flags & ZT_FLAG_OPEN)) {
+				if ((chans[x]->flags & DAHDI_FLAG_OPEN)) {
 					len += sprintf(page + len, "(In use) ");
 				}
 #ifdef	OPTIMIZE_CHANMUTE
@@ -655,11 +655,11 @@ static int zaptel_proc_read(char *page, char **start, off_t off, int count, int 
 }
 #endif
 
-static int zt_first_empty_alias(void)
+static int dahdi_first_empty_alias(void)
 {
 	/* Find the first conference which has no alias pointing to it */
 	int x;
-	for (x=1;x<ZT_MAX_CONF;x++) {
+	for (x=1;x<DAHDI_MAX_CONF;x++) {
 		if (!confrev[x])
 			return x;
 	}
@@ -669,7 +669,7 @@ static int zt_first_empty_alias(void)
 static void recalc_maxconfs(void)
 {
 	int x;
-	for (x=ZT_MAX_CONF-1;x>0;x--) {
+	for (x=DAHDI_MAX_CONF-1;x>0;x--) {
 		if (confrev[x]) {
 			maxconfs = x+1;
 			return;
@@ -681,7 +681,7 @@ static void recalc_maxconfs(void)
 static void recalc_maxlinks(void)
 {
 	int x;
-	for (x=ZT_MAX_CONF-1;x>0;x--) {
+	for (x=DAHDI_MAX_CONF-1;x>0;x--) {
 		if (conf_links[x].src || conf_links[x].dst) {
 			maxlinks = x+1;
 			return;
@@ -690,18 +690,18 @@ static void recalc_maxlinks(void)
 	maxlinks = 0;
 }
 
-static int zt_first_empty_conference(void)
+static int dahdi_first_empty_conference(void)
 {
 	/* Find the first conference which has no alias */
 	int x;
-	for (x=ZT_MAX_CONF-1;x>0;x--) {
+	for (x=DAHDI_MAX_CONF-1;x>0;x--) {
 		if (!confalias[x])
 			return x;
 	}
 	return -1;
 }
 
-static int zt_get_conf_alias(int x)
+static int dahdi_get_conf_alias(int x)
 {
 	int a;
 	if (confalias[x]) {
@@ -709,7 +709,7 @@ static int zt_get_conf_alias(int x)
 	}
 
 	/* Allocate an alias */
-	a = zt_first_empty_alias();
+	a = dahdi_first_empty_alias();
 	confalias[x] = a;
 	confrev[a] = x;
 
@@ -718,7 +718,7 @@ static int zt_get_conf_alias(int x)
 	return a;
 }
 
-static void zt_check_conf(int x)
+static void dahdi_check_conf(int x)
 {
 	int y;
 
@@ -729,11 +729,11 @@ static void zt_check_conf(int x)
 		return;
 	for (y=0;y<maxchans;y++) {
 		if (chans[y] && (chans[y]->confna == x) &&
-			((chans[y]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONF ||
-			(chans[y]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONFANN ||
-			(chans[y]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONFMON ||
-			(chans[y]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONFANNMON ||
-			(chans[y]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_REALANDPSEUDO))
+			((chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONF ||
+			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANN ||
+			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFMON ||
+			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANNMON ||
+			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_REALANDPSEUDO))
 			return;
 	}
 	/* If we get here, nobody is in the conference anymore.  Clear it out
@@ -746,32 +746,32 @@ static void zt_check_conf(int x)
 }
 
 /* enqueue an event on a channel */
-static void __qevent(struct zt_chan *chan, int event)
+static void __qevent(struct dahdi_chan *chan, int event)
 {
 
 	  /* if full, ignore */
-	if ((chan->eventoutidx == 0) && (chan->eventinidx == (ZT_MAX_EVENTSIZE - 1))) 
+	if ((chan->eventoutidx == 0) && (chan->eventinidx == (DAHDI_MAX_EVENTSIZE - 1))) 
 		return;
 	  /* if full, ignore */
 	if (chan->eventinidx == (chan->eventoutidx - 1)) return;
 	  /* save the event */
 	chan->eventbuf[chan->eventinidx++] = event;
 	  /* wrap the index, if necessary */
-	if (chan->eventinidx >= ZT_MAX_EVENTSIZE) chan->eventinidx = 0;
+	if (chan->eventinidx >= DAHDI_MAX_EVENTSIZE) chan->eventinidx = 0;
 	  /* wake em all up */
-	if (chan->iomask & ZT_IOMUX_SIGEVENT) wake_up_interruptible(&chan->eventbufq);
+	if (chan->iomask & DAHDI_IOMUX_SIGEVENT) wake_up_interruptible(&chan->eventbufq);
 	wake_up_interruptible(&chan->readbufq);
 	wake_up_interruptible(&chan->writebufq);
 	wake_up_interruptible(&chan->sel);
 	return;
 }
 
-void zt_qevent_nolock(struct zt_chan *chan, int event)
+void dahdi_qevent_nolock(struct dahdi_chan *chan, int event)
 {
 	__qevent(chan, event);
 }
 
-void zt_qevent_lock(struct zt_chan *chan, int event)
+void dahdi_qevent_lock(struct dahdi_chan *chan, int event)
 {
 	unsigned long flags;
 	spin_lock_irqsave(&chan->lock, flags);
@@ -794,7 +794,7 @@ static int schluffen(wait_queue_head_t *q)
 	return(0);
 }
 
-static inline void calc_fcs(struct zt_chan *ss, int inwritebuf)
+static inline void calc_fcs(struct dahdi_chan *ss, int inwritebuf)
 {
 	int x;
 	unsigned int fcs=PPP_INITFCS;
@@ -811,7 +811,7 @@ static inline void calc_fcs(struct zt_chan *ss, int inwritebuf)
 	data[len-1] = (fcs >> 8) & 0xff;
 }
 
-static int zt_reallocbufs(struct zt_chan *ss, int j, int numbufs)
+static int dahdi_reallocbufs(struct dahdi_chan *ss, int j, int numbufs)
 {
 	unsigned char *newbuf, *oldbuf;
 	unsigned long flags;
@@ -819,8 +819,8 @@ static int zt_reallocbufs(struct zt_chan *ss, int j, int numbufs)
 	/* Check numbufs */
 	if (numbufs < 2)
 		numbufs = 2;
-	if (numbufs > ZT_MAX_NUM_BUFS)
-		numbufs = ZT_MAX_NUM_BUFS;
+	if (numbufs > DAHDI_MAX_NUM_BUFS)
+		numbufs = DAHDI_MAX_NUM_BUFS;
 	/* We need to allocate our buffers now */
 	if (j) {
 		newbuf = kmalloc(j * 2 * numbufs, GFP_KERNEL);
@@ -865,12 +865,12 @@ static int zt_reallocbufs(struct zt_chan *ss, int j, int numbufs)
 	ss->outreadbuf = -1;
 	ss->outwritebuf = -1;
 	ss->numbufs = numbufs;
-	if (ss->txbufpolicy == ZT_POLICY_WHEN_FULL)
+	if (ss->txbufpolicy == DAHDI_POLICY_WHEN_FULL)
 		ss->txdisable = 1;
 	else
 		ss->txdisable = 0;
 
-	if (ss->rxbufpolicy == ZT_POLICY_WHEN_FULL)
+	if (ss->rxbufpolicy == DAHDI_POLICY_WHEN_FULL)
 		ss->rxdisable = 1;
 	else
 		ss->rxdisable = 0;
@@ -881,24 +881,24 @@ static int zt_reallocbufs(struct zt_chan *ss, int j, int numbufs)
 	return 0;
 }
 
-static int zt_hangup(struct zt_chan *chan);
-static void zt_set_law(struct zt_chan *chan, int law);
+static int dahdi_hangup(struct dahdi_chan *chan);
+static void dahdi_set_law(struct dahdi_chan *chan, int law);
 
-/* Pull a ZT_CHUNKSIZE piece off the queue.  Returns
+/* Pull a DAHDI_CHUNKSIZE piece off the queue.  Returns
    0 on success or -1 on failure.  If failed, provides
    silence */
-static int __buf_pull(struct confq *q, u_char *data, struct zt_chan *c, char *label)
+static int __buf_pull(struct confq *q, u_char *data, struct dahdi_chan *c, char *label)
 {
 	int oldoutbuf = q->outbuf;
 	/* Ain't nuffin to read */
 	if (q->outbuf < 0) {
 		if (data)
-			memset(data, ZT_LIN2X(0,c), ZT_CHUNKSIZE);
+			memset(data, DAHDI_LIN2X(0,c), DAHDI_CHUNKSIZE);
 		return -1;
 	}
 	if (data)
-		memcpy(data, q->buf[q->outbuf], ZT_CHUNKSIZE);
-	q->outbuf = (q->outbuf + 1) % ZT_CB_SIZE;
+		memcpy(data, q->buf[q->outbuf], DAHDI_CHUNKSIZE);
+	q->outbuf = (q->outbuf + 1) % DAHDI_CB_SIZE;
 
 	/* Won't be nuffin next time */
 	if (q->outbuf == q->inbuf) {
@@ -939,20 +939,20 @@ static u_char *__buf_cpush(struct confq *q)
 		return NULL;
 	pos = q->outbuf - 1;
 	if (pos < 0)
-		pos += ZT_CB_SIZE;
+		pos += DAHDI_CB_SIZE;
 	return q->buf[pos];
 }
 
-static void __buf_munge(struct zt_chan *chan, u_char *old, u_char *new)
+static void __buf_munge(struct dahdi_chan *chan, u_char *old, u_char *new)
 {
 	/* Run a weighted average of the old and new, in order to
 	   mask a missing sample */
 	int x;
 	int val;
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
-		val = x * ZT_XLAW(new[x], chan) + (ZT_CHUNKSIZE - x - 1) * ZT_XLAW(old[x], chan);
-		val = val / (ZT_CHUNKSIZE - 1);
-		old[x] = ZT_LIN2X(val, chan);
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
+		val = x * DAHDI_XLAW(new[x], chan) + (DAHDI_CHUNKSIZE - x - 1) * DAHDI_XLAW(old[x], chan);
+		val = val / (DAHDI_CHUNKSIZE - 1);
+		old[x] = DAHDI_LIN2X(val, chan);
 	}
 }
 #endif
@@ -966,10 +966,10 @@ static int __buf_push(struct confq *q, u_char *data, char *label)
 	}
 	if (data)
 		/* Copy in the data */
-		memcpy(q->buf[q->inbuf], data, ZT_CHUNKSIZE);
+		memcpy(q->buf[q->inbuf], data, DAHDI_CHUNKSIZE);
 
 	/* Advance the inbuf pointer */
-	q->inbuf = (q->inbuf + 1) % ZT_CB_SIZE;
+	q->inbuf = (q->inbuf + 1) % DAHDI_CB_SIZE;
 
 	if (q->inbuf == q->outbuf) {
 		/* No space anymore... */	
@@ -983,25 +983,25 @@ static int __buf_push(struct confq *q, u_char *data, char *label)
 	return 0;
 }
 
-static void reset_conf(struct zt_chan *chan)
+static void reset_conf(struct dahdi_chan *chan)
 {
 	int x;
 	/* Empty out buffers and reset to initialization */
-	for (x=0;x<ZT_CB_SIZE;x++)
-		chan->confin.buf[x] = chan->confin.buffer + ZT_CHUNKSIZE * x;
+	for (x=0;x<DAHDI_CB_SIZE;x++)
+		chan->confin.buf[x] = chan->confin.buffer + DAHDI_CHUNKSIZE * x;
 	chan->confin.inbuf = 0;
 	chan->confin.outbuf = -1;
 
-	for (x=0;x<ZT_CB_SIZE;x++)
-		chan->confout.buf[x] = chan->confout.buffer + ZT_CHUNKSIZE * x;
+	for (x=0;x<DAHDI_CB_SIZE;x++)
+		chan->confout.buf[x] = chan->confout.buffer + DAHDI_CHUNKSIZE * x;
 	chan->confout.inbuf = 0;
 	chan->confout.outbuf = -1;
 }
 
 
-static inline int hw_echocancel_off(struct zt_chan *chan)
+static inline int hw_echocancel_off(struct dahdi_chan *chan)
 {
-	struct zt_echocanparams ecp;
+	struct dahdi_echocanparams ecp;
 	
 	int ret = -ENODEV;
 	if (chan->span) {
@@ -1015,7 +1015,7 @@ static inline int hw_echocancel_off(struct zt_chan *chan)
 	return ret;
 }
 
-static void close_channel(struct zt_chan *chan)
+static void close_channel(struct dahdi_chan *chan)
 {
 	unsigned long flags;
 	void *rxgain = NULL;
@@ -1027,8 +1027,8 @@ static void close_channel(struct zt_chan *chan)
 #endif
 
 	/* XXX Buffers should be send out before reallocation!!! XXX */
-	if (!(chan->flags & ZT_FLAG_NOSTDTXRX))
-		zt_reallocbufs(chan, 0, 0); 
+	if (!(chan->flags & DAHDI_FLAG_NOSTDTXRX))
+		dahdi_reallocbufs(chan, 0, 0); 
 	spin_lock_irqsave(&chan->lock, flags);
 #ifdef CONFIG_ZAPATA_PPP
 	ppp = chan->ppp;
@@ -1044,7 +1044,7 @@ static void close_channel(struct zt_chan *chan)
 	chan->curzone = NULL;
 	chan->cadencepos = 0;
 	chan->pdialcount = 0;
-	zt_hangup(chan); 
+	dahdi_hangup(chan); 
 	chan->itimerset = chan->itimer = 0;
 	chan->pulsecount = 0;
 	chan->pulsetimer = 0;
@@ -1064,13 +1064,13 @@ static void close_channel(struct zt_chan *chan)
 	oldconf = chan->confna;
 	  /* initialize conference variables */
 	chan->_confn = 0;
-	if ((chan->sig & __ZT_SIG_DACS) != __ZT_SIG_DACS) {
+	if ((chan->sig & __DAHDI_SIG_DACS) != __DAHDI_SIG_DACS) {
 		chan->confna = 0;
 		chan->confmode = 0;
 	}
 	chan->confmute = 0;
 	/* release conference resource, if any to release */
-	if (oldconf) zt_check_conf(oldconf);
+	if (oldconf) dahdi_check_conf(oldconf);
 	chan->gotgs = 0;
 	reset_conf(chan);
 	
@@ -1081,9 +1081,9 @@ static void close_channel(struct zt_chan *chan)
 	chan->txgain = defgain;
 	chan->gainalloc = 0;
 	chan->eventinidx = chan->eventoutidx = 0;
-	chan->flags &= ~(ZT_FLAG_LOOPED | ZT_FLAG_LINEAR | ZT_FLAG_PPP | ZT_FLAG_SIGFREEZE);
+	chan->flags &= ~(DAHDI_FLAG_LOOPED | DAHDI_FLAG_LINEAR | DAHDI_FLAG_PPP | DAHDI_FLAG_SIGFREEZE);
 
-	zt_set_law(chan,0);
+	dahdi_set_law(chan,0);
 
 	memset(chan->conflast, 0, sizeof(chan->conflast));
 	memset(chan->conflast1, 0, sizeof(chan->conflast1));
@@ -1116,9 +1116,9 @@ static void close_channel(struct zt_chan *chan)
 
 static int free_tone_zone(int num)
 {
-	struct zt_zone *z;
+	struct dahdi_zone *z;
 
-	if ((num >= ZT_TONE_ZONE_MAX) || (num < 0))
+	if ((num >= DAHDI_TONE_ZONE_MAX) || (num < 0))
 		return -EINVAL;
 
 	write_lock(&zone_lock);
@@ -1142,11 +1142,11 @@ static int free_tone_zone(int num)
 	}
 }
 
-static int zt_register_tone_zone(int num, struct zt_zone *zone)
+static int dahdi_register_tone_zone(int num, struct dahdi_zone *zone)
 {
 	int res = 0;
 
-	if ((num >= ZT_TONE_ZONE_MAX) || (num < 0))
+	if ((num >= DAHDI_TONE_ZONE_MAX) || (num < 0))
 		return -EINVAL;
 
 	write_lock(&zone_lock);
@@ -1164,7 +1164,7 @@ static int zt_register_tone_zone(int num, struct zt_zone *zone)
 	return res;
 }
 
-static int start_tone(struct zt_chan *chan, int tone)
+static int start_tone(struct dahdi_chan *chan, int tone)
 {
 	int res = -EINVAL;
 
@@ -1187,7 +1187,7 @@ static int start_tone(struct zt_chan *chan, int tone)
 		}
 		/* Note that no tone zone exists at the moment */
 		res = -ENODATA;
-	} else if ((tone >= 0 && tone <= ZT_TONE_MAX)) {
+	} else if ((tone >= 0 && tone <= DAHDI_TONE_MAX)) {
 		/* Have a tone zone */
 		if (chan->curzone->tones[tone]) {
 			chan->curtone = chan->curzone->tones[tone];
@@ -1196,10 +1196,10 @@ static int start_tone(struct zt_chan *chan, int tone)
 			res = -ENOSYS;
 		}
 	} else if (chan->digitmode == DIGIT_MODE_DTMF) {
-		if ((tone >= ZT_TONE_DTMF_BASE) && (tone <= ZT_TONE_DTMF_MAX)) {
+		if ((tone >= DAHDI_TONE_DTMF_BASE) && (tone <= DAHDI_TONE_DTMF_MAX)) {
 			chan->dialing = 1;
 			res = 0;
-			tone -= ZT_TONE_DTMF_BASE;
+			tone -= DAHDI_TONE_DTMF_BASE;
 			if (chan->curzone) {
 				/* Have a tone zone */
 				if (chan->curzone->dtmf_continuous[tone].tonesamples) {
@@ -1217,9 +1217,9 @@ static int start_tone(struct zt_chan *chan, int tone)
 			res = -EINVAL;
 		}
 	} else if (chan->digitmode == DIGIT_MODE_MFR2_FWD) {
-		if ((tone >= ZT_TONE_MFR2_FWD_BASE) && (tone <= ZT_TONE_MFR2_FWD_MAX)) {
+		if ((tone >= DAHDI_TONE_MFR2_FWD_BASE) && (tone <= DAHDI_TONE_MFR2_FWD_MAX)) {
 			res = 0;
-			tone -= ZT_TONE_MFR2_FWD_BASE;
+			tone -= DAHDI_TONE_MFR2_FWD_BASE;
 			if (chan->curzone) {
 				/* Have a tone zone */
 				if (chan->curzone->mfr2_fwd_continuous[tone].tonesamples) {
@@ -1237,9 +1237,9 @@ static int start_tone(struct zt_chan *chan, int tone)
 			res = -EINVAL;
 		}
 	} else if (chan->digitmode == DIGIT_MODE_MFR2_REV) {
-		if ((tone >= ZT_TONE_MFR2_REV_BASE) && (tone <= ZT_TONE_MFR2_REV_MAX)) {
+		if ((tone >= DAHDI_TONE_MFR2_REV_BASE) && (tone <= DAHDI_TONE_MFR2_REV_MAX)) {
 			res = 0;
-			tone -= ZT_TONE_MFR2_REV_BASE;
+			tone -= DAHDI_TONE_MFR2_REV_BASE;
 			if (chan->curzone) {
 				/* Have a tone zone */
 				if (chan->curzone->mfr2_rev_continuous[tone].tonesamples) {
@@ -1262,15 +1262,15 @@ static int start_tone(struct zt_chan *chan, int tone)
 	}
 
 	if (chan->curtone)
-		zt_init_tone_state(&chan->ts, chan->curtone);
+		dahdi_init_tone_state(&chan->ts, chan->curtone);
 	
 	return res;
 }
 
-static int set_tone_zone(struct zt_chan *chan, int zone)
+static int set_tone_zone(struct dahdi_chan *chan, int zone)
 {
 	int res = 0;
-	struct zt_zone *z;
+	struct dahdi_zone *z;
 	unsigned long flags;
 
 	/* Do not call with the channel locked. */
@@ -1278,7 +1278,7 @@ static int set_tone_zone(struct zt_chan *chan, int zone)
 	if (zone == -1)
 		zone = default_zone;
 
-	if ((zone >= ZT_TONE_ZONE_MAX) || (zone < 0))
+	if ((zone >= DAHDI_TONE_ZONE_MAX) || (zone < 0))
 		return -EINVAL;
 
 	read_lock(&zone_lock);
@@ -1302,34 +1302,34 @@ static int set_tone_zone(struct zt_chan *chan, int zone)
 	return res;
 }
 
-static void zt_set_law(struct zt_chan *chan, int law)
+static void dahdi_set_law(struct dahdi_chan *chan, int law)
 {
 	if (!law) {
 		if (chan->deflaw)
 			law = chan->deflaw;
 		else
 			if (chan->span) law = chan->span->deflaw;
-			else law = ZT_LAW_MULAW;
+			else law = DAHDI_LAW_MULAW;
 	}
-	if (law == ZT_LAW_ALAW) {
-		chan->xlaw = __zt_alaw;
+	if (law == DAHDI_LAW_ALAW) {
+		chan->xlaw = __dahdi_alaw;
 #ifdef CONFIG_CALC_XLAW
-		chan->lineartoxlaw = __zt_lineartoalaw;
+		chan->lineartoxlaw = __dahdi_lineartoalaw;
 #else
-		chan->lin2x = __zt_lin2a;
+		chan->lin2x = __dahdi_lin2a;
 #endif
 	} else {
-		chan->xlaw = __zt_mulaw;
+		chan->xlaw = __dahdi_mulaw;
 #ifdef CONFIG_CALC_XLAW
-		chan->lineartoxlaw = __zt_lineartoulaw;
+		chan->lineartoxlaw = __dahdi_lineartoulaw;
 #else
-		chan->lin2x = __zt_lin2mu;
+		chan->lin2x = __dahdi_lin2mu;
 #endif
 	}
 }
 
 #ifdef CONFIG_DEVFS_FS
-static devfs_handle_t register_devfs_channel(struct zt_chan *chan, devfs_handle_t dir)
+static devfs_handle_t register_devfs_channel(struct dahdi_chan *chan, devfs_handle_t dir)
 {
 	char path[100];
 	char link[100];
@@ -1344,7 +1344,7 @@ static devfs_handle_t register_devfs_channel(struct zt_chan *chan, devfs_handle_
 	unsigned int flags = DEVFS_FL_AUTO_OWNER;
 
 	sprintf(path, "%d", chan->chanpos);
-	chan_dev = devfs_register(dir, path, flags, ZT_MAJOR, chan->channo, mode, &zt_fops, NULL);
+	chan_dev = devfs_register(dir, path, flags, DAHDI_MAJOR, chan->channo, mode, &dahdi_fops, NULL);
 	if (!chan_dev) {
 		printk("zaptel: Something really bad happened.  Unable to register devfs entry\n");
 		return NULL;
@@ -1373,14 +1373,14 @@ static devfs_handle_t register_devfs_channel(struct zt_chan *chan, devfs_handle_
 }
 #endif /* CONFIG_DEVFS_FS */
 
-static int zt_chan_reg(struct zt_chan *chan)
+static int dahdi_chan_reg(struct dahdi_chan *chan)
 {
 	int x;
 	int res=0;
 	unsigned long flags;
 	
 	write_lock_irqsave(&chan_lock, flags);
-	for (x=1;x<ZT_MAX_CHANNELS;x++) {
+	for (x=1;x<DAHDI_MAX_CHANNELS;x++) {
 		if (!chans[x]) {
 			spin_lock_init(&chan->lock);
 			chans[x] = chan;
@@ -1393,26 +1393,26 @@ static int zt_chan_reg(struct zt_chan *chan)
 				chan->readchunk = chan->sreadchunk;
 			if (!chan->writechunk)
 				chan->writechunk = chan->swritechunk;
-			zt_set_law(chan, 0);
+			dahdi_set_law(chan, 0);
 			close_channel(chan); 
 			/* set this AFTER running close_channel() so that
 				HDLC channels wont cause hangage */
-			chan->flags |= ZT_FLAG_REGISTERED;
+			chan->flags |= DAHDI_FLAG_REGISTERED;
 			res = 0;
 			break;
 		}
 	}
 	write_unlock_irqrestore(&chan_lock, flags);	
-	if (x >= ZT_MAX_CHANNELS)
+	if (x >= DAHDI_MAX_CHANNELS)
 		printk(KERN_ERR "No more channels available\n");
 	return res;
 }
 
-char *zt_lboname(int x)
+char *dahdi_lboname(int x)
 {
 	if ((x < 0) || ( x > 7))
 		return "Unknown";
-	return zt_txlevelnames[x];
+	return dahdi_txlevelnames[x];
 }
 
 #if defined(CONFIG_ZAPATA_NET) || defined(CONFIG_ZAPATA_PPP)
@@ -1420,14 +1420,14 @@ char *zt_lboname(int x)
 
 #ifdef CONFIG_ZAPATA_NET
 #ifdef NEW_HDLC_INTERFACE
-static int zt_net_open(struct net_device *dev)
+static int dahdi_net_open(struct net_device *dev)
 {
 #ifdef LINUX26
 	int res = hdlc_open(dev);
-	struct zt_chan *ms = dev_to_ztchan(dev);
+	struct dahdi_chan *ms = dev_to_ztchan(dev);
 #else
 	hdlc_device *hdlc = dev_to_hdlc(dev);
-	struct zt_chan *ms = hdlc_to_ztchan(hdlc);
+	struct dahdi_chan *ms = hdlc_to_ztchan(hdlc);
 	int res = hdlc_open(hdlc);
 #endif	
 	                                                                                                                             
@@ -1435,27 +1435,27 @@ static int zt_net_open(struct net_device *dev)
 	if (res) /* this is necessary to avoid kernel panic when UNSPEC link encap, proven --byg */
 		return res;
 #else
-static int zt_net_open(hdlc_device *hdlc)
+static int dahdi_net_open(hdlc_device *hdlc)
 {
-	struct zt_chan *ms = hdlc_to_ztchan(hdlc);
+	struct dahdi_chan *ms = hdlc_to_ztchan(hdlc);
 	int res;
 #endif
 	if (!ms) {
-		printk("zt_net_open: nothing??\n");
+		printk("dahdi_net_open: nothing??\n");
 		return -EINVAL;
 	}
-	if (ms->flags & ZT_FLAG_OPEN) {
+	if (ms->flags & DAHDI_FLAG_OPEN) {
 		printk("%s is already open!\n", ms->name);
 		return -EBUSY;
 	}
-	if (!(ms->flags & ZT_FLAG_NETDEV)) {
+	if (!(ms->flags & DAHDI_FLAG_NETDEV)) {
 		printk("%s is not a net device!\n", ms->name);
 		return -EINVAL;
 	}
-	ms->txbufpolicy = ZT_POLICY_IMMEDIATE;
-	ms->rxbufpolicy = ZT_POLICY_IMMEDIATE;
+	ms->txbufpolicy = DAHDI_POLICY_IMMEDIATE;
+	ms->rxbufpolicy = DAHDI_POLICY_IMMEDIATE;
 
-	res = zt_reallocbufs(ms, ZT_DEFAULT_MTU_MRU, ZT_DEFAULT_NUM_BUFS);
+	res = dahdi_reallocbufs(ms, DAHDI_DEFAULT_MTU_MRU, DAHDI_DEFAULT_NUM_BUFS);
 	if (res) 
 		return res;
 
@@ -1475,7 +1475,7 @@ static int zt_net_open(hdlc_device *hdlc)
 }
 
 #ifdef LINUX26
-static int zt_register_hdlc_device(struct net_device *dev, const char *dev_name)
+static int dahdi_register_hdlc_device(struct net_device *dev, const char *dev_name)
 {
 	int result;
 
@@ -1495,41 +1495,41 @@ static int zt_register_hdlc_device(struct net_device *dev, const char *dev_name)
 #endif
 
 #ifdef NEW_HDLC_INTERFACE
-static int zt_net_stop(struct net_device *dev)
+static int dahdi_net_stop(struct net_device *dev)
 {
 #ifdef LINUX26
     hdlc_device *h = dev_to_hdlc(dev);
-    struct zt_hdlc *hdlc = h->priv;
+    struct dahdi_hdlc *hdlc = h->priv;
 #else
     hdlc_device *hdlc = dev_to_hdlc(dev);
 #endif
 
 #else
-static void zt_net_close(hdlc_device *hdlc)
+static void dahdi_net_close(hdlc_device *hdlc)
 {
 #endif
-	struct zt_chan *ms = hdlc_to_ztchan(hdlc);
+	struct dahdi_chan *ms = hdlc_to_ztchan(hdlc);
 	if (!ms) {
 #ifdef NEW_HDLC_INTERFACE
-		printk("zt_net_stop: nothing??\n");
+		printk("dahdi_net_stop: nothing??\n");
 		return 0;
 #else
-		printk("zt_net_close: nothing??\n");
+		printk("dahdi_net_close: nothing??\n");
 		return;
 #endif
 	}
-	if (!(ms->flags & ZT_FLAG_NETDEV)) {
+	if (!(ms->flags & DAHDI_FLAG_NETDEV)) {
 #ifdef NEW_HDLC_INTERFACE
-		printk("zt_net_stop: %s is not a net device!\n", ms->name);
+		printk("dahdi_net_stop: %s is not a net device!\n", ms->name);
 		return 0;
 #else
-		printk("zt_net_close: %s is not a net device!\n", ms->name);
+		printk("dahdi_net_close: %s is not a net device!\n", ms->name);
 		return;
 #endif
 	}
 	/* Not much to do here.  Just deallocate the buffers */
         netif_stop_queue(ztchan_to_dev(ms));
-	zt_reallocbufs(ms, 0, 0);
+	dahdi_reallocbufs(ms, 0, 0);
 #ifdef LINUX26
 	hdlc_close(dev);
 #else
@@ -1552,10 +1552,10 @@ static void zt_net_close(hdlc_device *hdlc)
  just copy sources from dscc4 to be sure and ready for further mastering,
  NOOP right now (i.e. really a stub)  --byg */
 #ifdef LINUX26
-static int zt_net_attach(struct net_device *dev, unsigned short encoding,
+static int dahdi_net_attach(struct net_device *dev, unsigned short encoding,
         unsigned short parity)
 #else		
-static int zt_net_attach(hdlc_device *hdlc, unsigned short encoding,
+static int dahdi_net_attach(hdlc_device *hdlc, unsigned short encoding,
         unsigned short parity)
 #endif
 {
@@ -1582,33 +1582,33 @@ static int zt_net_attach(hdlc_device *hdlc, unsigned short encoding,
 }
 #endif
 																								 
-static struct zt_hdlc *zt_hdlc_alloc(void)
+static struct dahdi_hdlc *dahdi_hdlc_alloc(void)
 {
-	struct zt_hdlc *tmp;
-	tmp = kmalloc(sizeof(struct zt_hdlc), GFP_KERNEL);
+	struct dahdi_hdlc *tmp;
+	tmp = kmalloc(sizeof(struct dahdi_hdlc), GFP_KERNEL);
 	if (tmp) {
-		memset(tmp, 0, sizeof(struct zt_hdlc));
+		memset(tmp, 0, sizeof(struct dahdi_hdlc));
 	}
 	return tmp;
 }
 
 #ifdef NEW_HDLC_INTERFACE
-static int zt_xmit(struct sk_buff *skb, struct net_device *dev)
+static int dahdi_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	/* FIXME: this construction seems to be not very optimal for me but I could find nothing better at the moment (Friday, 10PM :( )  --byg */
-/*	struct zt_chan *ss = hdlc_to_ztchan(list_entry(dev, struct zt_hdlc, netdev.netdev));*/
+/*	struct dahdi_chan *ss = hdlc_to_ztchan(list_entry(dev, struct dahdi_hdlc, netdev.netdev));*/
 #ifdef LINUX26
-	struct zt_chan *ss = dev_to_ztchan(dev);
+	struct dahdi_chan *ss = dev_to_ztchan(dev);
 	struct net_device_stats *stats = hdlc_stats(dev);
 #else
-	struct zt_chan *ss = (list_entry(dev, struct zt_hdlc, netdev.netdev)->chan);
+	struct dahdi_chan *ss = (list_entry(dev, struct dahdi_hdlc, netdev.netdev)->chan);
 	struct net_device_stats *stats = &ss->hdlcnetdev->netdev.stats;
 #endif	
 
 #else
-static int zt_xmit(hdlc_device *hdlc, struct sk_buff *skb)
+static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 {
-	struct zt_chan *ss = hdlc_to_ztchan(hdlc);
+	struct dahdi_chan *ss = hdlc_to_ztchan(hdlc);
 	struct net_device *dev = &ss->hdlcnetdev->netdev.netdev;
 	struct net_device_stats *stats = &ss->hdlcnetdev->netdev.stats;
 #endif
@@ -1620,7 +1620,7 @@ static int zt_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 	/* See if we have any buffers */
 	spin_lock_irqsave(&ss->lock, flags);
 	if (skb->len > ss->blocksize - 2) {
-		printk(KERN_ERR "zt_xmit(%s): skb is too large (%d > %d)\n", dev->name, skb->len, ss->blocksize -2);
+		printk(KERN_ERR "dahdi_xmit(%s): skb is too large (%d > %d)\n", dev->name, skb->len, ss->blocksize -2);
 		stats->tx_dropped++;
 		retval = 0;
 	} else if (ss->inwritebuf >= 0) {
@@ -1672,12 +1672,12 @@ static int zt_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 }
 
 #ifdef NEW_HDLC_INTERFACE
-static int zt_net_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+static int dahdi_net_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
 	return hdlc_ioctl(dev, ifr, cmd);
 }
 #else
-static int zt_net_ioctl(hdlc_device *hdlc, struct ifreq *ifr, int cmd)
+static int dahdi_net_ioctl(hdlc_device *hdlc, struct ifreq *ifr, int cmd)
 {
 	return -EIO;
 }
@@ -1687,7 +1687,7 @@ static int zt_net_ioctl(hdlc_device *hdlc, struct ifreq *ifr, int cmd)
 
 #ifdef CONFIG_ZAPATA_PPP
 
-static int zt_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
+static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 {
 
 	/* 
@@ -1695,7 +1695,7 @@ static int zt_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 	 * we handle or drop it, return 1.  Always free if we return
 	 * 1 and never if we return 0
          */
-	struct zt_chan *ss = ppp->private;
+	struct dahdi_chan *ss = ppp->private;
 	int x,oldbuf;
 	unsigned int fcs;
 	unsigned char *data;
@@ -1704,11 +1704,11 @@ static int zt_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 
 	/* See if we have any buffers */
 	spin_lock_irqsave(&ss->lock, flags);
-	if (!(ss->flags & ZT_FLAG_OPEN)) {
+	if (!(ss->flags & DAHDI_FLAG_OPEN)) {
 		printk("Can't transmit on closed channel\n");
 		retval = 1;
 	} else if (skb->len > ss->blocksize - 4) {
-		printk(KERN_ERR "zt_ppp_xmit(%s): skb is too large (%d > %d)\n", ss->name, skb->len, ss->blocksize -2);
+		printk(KERN_ERR "dahdi_ppp_xmit(%s): skb is too large (%d > %d)\n", ss->name, skb->len, ss->blocksize -2);
 		retval = 1;
 	} else if (ss->inwritebuf >= 0) {
 		/* We have a place to put this packet */
@@ -1776,25 +1776,25 @@ static int zt_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 	return retval;
 }
 
-static int zt_ppp_ioctl(struct ppp_channel *ppp, unsigned int cmd, unsigned long flags)
+static int dahdi_ppp_ioctl(struct ppp_channel *ppp, unsigned int cmd, unsigned long flags)
 {
 	return -EIO;
 }
 
 static struct ppp_channel_ops ztppp_ops =
 {
-	start_xmit: zt_ppp_xmit,
-	ioctl: zt_ppp_ioctl,
+	start_xmit: dahdi_ppp_xmit,
+	ioctl: dahdi_ppp_ioctl,
 };
 
 #endif
 
-static void zt_chan_unreg(struct zt_chan *chan)
+static void dahdi_chan_unreg(struct dahdi_chan *chan)
 {
 	int x;
 	unsigned long flags;
 #ifdef CONFIG_ZAPATA_NET
-	if (chan->flags & ZT_FLAG_NETDEV) {
+	if (chan->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 		unregister_hdlc_device(chan->hdlcnetdev->netdev);
 		free_netdev(chan->hdlcnetdev->netdev);
@@ -1806,9 +1806,9 @@ static void zt_chan_unreg(struct zt_chan *chan)
 	}
 #endif
 	write_lock_irqsave(&chan_lock, flags);
-	if (chan->flags & ZT_FLAG_REGISTERED) {
+	if (chan->flags & DAHDI_FLAG_REGISTERED) {
 		chans[chan->channo] = NULL;
-		chan->flags &= ~ZT_FLAG_REGISTERED;
+		chan->flags &= ~DAHDI_FLAG_REGISTERED;
 	}
 #ifdef CONFIG_ZAPATA_PPP
 	if (chan->ppp) {
@@ -1816,7 +1816,7 @@ static void zt_chan_unreg(struct zt_chan *chan)
 	}
 #endif
 	maxchans = 0;
-	for (x=1;x<ZT_MAX_CHANNELS;x++) 
+	for (x=1;x<DAHDI_MAX_CHANNELS;x++) 
 		if (chans[x]) {
 			maxchans = x + 1;
 			/* Remove anyone pointing to us as master
@@ -1825,17 +1825,17 @@ static void zt_chan_unreg(struct zt_chan *chan)
 				chans[x]->master = chans[x];
 			}
 			if ((chans[x]->confna == chan->channo) &&
-				((chans[x]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR ||
-				(chans[x]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITORTX ||
-				(chans[x]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITORBOTH ||
-				(chans[x]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR_RX_PREECHO ||
-				(chans[x]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR_TX_PREECHO ||
-				(chans[x]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITORBOTH_PREECHO ||
-				(chans[x]->confmode & ZT_CONF_MODE_MASK) == ZT_CONF_DIGITALMON)) {
+				((chans[x]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR ||
+				(chans[x]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITORTX ||
+				(chans[x]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITORBOTH ||
+				(chans[x]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR_RX_PREECHO ||
+				(chans[x]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR_TX_PREECHO ||
+				(chans[x]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITORBOTH_PREECHO ||
+				(chans[x]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_DIGITALMON)) {
 				/* Take them out of conference with us */
 				/* release conference resource if any */
 				if (chans[x]->confna) {
-					zt_check_conf(chans[x]->confna);
+					dahdi_check_conf(chans[x]->confna);
 					if (chans[x]->span && chans[x]->span->dacs)
 						chans[x]->span->dacs(chans[x], NULL);
 				}
@@ -1848,9 +1848,9 @@ static void zt_chan_unreg(struct zt_chan *chan)
 	write_unlock_irqrestore(&chan_lock, flags);
 }
 
-static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int unit)
+static ssize_t dahdi_chan_read(struct file *file, char *usrbuf, size_t count, int unit)
 {
-	struct zt_chan *chan = chans[unit];
+	struct dahdi_chan *chan = chans[unit];
 	int amnt;
 	int res, rv;
 	int oldbuf,x;
@@ -1885,14 +1885,14 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 		int x;
 		if (amnt > chan->readn[res])
 			myamnt = chan->readn[res];
-		printk("zt_chan_read(unit: %d, inwritebuf: %d, outwritebuf: %d amnt: %d\n", 
+		printk("dahdi_chan_read(unit: %d, inwritebuf: %d, outwritebuf: %d amnt: %d\n", 
 			unit, chan->inwritebuf, chan->outwritebuf, myamnt);
 		printk("\t("); for (x = 0; x < myamnt; x++) printk((x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
 		printk(")\n");
 	}
 #endif
 /* end addition */
-	if (chan->flags & ZT_FLAG_LINEAR) {
+	if (chan->flags & DAHDI_FLAG_LINEAR) {
 		if (amnt > (chan->readn[res] << 1))
 			amnt = chan->readn[res] << 1;
 		if (amnt) {
@@ -1907,7 +1907,7 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 				if (pass > 128)
 					pass = 128;
 				for (x=0;x<pass;x++)
-					lindata[x] = ZT_XLAW(chan->readbuf[res][x + pos], chan);
+					lindata[x] = DAHDI_XLAW(chan->readbuf[res][x + pos], chan);
 				if (copy_to_user(usrbuf + (pos << 1), lindata, pass << 1))
 					return -EFAULT;
 				left -= pass;
@@ -1930,7 +1930,7 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 	if (chan->outreadbuf == chan->inreadbuf) {
 		/* Out of stuff */
 		chan->outreadbuf = -1;
-		if (chan->rxbufpolicy == ZT_POLICY_WHEN_FULL)
+		if (chan->rxbufpolicy == DAHDI_POLICY_WHEN_FULL)
 			chan->rxdisable = 1;
 	}
 	if (chan->inreadbuf < 0) {
@@ -1942,10 +1942,10 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 	return amnt;
 }
 
-static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count, int unit)
+static ssize_t dahdi_chan_write(struct file *file, const char *usrbuf, size_t count, int unit)
 {
 	unsigned long flags;
-	struct zt_chan *chan = chans[unit];
+	struct dahdi_chan *chan = chans[unit];
 	int res, amnt, oldbuf, rv,x;
 	/* Make sure count never exceeds 65k, and make sure it's unsigned */
 	count &= 0xffff;
@@ -1955,7 +1955,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 		return -EINVAL;
 	for(;;) {
 		spin_lock_irqsave(&chan->lock, flags);
-		if ((chan->curtone || chan->pdialcount) && !(chan->flags & ZT_FLAG_PSEUDO)) {
+		if ((chan->curtone || chan->pdialcount) && !(chan->flags & DAHDI_FLAG_PSEUDO)) {
 			chan->curtone = NULL;
 			chan->tonep = 0;
 			chan->dialing = 0;
@@ -1979,7 +1979,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 	}
 
 	amnt = count;
-	if (chan->flags & ZT_FLAG_LINEAR) {
+	if (chan->flags & DAHDI_FLAG_LINEAR) {
 		if (amnt > (chan->blocksize << 1))
 			amnt = chan->blocksize << 1;
 	} else {
@@ -1988,13 +1988,13 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 	}
 
 #ifdef CONFIG_ZAPATA_DEBUG
-	printk("zt_chan_write(unit: %d, res: %d, outwritebuf: %d amnt: %d\n",
+	printk("dahdi_chan_write(unit: %d, res: %d, outwritebuf: %d amnt: %d\n",
 		unit, chan->res, chan->outwritebuf, amnt);
 #endif
 #if 0
  	if ((unit == 24) || (unit == 48) || (unit == 16) || (unit == 47)) { 
  		int x;
- 		printk("zt_chan_write/in(unit: %d, res: %d, outwritebuf: %d amnt: %d, txdisable: %d)\n",
+ 		printk("dahdi_chan_write/in(unit: %d, res: %d, outwritebuf: %d amnt: %d, txdisable: %d)\n",
  			unit, res, chan->outwritebuf, amnt, chan->txdisable);
  		printk("\t("); for (x = 0; x < amnt; x++) printk((x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
  		printk(")\n");
@@ -2002,7 +2002,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 #endif
 
 	if (amnt) {
-		if (chan->flags & ZT_FLAG_LINEAR) {
+		if (chan->flags & DAHDI_FLAG_LINEAR) {
 			/* There seems to be a max stack size, so we have
 			   to do this in smaller pieces */
 			short lindata[128];
@@ -2017,7 +2017,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 					return -EFAULT;
 				left -= pass;
 				for (x=0;x<pass;x++)
-					chan->writebuf[res][x + pos] = ZT_LIN2X(lindata[x], chan);
+					chan->writebuf[res][x + pos] = DAHDI_LIN2X(lindata[x], chan);
 				pos += pass;
 			}
 			chan->writen[res] = amnt >> 1;
@@ -2027,7 +2027,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 			chan->writen[res] = amnt;
 		}
 		chan->writeidx[res] = 0;
-		if (chan->flags & ZT_FLAG_FCS)
+		if (chan->flags & DAHDI_FLAG_FCS)
 			calc_fcs(chan, res);
 		oldbuf = res;
 		spin_lock_irqsave(&chan->lock, flags);
@@ -2045,13 +2045,13 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 		}
 		spin_unlock_irqrestore(&chan->lock, flags);
 
-		if (chan->flags & ZT_FLAG_NOSTDTXRX && chan->span->hdlc_hard_xmit)
+		if (chan->flags & DAHDI_FLAG_NOSTDTXRX && chan->span->hdlc_hard_xmit)
 			chan->span->hdlc_hard_xmit(chan);
 	}
 	return amnt;
 }
 
-static int zt_ctl_open(struct inode *inode, struct file *file)
+static int dahdi_ctl_open(struct inode *inode, struct file *file)
 {
 	/* Nothing to do, really */
 #ifndef LINUX26
@@ -2060,7 +2060,7 @@ static int zt_ctl_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int zt_chan_open(struct inode *inode, struct file *file)
+static int dahdi_chan_open(struct inode *inode, struct file *file)
 {
 	/* Nothing to do here for now either */
 #ifndef LINUX26
@@ -2069,7 +2069,7 @@ static int zt_chan_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int zt_ctl_release(struct inode *inode, struct file *file)
+static int dahdi_ctl_release(struct inode *inode, struct file *file)
 {
 	/* Nothing to do */
 #ifndef LINUX26
@@ -2078,7 +2078,7 @@ static int zt_ctl_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int zt_chan_release(struct inode *inode, struct file *file)
+static int dahdi_chan_release(struct inode *inode, struct file *file)
 {
 	/* Nothing to do for now */
 #ifndef LINUX26
@@ -2087,7 +2087,7 @@ static int zt_chan_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static void set_txtone(struct zt_chan *ss,int fac, int init_v2, int init_v3)
+static void set_txtone(struct dahdi_chan *ss,int fac, int init_v2, int init_v3)
 {
 	if (fac == 0)
 	{
@@ -2102,69 +2102,69 @@ static void set_txtone(struct zt_chan *ss,int fac, int init_v2, int init_v3)
 	return;
 }
 
-static void zt_rbs_sethook(struct zt_chan *chan, int txsig, int txstate, int timeout)
+static void dahdi_rbs_sethook(struct dahdi_chan *chan, int txsig, int txstate, int timeout)
 {
 static int outs[NUM_SIGS][5] = {
-/* We set the idle case of the ZT_SIG_NONE to this pattern to make idle E1 CAS
+/* We set the idle case of the DAHDI_SIG_NONE to this pattern to make idle E1 CAS
 channels happy. Should not matter with T1, since on an un-configured channel, 
 who cares what the sig bits are as long as they are stable */
-	{ ZT_SIG_NONE, 		ZT_ABIT | ZT_CBIT | ZT_DBIT, 0, 0, 0 },  /* no signalling */
-	{ ZT_SIG_EM, 		0, ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
-		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0 },  /* E and M */
-	{ ZT_SIG_FXSLS, 	ZT_BBIT | ZT_DBIT, 
-		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
-			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0 }, /* FXS Loopstart */
-	{ ZT_SIG_FXSGS, 	ZT_BBIT | ZT_DBIT, 
+	{ DAHDI_SIG_NONE, 		DAHDI_ABIT | DAHDI_CBIT | DAHDI_DBIT, 0, 0, 0 },  /* no signalling */
+	{ DAHDI_SIG_EM, 		0, DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
+		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0 },  /* E and M */
+	{ DAHDI_SIG_FXSLS, 	DAHDI_BBIT | DAHDI_DBIT, 
+		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
+			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0 }, /* FXS Loopstart */
+	{ DAHDI_SIG_FXSGS, 	DAHDI_BBIT | DAHDI_DBIT, 
 #ifdef CONFIG_CAC_GROUNDSTART
-		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0, 0 }, /* FXS Groundstart (CAC-style) */
+		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0, 0 }, /* FXS Groundstart (CAC-style) */
 #else
-		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, ZT_ABIT | ZT_CBIT, 0 }, /* FXS Groundstart (normal) */
+		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, DAHDI_ABIT | DAHDI_CBIT, 0 }, /* FXS Groundstart (normal) */
 #endif
-	{ ZT_SIG_FXSKS,		ZT_BBIT | ZT_DBIT, 
-		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
-			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0 }, /* FXS Kewlstart */
-	{ ZT_SIG_FXOLS,		ZT_BBIT | ZT_DBIT, ZT_BBIT | ZT_DBIT, 0, 0 }, /* FXO Loopstart */
-	{ ZT_SIG_FXOGS,		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
-		 ZT_BBIT | ZT_DBIT, 0, 0 }, /* FXO Groundstart */
-	{ ZT_SIG_FXOKS,		ZT_BBIT | ZT_DBIT, ZT_BBIT | ZT_DBIT, 0, 
-		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT }, /* FXO Kewlstart */
-	{ ZT_SIG_SF,	ZT_BBIT | ZT_CBIT | ZT_DBIT, 
-			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 
-			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 
-			ZT_BBIT | ZT_CBIT | ZT_DBIT },  /* no signalling */
-	{ ZT_SIG_EM_E1, 	ZT_DBIT, ZT_ABIT | ZT_BBIT | ZT_DBIT,
-		ZT_ABIT | ZT_BBIT | ZT_DBIT, ZT_DBIT },  /* E and M  E1 */
+	{ DAHDI_SIG_FXSKS,		DAHDI_BBIT | DAHDI_DBIT, 
+		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
+			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0 }, /* FXS Kewlstart */
+	{ DAHDI_SIG_FXOLS,		DAHDI_BBIT | DAHDI_DBIT, DAHDI_BBIT | DAHDI_DBIT, 0, 0 }, /* FXO Loopstart */
+	{ DAHDI_SIG_FXOGS,		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
+		 DAHDI_BBIT | DAHDI_DBIT, 0, 0 }, /* FXO Groundstart */
+	{ DAHDI_SIG_FXOKS,		DAHDI_BBIT | DAHDI_DBIT, DAHDI_BBIT | DAHDI_DBIT, 0, 
+		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT }, /* FXO Kewlstart */
+	{ DAHDI_SIG_SF,	DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 
+			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 
+			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 
+			DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT },  /* no signalling */
+	{ DAHDI_SIG_EM_E1, 	DAHDI_DBIT, DAHDI_ABIT | DAHDI_BBIT | DAHDI_DBIT,
+		DAHDI_ABIT | DAHDI_BBIT | DAHDI_DBIT, DAHDI_DBIT },  /* E and M  E1 */
 	} ;
 	int x;
 
 	/* if no span, return doing nothing */
 	if (!chan->span) return;
-	if (!chan->span->flags & ZT_FLAG_RBS) {
-		printk("zt_rbs: Tried to set RBS hook state on non-RBS channel %s\n", chan->name);
+	if (!chan->span->flags & DAHDI_FLAG_RBS) {
+		printk("dahdi_rbs: Tried to set RBS hook state on non-RBS channel %s\n", chan->name);
 		return;
 	}
 	if ((txsig > 3) || (txsig < 0)) {
-		printk("zt_rbs: Tried to set RBS hook state %d (> 3) on  channel %s\n", txsig, chan->name);
+		printk("dahdi_rbs: Tried to set RBS hook state %d (> 3) on  channel %s\n", txsig, chan->name);
 		return;
 	}
 	if (!chan->span->rbsbits && !chan->span->hooksig) {
-		printk("zt_rbs: Tried to set RBS hook state %d on channel %s while span %s lacks rbsbits or hooksig function\n",
+		printk("dahdi_rbs: Tried to set RBS hook state %d on channel %s while span %s lacks rbsbits or hooksig function\n",
 			txsig, chan->name, chan->span->name);
 		return;
 	}
 	/* Don't do anything for RBS */
-	if (chan->sig == ZT_SIG_DACS_RBS)
+	if (chan->sig == DAHDI_SIG_DACS_RBS)
 		return;
 	chan->txstate = txstate;
 	
 	/* if tone signalling */
-	if (chan->sig == ZT_SIG_SF)
+	if (chan->sig == DAHDI_SIG_SF)
 	{
 		chan->txhooksig = txsig;
 		if (chan->txtone) /* if set to make tone for tx */
 		{
-			if ((txsig && !(chan->toneflags & ZT_REVERSE_TXTONE)) ||
-			 ((!txsig) && (chan->toneflags & ZT_REVERSE_TXTONE))) 
+			if ((txsig && !(chan->toneflags & DAHDI_REVERSE_TXTONE)) ||
+			 ((!txsig) && (chan->toneflags & DAHDI_REVERSE_TXTONE))) 
 			{
 				set_txtone(chan,chan->txtone,chan->tx_v2,chan->tx_v3);
 			}
@@ -2173,7 +2173,7 @@ who cares what the sig bits are as long as they are stable */
 				set_txtone(chan,0,0,0);
 			}
 		}
-		chan->otimer = timeout * ZT_CHUNKSIZE;			/* Otimer is timer in samples */
+		chan->otimer = timeout * DAHDI_CHUNKSIZE;			/* Otimer is timer in samples */
 		return;
 	}
 	if (chan->span->hooksig) {
@@ -2181,7 +2181,7 @@ who cares what the sig bits are as long as they are stable */
 			chan->txhooksig = txsig;
 			chan->span->hooksig(chan, txsig);
 		}
-		chan->otimer = timeout * ZT_CHUNKSIZE;			/* Otimer is timer in samples */
+		chan->otimer = timeout * DAHDI_CHUNKSIZE;			/* Otimer is timer in samples */
 		return;
 	} else {
 		for (x=0;x<NUM_SIGS;x++) {
@@ -2192,15 +2192,15 @@ who cares what the sig bits are as long as they are stable */
 				chan->txhooksig = txsig;
 				chan->txsig = outs[x][txsig+1];
 				chan->span->rbsbits(chan, chan->txsig);
-				chan->otimer = timeout * ZT_CHUNKSIZE;	/* Otimer is timer in samples */
+				chan->otimer = timeout * DAHDI_CHUNKSIZE;	/* Otimer is timer in samples */
 				return;
 			}
 		}
 	}
-	printk("zt_rbs: Don't know RBS signalling type %d on channel %s\n", chan->sig, chan->name);
+	printk("dahdi_rbs: Don't know RBS signalling type %d on channel %s\n", chan->sig, chan->name);
 }
 
-static int zt_cas_setbits(struct zt_chan *chan, int bits)
+static int dahdi_cas_setbits(struct dahdi_chan *chan, int bits)
 {
 	/* if no span, return as error */
 	if (!chan->span) return -1;
@@ -2213,7 +2213,7 @@ static int zt_cas_setbits(struct zt_chan *chan, int bits)
 	return 0;
 }
 
-static int zt_hangup(struct zt_chan *chan)
+static int dahdi_hangup(struct dahdi_chan *chan)
 {
 	int x,res=0;
 
@@ -2221,37 +2221,37 @@ static int zt_hangup(struct zt_chan *chan)
 	if (!chan->span)
 		return 0;
 	/* Can't hang up a clear channel */
-	if (chan->flags & (ZT_FLAG_CLEAR | ZT_FLAG_NOSTDTXRX))
+	if (chan->flags & (DAHDI_FLAG_CLEAR | DAHDI_FLAG_NOSTDTXRX))
 		return -EINVAL;
 
 	chan->kewlonhook = 0;
 
 
-	if ((chan->sig == ZT_SIG_FXSLS) || (chan->sig == ZT_SIG_FXSKS) ||
-		(chan->sig == ZT_SIG_FXSGS)) chan->ringdebtimer = RING_DEBOUNCE_TIME;
+	if ((chan->sig == DAHDI_SIG_FXSLS) || (chan->sig == DAHDI_SIG_FXSKS) ||
+		(chan->sig == DAHDI_SIG_FXSGS)) chan->ringdebtimer = RING_DEBOUNCE_TIME;
 
-	if (chan->span->flags & ZT_FLAG_RBS) {
-		if (chan->sig == ZT_SIG_CAS) {
-			zt_cas_setbits(chan, chan->idlebits);
-		} else if ((chan->sig == ZT_SIG_FXOKS) && (chan->txstate != ZT_TXSTATE_ONHOOK)
+	if (chan->span->flags & DAHDI_FLAG_RBS) {
+		if (chan->sig == DAHDI_SIG_CAS) {
+			dahdi_cas_setbits(chan, chan->idlebits);
+		} else if ((chan->sig == DAHDI_SIG_FXOKS) && (chan->txstate != DAHDI_TXSTATE_ONHOOK)
 			/* if other party is already on-hook we shouldn't do any battery drop */
-			&& !((chan->rxhooksig == ZT_RXSIG_ONHOOK) && (chan->itimer <= 0))) {
+			&& !((chan->rxhooksig == DAHDI_RXSIG_ONHOOK) && (chan->itimer <= 0))) {
 			/* Do RBS signalling on the channel's behalf */
-			zt_rbs_sethook(chan, ZT_TXSIG_KEWL, ZT_TXSTATE_KEWL, ZT_KEWLTIME);
+			dahdi_rbs_sethook(chan, DAHDI_TXSIG_KEWL, DAHDI_TXSTATE_KEWL, DAHDI_KEWLTIME);
 		} else
-			zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_ONHOOK, 0);
+			dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, DAHDI_TXSTATE_ONHOOK, 0);
 	} else {
 		/* Let the driver hang up the line if it wants to  */
 		if (chan->span->sethook) {
-			if (chan->txhooksig != ZT_ONHOOK) {
-				chan->txhooksig = ZT_ONHOOK;
-				res = chan->span->sethook(chan, ZT_ONHOOK);
+			if (chan->txhooksig != DAHDI_ONHOOK) {
+				chan->txhooksig = DAHDI_ONHOOK;
+				res = chan->span->sethook(chan, DAHDI_ONHOOK);
 			} else
 				res = 0;
 		}
 	}
 	/* if not registered yet, just return here */
-	if (!(chan->flags & ZT_FLAG_REGISTERED)) return res;
+	if (!(chan->flags & DAHDI_FLAG_REGISTERED)) return res;
 	/* Mark all buffers as empty */
 	for (x = 0;x < chan->numbufs;x++) {
 		chan->writen[x] = 
@@ -2277,19 +2277,19 @@ static int zt_hangup(struct zt_chan *chan)
 	return res;
 }
 
-static int initialize_channel(struct zt_chan *chan)
+static int initialize_channel(struct dahdi_chan *chan)
 {
 	int res;
 	unsigned long flags;
 	void *rxgain=NULL;
 	struct echo_can_state *ec=NULL;
-	if ((res = zt_reallocbufs(chan, ZT_DEFAULT_BLOCKSIZE, ZT_DEFAULT_NUM_BUFS)))
+	if ((res = dahdi_reallocbufs(chan, DAHDI_DEFAULT_BLOCKSIZE, DAHDI_DEFAULT_NUM_BUFS)))
 		return res;
 
 	spin_lock_irqsave(&chan->lock, flags);
 
-	chan->rxbufpolicy = ZT_POLICY_IMMEDIATE;
-	chan->txbufpolicy = ZT_POLICY_IMMEDIATE;
+	chan->rxbufpolicy = DAHDI_POLICY_IMMEDIATE;
+	chan->txbufpolicy = DAHDI_POLICY_IMMEDIATE;
 
 	/* Free up the echo canceller if there is one */
 	ec = chan->ec;
@@ -2315,21 +2315,21 @@ static int initialize_channel(struct zt_chan *chan)
 	chan->infcs = PPP_INITFCS;
 	
 	/* Timings for RBS */
-	chan->prewinktime = ZT_DEFAULT_PREWINKTIME;
-	chan->preflashtime = ZT_DEFAULT_PREFLASHTIME;
-	chan->winktime = ZT_DEFAULT_WINKTIME;
-	chan->flashtime = ZT_DEFAULT_FLASHTIME;
+	chan->prewinktime = DAHDI_DEFAULT_PREWINKTIME;
+	chan->preflashtime = DAHDI_DEFAULT_PREFLASHTIME;
+	chan->winktime = DAHDI_DEFAULT_WINKTIME;
+	chan->flashtime = DAHDI_DEFAULT_FLASHTIME;
 	
-	if (chan->sig & __ZT_SIG_FXO)
-		chan->starttime = ZT_DEFAULT_RINGTIME;
+	if (chan->sig & __DAHDI_SIG_FXO)
+		chan->starttime = DAHDI_DEFAULT_RINGTIME;
 	else
-		chan->starttime = ZT_DEFAULT_STARTTIME;
-	chan->rxwinktime = ZT_DEFAULT_RXWINKTIME;
-	chan->rxflashtime = ZT_DEFAULT_RXFLASHTIME;
-	chan->debouncetime = ZT_DEFAULT_DEBOUNCETIME;
-	chan->pulsemaketime = ZT_DEFAULT_PULSEMAKETIME;
-	chan->pulsebreaktime = ZT_DEFAULT_PULSEBREAKTIME;
-	chan->pulseaftertime = ZT_DEFAULT_PULSEAFTERTIME;
+		chan->starttime = DAHDI_DEFAULT_STARTTIME;
+	chan->rxwinktime = DAHDI_DEFAULT_RXWINKTIME;
+	chan->rxflashtime = DAHDI_DEFAULT_RXFLASHTIME;
+	chan->debouncetime = DAHDI_DEFAULT_DEBOUNCETIME;
+	chan->pulsemaketime = DAHDI_DEFAULT_PULSEMAKETIME;
+	chan->pulsebreaktime = DAHDI_DEFAULT_PULSEBREAKTIME;
+	chan->pulseaftertime = DAHDI_DEFAULT_PULSEAFTERTIME;
 	
 	/* Initialize RBS timers */
 	chan->itimerset = chan->itimer = chan->otimer = 0;
@@ -2347,8 +2347,8 @@ static int initialize_channel(struct zt_chan *chan)
 	/* I/O Mask, etc */
 	chan->iomask = 0;
 	/* release conference resource if any */
-	if (chan->confna) zt_check_conf(chan->confna);
-	if ((chan->sig & __ZT_SIG_DACS) != __ZT_SIG_DACS) {
+	if (chan->confna) dahdi_check_conf(chan->confna);
+	if ((chan->sig & __DAHDI_SIG_DACS) != __DAHDI_SIG_DACS) {
 		chan->confna = 0;
 		chan->confmode = 0;
 		if (chan->span && chan->span->dacs)
@@ -2369,17 +2369,17 @@ static int initialize_channel(struct zt_chan *chan)
 	chan->txgain = defgain;
 	chan->gainalloc = 0;
 	chan->eventinidx = chan->eventoutidx = 0;
-	zt_set_law(chan,0);
-	zt_hangup(chan);
+	dahdi_set_law(chan,0);
+	dahdi_hangup(chan);
 
 	/* Make sure that the audio flag is cleared on a clear channel */
-	if ((chan->sig & ZT_SIG_CLEAR) || (chan->sig & ZT_SIG_HARDHDLC))
-		chan->flags &= ~ZT_FLAG_AUDIO;
+	if ((chan->sig & DAHDI_SIG_CLEAR) || (chan->sig & DAHDI_SIG_HARDHDLC))
+		chan->flags &= ~DAHDI_FLAG_AUDIO;
 
-	if ((chan->sig == ZT_SIG_CLEAR) || (chan->sig == ZT_SIG_HARDHDLC))
-		chan->flags &= ~(ZT_FLAG_PPP | ZT_FLAG_FCS | ZT_FLAG_HDLC);
+	if ((chan->sig == DAHDI_SIG_CLEAR) || (chan->sig == DAHDI_SIG_HARDHDLC))
+		chan->flags &= ~(DAHDI_FLAG_PPP | DAHDI_FLAG_FCS | DAHDI_FLAG_HDLC);
 
-	chan->flags &= ~ZT_FLAG_LINEAR;
+	chan->flags &= ~DAHDI_FLAG_LINEAR;
 	if (chan->curzone) {
 		/* Take cadence from tone zone */
 		memcpy(chan->ringcadence, chan->curzone->ringcadence, sizeof(chan->ringcadence));
@@ -2387,7 +2387,7 @@ static int initialize_channel(struct zt_chan *chan)
 		/* Do a default */
 		memset(chan->ringcadence, 0, sizeof(chan->ringcadence));
 		chan->ringcadence[0] = chan->starttime;
-		chan->ringcadence[1] = ZT_RINGOFFTIME;
+		chan->ringcadence[1] = DAHDI_RINGOFFTIME;
 	}
 
 	spin_unlock_irqrestore(&chan->lock, flags);
@@ -2402,15 +2402,15 @@ static int initialize_channel(struct zt_chan *chan)
 	return 0;
 }
 
-static int zt_timing_open(struct inode *inode, struct file *file)
+static int dahdi_timing_open(struct inode *inode, struct file *file)
 {
-	struct zt_timer *t;
+	struct dahdi_timer *t;
 	unsigned long flags;
-	t = kmalloc(sizeof(struct zt_timer), GFP_KERNEL);
+	t = kmalloc(sizeof(struct dahdi_timer), GFP_KERNEL);
 	if (!t)
 		return -ENOMEM;
 	/* Allocate a new timer */
-	memset(t, 0, sizeof(struct zt_timer));
+	memset(t, 0, sizeof(struct dahdi_timer));
 	init_waitqueue_head(&t->sel);
 	file->private_data = t;
 #ifndef LINUX26
@@ -2423,9 +2423,9 @@ static int zt_timing_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int zt_timer_release(struct inode *inode, struct file *file)
+static int dahdi_timer_release(struct inode *inode, struct file *file)
 {
-	struct zt_timer *t, *cur, *prev;
+	struct dahdi_timer *t, *cur, *prev;
 	unsigned long flags;
 	t = file->private_data;
 	if (t) {
@@ -2457,29 +2457,29 @@ static int zt_timer_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int zt_specchan_open(struct inode *inode, struct file *file, int unit, int inc)
+static int dahdi_specchan_open(struct inode *inode, struct file *file, int unit, int inc)
 {
 	int res = 0;
 
 	if (chans[unit] && chans[unit]->sig) {
 		/* Make sure we're not already open, a net device, or a slave device */
-		if (chans[unit]->flags & ZT_FLAG_NETDEV)
+		if (chans[unit]->flags & DAHDI_FLAG_NETDEV)
 			res = -EBUSY;
 		else if (chans[unit]->master != chans[unit])
 			res = -EBUSY;
-		else if ((chans[unit]->sig & __ZT_SIG_DACS) == __ZT_SIG_DACS)
+		else if ((chans[unit]->sig & __DAHDI_SIG_DACS) == __DAHDI_SIG_DACS)
 			res = -EBUSY;
-		else if (!test_and_set_bit(ZT_FLAGBIT_OPEN, &chans[unit]->flags)) {
+		else if (!test_and_set_bit(DAHDI_FLAGBIT_OPEN, &chans[unit]->flags)) {
 			unsigned long flags;
 			res = initialize_channel(chans[unit]);
 			if (res) {
 				/* Reallocbufs must have failed */
-				clear_bit(ZT_FLAGBIT_OPEN, &chans[unit]->flags);
+				clear_bit(DAHDI_FLAGBIT_OPEN, &chans[unit]->flags);
 				return res;
 			}
 			spin_lock_irqsave(&chans[unit]->lock, flags);
-			if (chans[unit]->flags & ZT_FLAG_PSEUDO) 
-				chans[unit]->flags |= ZT_FLAG_AUDIO;
+			if (chans[unit]->flags & DAHDI_FLAG_PSEUDO) 
+				chans[unit]->flags |= DAHDI_FLAG_AUDIO;
 			if (chans[unit]->span && chans[unit]->span->open) {
 				res = chans[unit]->span->open(chans[unit]);
 			}
@@ -2493,7 +2493,7 @@ static int zt_specchan_open(struct inode *inode, struct file *file, int unit, in
 			} else {
 				spin_unlock_irqrestore(&chans[unit]->lock, flags);
 				close_channel(chans[unit]);
-				clear_bit(ZT_FLAGBIT_OPEN, &chans[unit]->flags);
+				clear_bit(DAHDI_FLAGBIT_OPEN, &chans[unit]->flags);
 			}
 		} else
 			res = -EBUSY;
@@ -2502,7 +2502,7 @@ static int zt_specchan_open(struct inode *inode, struct file *file, int unit, in
 	return res;
 }
 
-static int zt_specchan_release(struct inode *node, struct file *file, int unit)
+static int dahdi_specchan_release(struct inode *node, struct file *file, int unit)
 {
 	int res=0;
 	unsigned long flags;
@@ -2516,7 +2516,7 @@ static int zt_specchan_release(struct inode *node, struct file *file, int unit)
 		close_channel(chans[unit]);
 		if (chans[unit]->span && chans[unit]->span->close)
 			res = chans[unit]->span->close(chans[unit]);
-		clear_bit(ZT_FLAGBIT_OPEN, &chans[unit]->flags);
+		clear_bit(DAHDI_FLAGBIT_OPEN, &chans[unit]->flags);
 	} else
 		res = -ENXIO;
 #ifndef LINUX26
@@ -2525,22 +2525,22 @@ static int zt_specchan_release(struct inode *node, struct file *file, int unit)
 	return res;
 }
 
-static struct zt_chan *zt_alloc_pseudo(void)
+static struct dahdi_chan *dahdi_alloc_pseudo(void)
 {
-	struct zt_chan *pseudo;
+	struct dahdi_chan *pseudo;
 	unsigned long flags;
 	/* Don't allow /dev/zap/pseudo to open if there are no spans */
 	if (maxspans < 1)
 		return NULL;
-	pseudo = kmalloc(sizeof(struct zt_chan), GFP_KERNEL);
+	pseudo = kmalloc(sizeof(struct dahdi_chan), GFP_KERNEL);
 	if (!pseudo)
 		return NULL;
-	memset(pseudo, 0, sizeof(struct zt_chan));
-	pseudo->sig = ZT_SIG_CLEAR;
-	pseudo->sigcap = ZT_SIG_CLEAR;
-	pseudo->flags = ZT_FLAG_PSEUDO | ZT_FLAG_AUDIO;
+	memset(pseudo, 0, sizeof(struct dahdi_chan));
+	pseudo->sig = DAHDI_SIG_CLEAR;
+	pseudo->sigcap = DAHDI_SIG_CLEAR;
+	pseudo->flags = DAHDI_FLAG_PSEUDO | DAHDI_FLAG_AUDIO;
 	spin_lock_irqsave(&bigzaplock, flags);
-	if (zt_chan_reg(pseudo)) {
+	if (dahdi_chan_reg(pseudo)) {
 		kfree(pseudo);
 		pseudo = NULL;
 	} else
@@ -2549,41 +2549,41 @@ static struct zt_chan *zt_alloc_pseudo(void)
 	return pseudo;	
 }
 
-static void zt_free_pseudo(struct zt_chan *pseudo)
+static void dahdi_free_pseudo(struct dahdi_chan *pseudo)
 {
 	unsigned long flags;
 	if (pseudo) {
 		spin_lock_irqsave(&bigzaplock, flags);
-		zt_chan_unreg(pseudo);
+		dahdi_chan_unreg(pseudo);
 		spin_unlock_irqrestore(&bigzaplock, flags);
 		kfree(pseudo);
 	}
 }
 
-static int zt_open(struct inode *inode, struct file *file)
+static int dahdi_open(struct inode *inode, struct file *file)
 {
 	int unit = UNIT(file);
 	int ret = -ENXIO;
-	struct zt_chan *chan;
+	struct dahdi_chan *chan;
 	/* Minor 0: Special "control" descriptor */
 	if (!unit) 
-		return zt_ctl_open(inode, file);
+		return dahdi_ctl_open(inode, file);
 	if (unit == 250) {
-		if (!zt_transcode_fops)
+		if (!dahdi_transcode_fops)
 			request_module("dahdi_transcode");
-		if (zt_transcode_fops && zt_transcode_fops->open) {
+		if (dahdi_transcode_fops && dahdi_transcode_fops->open) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-			if (zt_transcode_fops->owner) {
-				__MOD_INC_USE_COUNT (zt_transcode_fops->owner);
+			if (dahdi_transcode_fops->owner) {
+				__MOD_INC_USE_COUNT (dahdi_transcode_fops->owner);
 #else
-			if (try_module_get(zt_transcode_fops->owner)) {
+			if (try_module_get(dahdi_transcode_fops->owner)) {
 #endif
-				ret = zt_transcode_fops->open(inode, file);
+				ret = dahdi_transcode_fops->open(inode, file);
 				if (ret)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-					__MOD_DEC_USE_COUNT (zt_transcode_fops->owner);
+					__MOD_DEC_USE_COUNT (dahdi_transcode_fops->owner);
 #else
-					module_put(zt_transcode_fops->owner);
+					module_put(dahdi_transcode_fops->owner);
 #endif
 			}
 			return ret;
@@ -2592,44 +2592,44 @@ static int zt_open(struct inode *inode, struct file *file)
 	}
 	if (unit == 253) {
 		if (maxspans) {
-			return zt_timing_open(inode, file);
+			return dahdi_timing_open(inode, file);
 		} else {
 			return -ENXIO;
 		}
 	}
 	if (unit == 254)
-		return zt_chan_open(inode, file);
+		return dahdi_chan_open(inode, file);
 	if (unit == 255) {
 		if (maxspans) {
-			chan = zt_alloc_pseudo();
+			chan = dahdi_alloc_pseudo();
 			if (chan) {
 				file->private_data = chan;
-				return zt_specchan_open(inode, file, chan->channo, 1);
+				return dahdi_specchan_open(inode, file, chan->channo, 1);
 			} else {
 				return -ENXIO;
 			}
 		} else
 			return -ENXIO;
 	}
-	return zt_specchan_open(inode, file, unit, 1);
+	return dahdi_specchan_open(inode, file, unit, 1);
 }
 
 #if 0
-static int zt_open(struct inode *inode, struct file *file)
+static int dahdi_open(struct inode *inode, struct file *file)
 {
 	int res;
 	unsigned long flags;
 	spin_lock_irqsave(&bigzaplock, flags);
-	res = __zt_open(inode, file);
+	res = __dahdi_open(inode, file);
 	spin_unlock_irqrestore(&bigzaplock, flags);
 	return res;
 }
 #endif
 
-static ssize_t zt_read(struct file *file, char *usrbuf, size_t count, loff_t *ppos)
+static ssize_t dahdi_read(struct file *file, char *usrbuf, size_t count, loff_t *ppos)
 {
 	int unit = UNIT(file);
-	struct zt_chan *chan;
+	struct dahdi_chan *chan;
 
 	/* Can't read from control */
 	if (!unit) {
@@ -2643,7 +2643,7 @@ static ssize_t zt_read(struct file *file, char *usrbuf, size_t count, loff_t *pp
 		chan = file->private_data;
 		if (!chan)
 			return -EINVAL;
-		return zt_chan_read(file, usrbuf, count, chan->channo);
+		return dahdi_chan_read(file, usrbuf, count, chan->channo);
 	}
 	
 	if (unit == 255) {
@@ -2652,18 +2652,18 @@ static ssize_t zt_read(struct file *file, char *usrbuf, size_t count, loff_t *pp
 			printk("No pseudo channel structure to read?\n");
 			return -EINVAL;
 		}
-		return zt_chan_read(file, usrbuf, count, chan->channo);
+		return dahdi_chan_read(file, usrbuf, count, chan->channo);
 	}
 	if (count < 0)
 		return -EINVAL;
 
-	return zt_chan_read(file, usrbuf, count, unit);
+	return dahdi_chan_read(file, usrbuf, count, unit);
 }
 
-static ssize_t zt_write(struct file *file, const char *usrbuf, size_t count, loff_t *ppos)
+static ssize_t dahdi_write(struct file *file, const char *usrbuf, size_t count, loff_t *ppos)
 {
 	int unit = UNIT(file);
-	struct zt_chan *chan;
+	struct dahdi_chan *chan;
 	/* Can't read from control */
 	if (!unit)
 		return -EINVAL;
@@ -2675,7 +2675,7 @@ static ssize_t zt_write(struct file *file, const char *usrbuf, size_t count, lof
 		chan = file->private_data;
 		if (!chan)
 			return -EINVAL;
-		return zt_chan_write(file, usrbuf, count, chan->channo);
+		return dahdi_chan_write(file, usrbuf, count, chan->channo);
 	}
 	if (unit == 255) {
 		chan = file->private_data;
@@ -2683,15 +2683,15 @@ static ssize_t zt_write(struct file *file, const char *usrbuf, size_t count, lof
 			printk("No pseudo channel structure to read?\n");
 			return -EINVAL;
 		}
-		return zt_chan_write(file, usrbuf, count, chan->channo);
+		return dahdi_chan_write(file, usrbuf, count, chan->channo);
 	}
-	return zt_chan_write(file, usrbuf, count, unit);
+	return dahdi_chan_write(file, usrbuf, count, unit);
 	
 }
 
-static int zt_set_default_zone(int defzone)
+static int dahdi_set_default_zone(int defzone)
 {
-	if ((defzone < 0) || (defzone >= ZT_TONE_ZONE_MAX))
+	if ((defzone < 0) || (defzone >= DAHDI_TONE_ZONE_MAX))
 		return -EINVAL;
 	write_lock(&zone_lock);
 	if (!tone_zones[defzone]) {
@@ -2719,19 +2719,19 @@ static int zt_set_default_zone(int defzone)
 */
 static int ioctl_load_zone(unsigned long data)
 {
-	struct zt_tone *samples[MAX_TONES] = { NULL, };
+	struct dahdi_tone *samples[MAX_TONES] = { NULL, };
 	short next[MAX_TONES] = { 0, };
-	struct zt_tone_def_header th;
-	struct zt_tone_def td;
-	struct zt_zone *z;
-	struct zt_tone *t;
+	struct dahdi_tone_def_header th;
+	struct dahdi_tone_def td;
+	struct dahdi_zone *z;
+	struct dahdi_tone *t;
 	void *slab, *ptr;
 	int x;
 	size_t space;
 	size_t size;
 	int res;
 	
-	if (copy_from_user(&th, (struct zt_tone_def_header *) data, sizeof(th)))
+	if (copy_from_user(&th, (struct dahdi_tone_def_header *) data, sizeof(th)))
 		return -EFAULT;
 
 	data += sizeof(th);
@@ -2756,7 +2756,7 @@ static int ioctl_load_zone(unsigned long data)
 
 	zap_copy_string(z->name, th.name, sizeof(z->name));
 
-	for (x = 0; x < ZT_MAX_CADENCE; x++)
+	for (x = 0; x < DAHDI_MAX_CADENCE; x++)
 		z->ringcadence[x] = th.ringcadence[x];
 
 	atomic_set(&z->refcount, 0);
@@ -2776,14 +2776,14 @@ static int ioctl_load_zone(unsigned long data)
 			return -EINVAL;
 		}
 
-		if (copy_from_user(&td, (struct zt_tone_def *) data, sizeof(td))) {
+		if (copy_from_user(&td, (struct dahdi_tone_def *) data, sizeof(td))) {
 			kfree(slab);
 			return -EFAULT;
 		}
 
 		data += sizeof(td);
 
-		if ((td.tone >= 0) && (td.tone < ZT_TONE_MAX)) {
+		if ((td.tone >= 0) && (td.tone < DAHDI_TONE_MAX)) {
 			tone_type = REGULAR_TONE;
 
 			t = samples[x] = ptr;
@@ -2800,25 +2800,25 @@ static int ioctl_load_zone(unsigned long data)
 				kfree(slab);
 				return -EINVAL;
 			}
-		} else if ((td.tone >= ZT_TONE_DTMF_BASE) &&
-			   (td.tone <= ZT_TONE_DTMF_MAX)) {
+		} else if ((td.tone >= DAHDI_TONE_DTMF_BASE) &&
+			   (td.tone <= DAHDI_TONE_DTMF_MAX)) {
 			tone_type = DTMF_TONE;
-			td.tone -= ZT_TONE_DTMF_BASE;
+			td.tone -= DAHDI_TONE_DTMF_BASE;
 			t = &z->dtmf[td.tone];
-		} else if ((td.tone >= ZT_TONE_MFR1_BASE) &&
-			   (td.tone <= ZT_TONE_MFR1_MAX)) {
+		} else if ((td.tone >= DAHDI_TONE_MFR1_BASE) &&
+			   (td.tone <= DAHDI_TONE_MFR1_MAX)) {
 			tone_type = MFR1_TONE;
-			td.tone -= ZT_TONE_MFR1_BASE;
+			td.tone -= DAHDI_TONE_MFR1_BASE;
 			t = &z->mfr1[td.tone];
-		} else if ((td.tone >= ZT_TONE_MFR2_FWD_BASE) &&
-			   (td.tone <= ZT_TONE_MFR2_FWD_MAX)) {
+		} else if ((td.tone >= DAHDI_TONE_MFR2_FWD_BASE) &&
+			   (td.tone <= DAHDI_TONE_MFR2_FWD_MAX)) {
 			tone_type = MFR2_FWD_TONE;
-			td.tone -= ZT_TONE_MFR2_FWD_BASE;
+			td.tone -= DAHDI_TONE_MFR2_FWD_BASE;
 			t = &z->mfr2_fwd[td.tone];
-		} else if ((td.tone >= ZT_TONE_MFR2_REV_BASE) &&
-			   (td.tone <= ZT_TONE_MFR2_REV_MAX)) {
+		} else if ((td.tone >= DAHDI_TONE_MFR2_REV_BASE) &&
+			   (td.tone <= DAHDI_TONE_MFR2_REV_MAX)) {
 			tone_type = MFR2_REV_TONE;
-			td.tone -= ZT_TONE_MFR2_REV_BASE;
+			td.tone -= DAHDI_TONE_MFR2_REV_BASE;
 			t = &z->mfr2_rev[td.tone];
 		} else {
 			printk("Invalid tone (%d) defined\n", td.tone);
@@ -2847,14 +2847,14 @@ static int ioctl_load_zone(unsigned long data)
 			z->dtmf_continuous[td.tone].next = &z->dtmf_continuous[td.tone];
 			break;
 		case MFR1_TONE:
-			switch (td.tone + ZT_TONE_MFR1_BASE) {
-			case ZT_TONE_MFR1_KP:
-			case ZT_TONE_MFR1_ST:
-			case ZT_TONE_MFR1_STP:
-			case ZT_TONE_MFR1_ST2P:
-			case ZT_TONE_MFR1_ST3P:
+			switch (td.tone + DAHDI_TONE_MFR1_BASE) {
+			case DAHDI_TONE_MFR1_KP:
+			case DAHDI_TONE_MFR1_ST:
+			case DAHDI_TONE_MFR1_STP:
+			case DAHDI_TONE_MFR1_ST2P:
+			case DAHDI_TONE_MFR1_ST3P:
 				/* signaling control tones are always 100ms */
-				t->tonesamples = 100 * ZT_CHUNKSIZE;
+				t->tonesamples = 100 * DAHDI_CHUNKSIZE;
 				break;
 			default:
 				t->tonesamples = global_dialparams.mfv1_tonelen;
@@ -2882,18 +2882,18 @@ static int ioctl_load_zone(unsigned long data)
 			samples[x]->next = samples[next[x]];
 	}
 
-	if ((res = zt_register_tone_zone(th.zone, z))) {
+	if ((res = dahdi_register_tone_zone(th.zone, z))) {
 		kfree(slab);
 	} else {
 		if ( -1 == default_zone ) {
-			zt_set_default_zone(th.zone);
+			dahdi_set_default_zone(th.zone);
 		}
 	}
 
 	return res;
 }
 
-void zt_init_tone_state(struct zt_tone_state *ts, struct zt_tone *zt)
+void dahdi_init_tone_state(struct dahdi_tone_state *ts, struct dahdi_tone *zt)
 {
 	ts->v1_1 = 0;
 	ts->v2_1 = zt->init_v2_1;
@@ -2904,7 +2904,7 @@ void zt_init_tone_state(struct zt_tone_state *ts, struct zt_tone *zt)
 	ts->modulate = zt->modulate;
 }
 
-struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode)
+struct dahdi_tone *dahdi_mf_tone(const struct dahdi_chan *chan, char digit, int digitmode)
 {
 	unsigned int tone_index;
 
@@ -2931,25 +2931,25 @@ struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode
 		case '7':
 		case '8':
 		case '9':
-			tone_index = ZT_TONE_DTMF_0 + (digit - '0');
+			tone_index = DAHDI_TONE_DTMF_0 + (digit - '0');
 			break;
 		case '*':
-			tone_index = ZT_TONE_DTMF_s;
+			tone_index = DAHDI_TONE_DTMF_s;
 			break;
 		case '#':
-			tone_index = ZT_TONE_DTMF_p;
+			tone_index = DAHDI_TONE_DTMF_p;
 			break;
 		case 'A':
 		case 'B':
 		case 'C':
 		case 'D':
-			tone_index = ZT_TONE_DTMF_A + (digit - 'A');
+			tone_index = DAHDI_TONE_DTMF_A + (digit - 'A');
 		case 'W':
 			return &tone_pause;
 		default:
 			return NULL;
 		}
-		return &chan->curzone->dtmf[tone_index - ZT_TONE_DTMF_BASE];
+		return &chan->curzone->dtmf[tone_index - DAHDI_TONE_DTMF_BASE];
 	case DIGIT_MODE_MFR1:
 		switch (digit) {
 		case '0':
@@ -2962,29 +2962,29 @@ struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode
 		case '7':
 		case '8':
 		case '9':
-			tone_index = ZT_TONE_MFR1_0 + (digit - '0');
+			tone_index = DAHDI_TONE_MFR1_0 + (digit - '0');
 			break;
 		case '*':
-			tone_index = ZT_TONE_MFR1_KP;
+			tone_index = DAHDI_TONE_MFR1_KP;
 			break;
 		case '#':
-			tone_index = ZT_TONE_MFR1_ST;
+			tone_index = DAHDI_TONE_MFR1_ST;
 			break;
 		case 'A':
-			tone_index = ZT_TONE_MFR1_STP;
+			tone_index = DAHDI_TONE_MFR1_STP;
 			break;
 		case 'B':
-			tone_index = ZT_TONE_MFR1_ST2P;
+			tone_index = DAHDI_TONE_MFR1_ST2P;
 			break;
 		case 'C':
-			tone_index = ZT_TONE_MFR1_ST3P;
+			tone_index = DAHDI_TONE_MFR1_ST3P;
 			break;
 		case 'W':
 			return &tone_pause;
 		default:
 			return NULL;
 		}
-		return &chan->curzone->mfr1[tone_index - ZT_TONE_MFR1_BASE];
+		return &chan->curzone->mfr1[tone_index - DAHDI_TONE_MFR1_BASE];
 	case DIGIT_MODE_MFR2_FWD:
 		switch (digit) {
 		case '1':
@@ -2996,7 +2996,7 @@ struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode
 		case '7':
 		case '8':
 		case '9':
-			tone_index = ZT_TONE_MFR2_FWD_1 + (digit - '1');
+			tone_index = DAHDI_TONE_MFR2_FWD_1 + (digit - '1');
 			break;
 		case 'A':
 		case 'B':
@@ -3004,14 +3004,14 @@ struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode
 		case 'D':
 		case 'E':
 		case 'F':
-			tone_index = ZT_TONE_MFR2_FWD_10 + (digit - 'A');
+			tone_index = DAHDI_TONE_MFR2_FWD_10 + (digit - 'A');
 			break;
 		case 'W':
 			return &tone_pause;
 		default:
 			return NULL;
 		}
-		return &chan->curzone->mfr2_fwd[tone_index - ZT_TONE_MFR2_FWD_BASE];
+		return &chan->curzone->mfr2_fwd[tone_index - DAHDI_TONE_MFR2_FWD_BASE];
 	case DIGIT_MODE_MFR2_REV:
 		switch (digit) {
 		case '1':
@@ -3023,7 +3023,7 @@ struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode
 		case '7':
 		case '8':
 		case '9':
-			tone_index = ZT_TONE_MFR2_REV_1 + (digit - '1');
+			tone_index = DAHDI_TONE_MFR2_REV_1 + (digit - '1');
 			break;
 		case 'A':
 		case 'B':
@@ -3031,20 +3031,20 @@ struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode
 		case 'D':
 		case 'E':
 		case 'F':
-			tone_index = ZT_TONE_MFR2_REV_10 + (digit - 'A');
+			tone_index = DAHDI_TONE_MFR2_REV_10 + (digit - 'A');
 			break;
 		case 'W':
 			return &tone_pause;
 		default:
 			return NULL;
 		}
-		return &chan->curzone->mfr2_rev[tone_index - ZT_TONE_MFR2_REV_BASE];
+		return &chan->curzone->mfr2_rev[tone_index - DAHDI_TONE_MFR2_REV_BASE];
 	default:
 		return NULL;
 	}
 }
 
-static void __do_dtmf(struct zt_chan *chan)
+static void __do_dtmf(struct dahdi_chan *chan)
 {
 	char c;
 
@@ -3074,17 +3074,17 @@ static void __do_dtmf(struct zt_chan *chan)
 			break;
 		default:
 			if ((c != 'W') && (chan->digitmode == DIGIT_MODE_PULSE)) {
-				if ((c >= '0') && (c <= '9') && (chan->txhooksig == ZT_TXSIG_OFFHOOK)) {
+				if ((c >= '0') && (c <= '9') && (chan->txhooksig == DAHDI_TXSIG_OFFHOOK)) {
 					chan->pdialcount = (c == '0') ? 10 : c - '0';
-					zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_PULSEBREAK,
+					dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, DAHDI_TXSTATE_PULSEBREAK,
 						       chan->pulsebreaktime);
 					return;
 				}
 			} else {
-				chan->curtone = zt_mf_tone(chan, c, chan->digitmode);
+				chan->curtone = dahdi_mf_tone(chan, c, chan->digitmode);
 				chan->tonep = 0;
 				if (chan->curtone) {
-					zt_init_tone_state(&chan->ts, chan->curtone);
+					dahdi_init_tone_state(&chan->ts, chan->curtone);
 					return;
 				}
 			}
@@ -3093,85 +3093,85 @@ static void __do_dtmf(struct zt_chan *chan)
 
 	/* Notify userspace process if there is nothing left */
 	chan->dialing = 0;
-	__qevent(chan, ZT_EVENT_DIALCOMPLETE);
+	__qevent(chan, DAHDI_EVENT_DIALCOMPLETE);
 }
 
-static int zt_release(struct inode *inode, struct file *file)
+static int dahdi_release(struct inode *inode, struct file *file)
 {
 	int unit = UNIT(file);
 	int res;
-	struct zt_chan *chan;
+	struct dahdi_chan *chan;
 
 	if (!unit) 
-		return zt_ctl_release(inode, file);
+		return dahdi_ctl_release(inode, file);
 	if (unit == 253) {
-		return zt_timer_release(inode, file);
+		return dahdi_timer_release(inode, file);
 	}
 	if (unit == 250) {
-		res = zt_transcode_fops->release(inode, file);
+		res = dahdi_transcode_fops->release(inode, file);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-		if (zt_transcode_fops->owner)
-			__MOD_DEC_USE_COUNT (zt_transcode_fops->owner);
+		if (dahdi_transcode_fops->owner)
+			__MOD_DEC_USE_COUNT (dahdi_transcode_fops->owner);
 #else
-		module_put(zt_transcode_fops->owner);
+		module_put(dahdi_transcode_fops->owner);
 #endif
 		return res;
 	}
 	if (unit == 254) {
 		chan = file->private_data;
 		if (!chan)
-			return zt_chan_release(inode, file);
+			return dahdi_chan_release(inode, file);
 		else
-			return zt_specchan_release(inode, file, chan->channo);
+			return dahdi_specchan_release(inode, file, chan->channo);
 	}
 	if (unit == 255) {
 		chan = file->private_data;
 		if (chan) {
-			res = zt_specchan_release(inode, file, chan->channo);
-			zt_free_pseudo(chan);
+			res = dahdi_specchan_release(inode, file, chan->channo);
+			dahdi_free_pseudo(chan);
 		} else {
 			printk("Pseudo release and no private data??\n");
 			res = 0;
 		}
 		return res;
 	}
-	return zt_specchan_release(inode, file, unit);
+	return dahdi_specchan_release(inode, file, unit);
 }
 
 #if 0
-static int zt_release(struct inode *inode, struct file *file)
+static int dahdi_release(struct inode *inode, struct file *file)
 {
 	/* Lock the big zap lock when handling a release */
 	unsigned long flags;
 	int res;
 	spin_lock_irqsave(&bigzaplock, flags);
-	res = __zt_release(inode, file);
+	res = __dahdi_release(inode, file);
 	spin_unlock_irqrestore(&bigzaplock, flags);
 	return res;
 }
 #endif
 
 
-void zt_alarm_channel(struct zt_chan *chan, int alarms)
+void dahdi_alarm_channel(struct dahdi_chan *chan, int alarms)
 {
 	unsigned long flags;
 
 	spin_lock_irqsave(&chan->lock, flags);
 	if (chan->chan_alarms != alarms) {
 		chan->chan_alarms = alarms;
-		zt_qevent_nolock(chan, alarms ? ZT_EVENT_ALARM : ZT_EVENT_NOALARM);
+		dahdi_qevent_nolock(chan, alarms ? DAHDI_EVENT_ALARM : DAHDI_EVENT_NOALARM);
 	}
 	spin_unlock_irqrestore(&chan->lock, flags);
 }
 
-void zt_alarm_notify(struct zt_span *span)
+void dahdi_alarm_notify(struct dahdi_span *span)
 {
 	int x;
 
-	span->alarms &= ~ZT_ALARM_LOOPBACK;
+	span->alarms &= ~DAHDI_ALARM_LOOPBACK;
 	/* Determine maint status */
 	if (span->maintstat || span->mainttimer)
-		span->alarms |= ZT_ALARM_LOOPBACK;
+		span->alarms |= DAHDI_ALARM_LOOPBACK;
 	/* DON'T CHANGE THIS AGAIN. THIS WAS DONE FOR A REASON.
  	   The expression (a != b) does *NOT* do the same thing
 	   as ((!a) != (!b)) */
@@ -3179,10 +3179,10 @@ void zt_alarm_notify(struct zt_span *span)
 	if ((!span->alarms) != (!span->lastalarms)) {
 		span->lastalarms = span->alarms;
 		for (x = 0; x < span->channels; x++)
-			zt_alarm_channel(&span->chans[x], span->alarms);
+			dahdi_alarm_channel(&span->chans[x], span->alarms);
 		/* Switch to other master if current master in alarm */
 		for (x=1; x<maxspans; x++) {
-			if (spans[x] && !spans[x]->alarms && (spans[x]->flags & ZT_FLAG_RUNNING)) {
+			if (spans[x] && !spans[x]->alarms && (spans[x]->flags & DAHDI_FLAG_RUNNING)) {
 				if(master != spans[x])
 					printk("Zaptel: Master changed to %s\n", spans[x]->name);
 				master = spans[x];
@@ -3193,7 +3193,7 @@ void zt_alarm_notify(struct zt_span *span)
 }
 
 #define VALID_SPAN(j) do { \
-	if ((j >= ZT_MAX_SPANS) || (j < 1)) \
+	if ((j >= DAHDI_MAX_SPANS) || (j < 1)) \
 		return -EINVAL; \
 	if (!spans[j]) \
 		return -ENXIO; \
@@ -3207,18 +3207,18 @@ void zt_alarm_notify(struct zt_span *span)
 } while(0)
 
 #define VALID_CHANNEL(j) do { \
-	if ((j >= ZT_MAX_CHANNELS) || (j < 1)) \
+	if ((j >= DAHDI_MAX_CHANNELS) || (j < 1)) \
 		return -EINVAL; \
 	if (!chans[j]) \
 		return -ENXIO; \
 } while(0)
 
-static int zt_timer_ioctl(struct inode *node, struct file *file, unsigned int cmd, unsigned long data, struct zt_timer *timer)
+static int dahdi_timer_ioctl(struct inode *node, struct file *file, unsigned int cmd, unsigned long data, struct dahdi_timer *timer)
 {
 	int j;
 	unsigned long flags;
 	switch(cmd) {
-	case ZT_TIMERCONFIG:
+	case DAHDI_TIMERCONFIG:
 		get_user(j, (int *)data);
 		if (j < 0)
 			j = 0;
@@ -3226,7 +3226,7 @@ static int zt_timer_ioctl(struct inode *node, struct file *file, unsigned int cm
 		timer->ms = timer->pos = j;
 		spin_unlock_irqrestore(&zaptimerlock, flags);
 		break;
-	case ZT_TIMERACK:
+	case DAHDI_TIMERACK:
 		get_user(j, (int *)data);
 		spin_lock_irqsave(&zaptimerlock, flags);
 		if ((j < 1) || (j > timer->tripped))
@@ -3234,24 +3234,24 @@ static int zt_timer_ioctl(struct inode *node, struct file *file, unsigned int cm
 		timer->tripped -= j;
 		spin_unlock_irqrestore(&zaptimerlock, flags);
 		break;
-	case ZT_GETEVENT:  /* Get event on queue */
-		j = ZT_EVENT_NONE;
+	case DAHDI_GETEVENT:  /* Get event on queue */
+		j = DAHDI_EVENT_NONE;
 		spin_lock_irqsave(&zaptimerlock, flags);
 		  /* set up for no event */
 		if (timer->tripped)
-			j = ZT_EVENT_TIMER_EXPIRED;
+			j = DAHDI_EVENT_TIMER_EXPIRED;
 		if (timer->ping)
-			j = ZT_EVENT_TIMER_PING;
+			j = DAHDI_EVENT_TIMER_PING;
 		spin_unlock_irqrestore(&zaptimerlock, flags);
 		put_user(j,(int *)data);
 		break;
-	case ZT_TIMERPING:
+	case DAHDI_TIMERPING:
 		spin_lock_irqsave(&zaptimerlock, flags);
 		timer->ping = 1;
 		wake_up_interruptible(&timer->sel);
 		spin_unlock_irqrestore(&zaptimerlock, flags);
 		break;
-	case ZT_TIMERPONG:
+	case DAHDI_TIMERPONG:
 		spin_lock_irqsave(&zaptimerlock, flags);
 		timer->ping = 0;
 		spin_unlock_irqrestore(&zaptimerlock, flags);
@@ -3262,34 +3262,34 @@ static int zt_timer_ioctl(struct inode *node, struct file *file, unsigned int cm
 	return 0;
 }
 
-static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int cmd, unsigned long data, int unit)
+static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned int cmd, unsigned long data, int unit)
 {
 	union {
-		struct zt_gains gain;
-		struct zt_spaninfo spaninfo;
-		struct zt_params param;
+		struct dahdi_gains gain;
+		struct dahdi_spaninfo spaninfo;
+		struct dahdi_params param;
 	} stack;
-	struct zt_chan *chan;
+	struct dahdi_chan *chan;
 	unsigned long flags;
 	unsigned char *txgain, *rxgain;
-	struct zt_chan *mychan;
+	struct dahdi_chan *mychan;
 	int i,j;
 	int return_master = 0;
 	size_t size_to_copy;
 
 	switch(cmd) {
 		/* get channel parameters */
-	case ZT_GET_PARAMS_V1:
-	case ZT_GET_PARAMS:
-		size_to_copy = (cmd == ZT_GET_PARAMS_V1) ? sizeof(struct zt_params_v1) :
-			       sizeof(struct zt_params);
-		if (copy_from_user(&stack.param, (struct zt_params *) data, size_to_copy))
+	case DAHDI_GET_PARAMS_V1:
+	case DAHDI_GET_PARAMS:
+		size_to_copy = (cmd == DAHDI_GET_PARAMS_V1) ? sizeof(struct dahdi_params_v1) :
+			       sizeof(struct dahdi_params);
+		if (copy_from_user(&stack.param, (struct dahdi_params *) data, size_to_copy))
 			return -EFAULT;
 
 		/* check to see if the caller wants to receive our master channel number */
-		if (stack.param.channo & ZT_GET_PARAMS_RETURN_MASTER) {
+		if (stack.param.channo & DAHDI_GET_PARAMS_RETURN_MASTER) {
 			return_master = 1;
-			stack.param.channo &= ~ZT_GET_PARAMS_RETURN_MASTER;
+			stack.param.channo &= ~DAHDI_GET_PARAMS_RETURN_MASTER;
 		}
 
 		/* Pick the right channo's */
@@ -3304,18 +3304,18 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 		stack.param.sigtype = chan->sig;  /* get signalling type */
 		/* return non-zero if rx not in idle state */
 		if (chan->span) {
-			j = zt_q_sig(chan); 
+			j = dahdi_q_sig(chan); 
 			if (j >= 0) { /* if returned with success */
 				stack.param.rxisoffhook = ((chan->rxsig & (j >> 8)) != (j & 0xff));
 			} else {
-				stack.param.rxisoffhook = ((chan->rxhooksig != ZT_RXSIG_ONHOOK) &&
-					(chan->rxhooksig != ZT_RXSIG_INITIAL));
+				stack.param.rxisoffhook = ((chan->rxhooksig != DAHDI_RXSIG_ONHOOK) &&
+					(chan->rxhooksig != DAHDI_RXSIG_INITIAL));
 			}
-		} else if ((chan->txstate == ZT_TXSTATE_KEWL) || (chan->txstate == ZT_TXSTATE_AFTERKEWL))
+		} else if ((chan->txstate == DAHDI_TXSTATE_KEWL) || (chan->txstate == DAHDI_TXSTATE_AFTERKEWL))
 			stack.param.rxisoffhook = 1;
 		else
 			stack.param.rxisoffhook = 0;
-		if (chan->span && chan->span->rbsbits && !(chan->sig & ZT_SIG_CLEAR)) {
+		if (chan->span && chan->span->rbsbits && !(chan->sig & DAHDI_SIG_CLEAR)) {
 			stack.param.rxbits = chan->rxsig;
 			stack.param.txbits = chan->txsig;
 			stack.param.idlebits = chan->idlebits;
@@ -3325,7 +3325,7 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 			stack.param.idlebits = 0;
 		}
 		if (chan->span && (chan->span->rbsbits || chan->span->hooksig) && 
-			!(chan->sig & ZT_SIG_CLEAR)) {
+			!(chan->sig & DAHDI_SIG_CLEAR)) {
 			stack.param.rxhooksig = chan->rxhooksig;
 			stack.param.txhooksig = chan->txhooksig;
 		} else {
@@ -3356,23 +3356,23 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 		stack.param.chanpos = chan->chanpos;
 		stack.param.sigcap = chan->sigcap;
 		/* Return current law */
-		if (chan->xlaw == __zt_alaw)
-			stack.param.curlaw = ZT_LAW_ALAW;
+		if (chan->xlaw == __dahdi_alaw)
+			stack.param.curlaw = DAHDI_LAW_ALAW;
 		else
-			stack.param.curlaw = ZT_LAW_MULAW;
+			stack.param.curlaw = DAHDI_LAW_MULAW;
 
-		if (copy_to_user((struct zt_params *) data, &stack.param, size_to_copy))
+		if (copy_to_user((struct dahdi_params *) data, &stack.param, size_to_copy))
 			return -EFAULT;
 
 		break;
 		/* set channel parameters */
-	case ZT_SET_PARAMS_V1:
-	case ZT_SET_PARAMS:
-		/* The difference between zt_params and zt_params_v1 is just the 
+	case DAHDI_SET_PARAMS_V1:
+	case DAHDI_SET_PARAMS:
+		/* The difference between dahdi_params and dahdi_params_v1 is just the 
 		 * last field, which is read-only anyway. Thus we just read the
 		 * size of the older struct.
 		 */
-		if (copy_from_user(&stack.param, (struct zt_params *) data, sizeof(struct zt_params_v1)))
+		if (copy_from_user(&stack.param, (struct dahdi_params *) data, sizeof(struct dahdi_params_v1)))
 			return -EFAULT;
 
 		stack.param.chan_alarms = 0; /* be explicit about the above */
@@ -3402,33 +3402,33 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 		chan->pulsebreaktime = stack.param.pulsebreaktime;
 		chan->pulseaftertime = stack.param.pulseaftertime;
 		break;
-	case ZT_GETGAINS:  /* get gain stuff */
-		if (copy_from_user(&stack.gain,(struct zt_gains *) data,sizeof(stack.gain)))
+	case DAHDI_GETGAINS:  /* get gain stuff */
+		if (copy_from_user(&stack.gain,(struct dahdi_gains *) data,sizeof(stack.gain)))
 			return -EFAULT;
 		i = stack.gain.chan;  /* get channel no */
 		   /* if zero, use current channel no */
 		if (!i) i = unit;
 		  /* make sure channel number makes sense */
-		if ((i < 0) || (i > ZT_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
+		if ((i < 0) || (i > DAHDI_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
 		
-		if (!(chans[i]->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
+		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 		stack.gain.chan = i; /* put the span # in here */
 		for (j=0;j<256;j++)  {
 			stack.gain.txgain[j] = chans[i]->txgain[j];
 			stack.gain.rxgain[j] = chans[i]->rxgain[j];
 		}
-		if (copy_to_user((struct zt_gains *) data,&stack.gain,sizeof(stack.gain)))
+		if (copy_to_user((struct dahdi_gains *) data,&stack.gain,sizeof(stack.gain)))
 			return -EFAULT;
 		break;
-	case ZT_SETGAINS:  /* set gain stuff */
-		if (copy_from_user(&stack.gain,(struct zt_gains *) data,sizeof(stack.gain)))
+	case DAHDI_SETGAINS:  /* set gain stuff */
+		if (copy_from_user(&stack.gain,(struct dahdi_gains *) data,sizeof(stack.gain)))
 			return -EFAULT;
 		i = stack.gain.chan;  /* get channel no */
 		   /* if zero, use current channel no */
 		if (!i) i = unit;
 		  /* make sure channel number makes sense */
-		if ((i < 0) || (i > ZT_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
-		if (!(chans[i]->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
+		if ((i < 0) || (i > DAHDI_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
+		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 
 		rxgain = kmalloc(512, GFP_KERNEL);
 		if (!rxgain)
@@ -3463,16 +3463,16 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 			chans[i]->txgain = txgain;
 			spin_unlock_irqrestore(&chans[i]->lock, flags);
 		}
-		if (copy_to_user((struct zt_gains *) data,&stack.gain,sizeof(stack.gain)))
+		if (copy_to_user((struct dahdi_gains *) data,&stack.gain,sizeof(stack.gain)))
 			return -EFAULT;
 		break;
-	case ZT_SPANSTAT_V1:
-	case ZT_SPANSTAT_V2:
-	case ZT_SPANSTAT:
-		size_to_copy = (cmd == ZT_SPANSTAT_V1) ? sizeof(struct zt_spaninfo_v1) :
-			       (cmd == ZT_SPANSTAT_V2) ? sizeof(struct zt_spaninfo_v2) :
-			       sizeof(struct zt_spaninfo);
-		if (copy_from_user(&stack.spaninfo, (struct zt_spaninfo *) data, size_to_copy))
+	case DAHDI_SPANSTAT_V1:
+	case DAHDI_SPANSTAT_V2:
+	case DAHDI_SPANSTAT:
+		size_to_copy = (cmd == DAHDI_SPANSTAT_V1) ? sizeof(struct dahdi_spaninfo_v1) :
+			       (cmd == DAHDI_SPANSTAT_V2) ? sizeof(struct dahdi_spaninfo_v2) :
+			       sizeof(struct dahdi_spaninfo);
+		if (copy_from_user(&stack.spaninfo, (struct dahdi_spaninfo *) data, size_to_copy))
 			return -EFAULT;
 		i = stack.spaninfo.spanno; /* get specified span number */
 		if ((i < 0) || (i >= maxspans)) return(-EINVAL);  /* if bad span no */
@@ -3510,7 +3510,7 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 		/* version 3 fields */
 		stack.spaninfo.irq = spans[i]->irq;
 		stack.spaninfo.linecompat = spans[i]->linecompat;
-		zap_copy_string(stack.spaninfo.lboname, zt_lboname(spans[i]->lbo), sizeof(stack.spaninfo.lboname));
+		zap_copy_string(stack.spaninfo.lboname, dahdi_lboname(spans[i]->lbo), sizeof(stack.spaninfo.lboname));
 		if (spans[i]->manufacturer)
 			zap_copy_string(stack.spaninfo.manufacturer, spans[i]->manufacturer,
 				sizeof(stack.spaninfo.manufacturer));
@@ -3520,10 +3520,10 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 		if (spans[i]->spantype)
 			zap_copy_string(stack.spaninfo.spantype, spans[i]->spantype, sizeof(stack.spaninfo.spantype));
 		
-		if (copy_to_user((struct zt_spaninfo *) data, &stack.spaninfo, size_to_copy))
+		if (copy_to_user((struct dahdi_spaninfo *) data, &stack.spaninfo, size_to_copy))
 			return -EFAULT;
 		break;
-	case ZT_CHANDIAG:
+	case DAHDI_CHANDIAG:
 		get_user(j, (int *)data); /* get channel number from user */
 		/* make sure its a valid channel number */
 		if ((j < 1) || (j >= maxchans))
@@ -3586,17 +3586,17 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 	return 0;
 }
 
-static int (*zt_dynamic_ioctl)(unsigned int cmd, unsigned long data);
+static int (*dahdi_dynamic_ioctl)(unsigned int cmd, unsigned long data);
 
-void zt_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data)) 
+void dahdi_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data)) 
 {
-	zt_dynamic_ioctl = func;
+	dahdi_dynamic_ioctl = func;
 }
 
-static void recalc_slaves(struct zt_chan *chan)
+static void recalc_slaves(struct dahdi_chan *chan)
 {
 	int x;
-	struct zt_chan *last = chan;
+	struct dahdi_chan *last = chan;
 
 	/* Makes no sense if you don't have a span */
 	if (!chan->span)
@@ -3623,31 +3623,31 @@ static void recalc_slaves(struct zt_chan *chan)
 #endif
 }
 
-static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data)
+static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data)
 {
 	/* I/O CTL's for control interface */
 	int i,j;
 	int sigcap;
 	int res = 0;
 	int x,y;
-	struct zt_chan *newmaster;
+	struct dahdi_chan *newmaster;
 	unsigned long flags;
 	int rv;
 	switch(cmd) {
-	case ZT_INDIRECT:
+	case DAHDI_INDIRECT:
 	{
-		struct zt_indirect_data ind;
+		struct dahdi_indirect_data ind;
 
-		if (copy_from_user(&ind, (struct zt_indirect_data *)data, sizeof(ind)))
+		if (copy_from_user(&ind, (struct dahdi_indirect_data *)data, sizeof(ind)))
 			return -EFAULT;
 		VALID_CHANNEL(ind.chan);
-		return zt_chan_ioctl(inode, file, ind.op, (unsigned long) ind.data, ind.chan);
+		return dahdi_chan_ioctl(inode, file, ind.op, (unsigned long) ind.data, ind.chan);
 	}
-	case ZT_SPANCONFIG:
+	case DAHDI_SPANCONFIG:
 	{
-		struct zt_lineconfig lc;
+		struct dahdi_lineconfig lc;
 
-		if (copy_from_user(&lc, (struct zt_lineconfig *)data, sizeof(lc)))
+		if (copy_from_user(&lc, (struct dahdi_lineconfig *)data, sizeof(lc)))
 			return -EFAULT;
 		VALID_SPAN(lc.span);
 		if ((lc.lineconfig & 0x07f0 & spans[lc.span]->linecompat) != (lc.lineconfig & 0x07f0))
@@ -3662,49 +3662,49 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		}
 		return 0;
 	}
-	case ZT_STARTUP:
+	case DAHDI_STARTUP:
 		CHECK_VALID_SPAN(j);
-		if (spans[j]->flags & ZT_FLAG_RUNNING)
+		if (spans[j]->flags & DAHDI_FLAG_RUNNING)
 			return 0;
 		if (spans[j]->startup)
 			res = spans[j]->startup(spans[j]);
 		if (!res) {
 			/* Mark as running and hangup any channels */
-			spans[j]->flags |= ZT_FLAG_RUNNING;
+			spans[j]->flags |= DAHDI_FLAG_RUNNING;
 			for (x=0;x<spans[j]->channels;x++) {
-				y = zt_q_sig(&spans[j]->chans[x]) & 0xff;
+				y = dahdi_q_sig(&spans[j]->chans[x]) & 0xff;
 				if (y >= 0) spans[j]->chans[x].rxsig = (unsigned char)y;
 				spin_lock_irqsave(&spans[j]->chans[x].lock, flags);
-				zt_hangup(&spans[j]->chans[x]);
+				dahdi_hangup(&spans[j]->chans[x]);
 				spin_unlock_irqrestore(&spans[j]->chans[x].lock, flags);
-				spans[j]->chans[x].rxhooksig = ZT_RXSIG_INITIAL;
+				spans[j]->chans[x].rxhooksig = DAHDI_RXSIG_INITIAL;
 			}
 		}
 		return 0;
-	case ZT_SHUTDOWN:
+	case DAHDI_SHUTDOWN:
 		CHECK_VALID_SPAN(j);
 		if (spans[j]->shutdown)
 			res =  spans[j]->shutdown(spans[j]);
-		spans[j]->flags &= ~ZT_FLAG_RUNNING;
+		spans[j]->flags &= ~DAHDI_FLAG_RUNNING;
 		return 0;
-	case ZT_CHANCONFIG:
+	case DAHDI_CHANCONFIG:
 	{
-		struct zt_chanconfig ch;
+		struct dahdi_chanconfig ch;
 
-		if (copy_from_user(&ch, (struct zt_chanconfig *)data, sizeof(ch)))
+		if (copy_from_user(&ch, (struct dahdi_chanconfig *)data, sizeof(ch)))
 			return -EFAULT;
 		VALID_CHANNEL(ch.chan);
-		if (ch.sigtype == ZT_SIG_SLAVE) {
+		if (ch.sigtype == DAHDI_SIG_SLAVE) {
 			/* We have to use the master's sigtype */
-			if ((ch.master < 1) || (ch.master >= ZT_MAX_CHANNELS))
+			if ((ch.master < 1) || (ch.master >= DAHDI_MAX_CHANNELS))
 				return -EINVAL;
 			if (!chans[ch.master])
 				return -EINVAL;
 			ch.sigtype = chans[ch.master]->sig;
 			newmaster = chans[ch.master];
-		} else if ((ch.sigtype & __ZT_SIG_DACS) == __ZT_SIG_DACS) {
+		} else if ((ch.sigtype & __DAHDI_SIG_DACS) == __DAHDI_SIG_DACS) {
 			newmaster = chans[ch.chan];
-			if ((ch.idlebits < 1) || (ch.idlebits >= ZT_MAX_CHANNELS))
+			if ((ch.idlebits < 1) || (ch.idlebits >= DAHDI_MAX_CHANNELS))
 				return -EINVAL;
 			if (!chans[ch.idlebits])
 				return -EINVAL;
@@ -3713,7 +3713,7 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		}
 		spin_lock_irqsave(&chans[ch.chan]->lock, flags);
 #ifdef CONFIG_ZAPATA_NET
-		if (chans[ch.chan]->flags & ZT_FLAG_NETDEV) {
+		if (chans[ch.chan]->flags & DAHDI_FLAG_NETDEV) {
 			if (ztchan_to_dev(chans[ch.chan])->flags & IFF_UP) {
 				spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
 				printk(KERN_WARNING "Can't switch HDLC net mode on channel %s, since current interface is up\n", chans[ch.chan]->name);
@@ -3729,10 +3729,10 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 #endif				
 			kfree(chans[ch.chan]->hdlcnetdev);
 			chans[ch.chan]->hdlcnetdev = NULL;
-			chans[ch.chan]->flags &= ~ZT_FLAG_NETDEV;
+			chans[ch.chan]->flags &= ~DAHDI_FLAG_NETDEV;
 		}
 #else
-		if (ch.sigtype == ZT_SIG_HDLCNET) {
+		if (ch.sigtype == DAHDI_SIG_HDLCNET) {
 				spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
 				printk(KERN_WARNING "Zaptel networking not supported by this build.\n");
 				return -ENOSYS;
@@ -3741,8 +3741,8 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		sigcap = chans[ch.chan]->sigcap;
 		/* If they support clear channel, then they support the HDLC and such through
 		   us.  */
-		if (sigcap & ZT_SIG_CLEAR) 
-			sigcap |= (ZT_SIG_HDLCRAW | ZT_SIG_HDLCFCS | ZT_SIG_HDLCNET | ZT_SIG_DACS);
+		if (sigcap & DAHDI_SIG_CLEAR) 
+			sigcap |= (DAHDI_SIG_HDLCRAW | DAHDI_SIG_HDLCFCS | DAHDI_SIG_HDLCNET | DAHDI_SIG_DACS);
 		
 		if ((sigcap & ch.sigtype) != ch.sigtype)
 			res =  -EINVAL;	
@@ -3756,36 +3756,36 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		}
 		if (!res) {
 			chans[ch.chan]->sig = ch.sigtype;
-			if (chans[ch.chan]->sig == ZT_SIG_CAS)
+			if (chans[ch.chan]->sig == DAHDI_SIG_CAS)
 				chans[ch.chan]->idlebits = ch.idlebits;
 			else
 				chans[ch.chan]->idlebits = 0;
-			if ((ch.sigtype & ZT_SIG_CLEAR) == ZT_SIG_CLEAR) {
+			if ((ch.sigtype & DAHDI_SIG_CLEAR) == DAHDI_SIG_CLEAR) {
 				/* Set clear channel flag if appropriate */
-				chans[ch.chan]->flags &= ~ZT_FLAG_AUDIO;
-				chans[ch.chan]->flags |= ZT_FLAG_CLEAR;
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_AUDIO;
+				chans[ch.chan]->flags |= DAHDI_FLAG_CLEAR;
 			} else {
 				/* Set audio flag and not clear channel otherwise */
-				chans[ch.chan]->flags |= ZT_FLAG_AUDIO;
-				chans[ch.chan]->flags &= ~ZT_FLAG_CLEAR;
+				chans[ch.chan]->flags |= DAHDI_FLAG_AUDIO;
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_CLEAR;
 			}
-			if ((ch.sigtype & ZT_SIG_HDLCRAW) == ZT_SIG_HDLCRAW) {
+			if ((ch.sigtype & DAHDI_SIG_HDLCRAW) == DAHDI_SIG_HDLCRAW) {
 				/* Set the HDLC flag */
-				chans[ch.chan]->flags |= ZT_FLAG_HDLC;
+				chans[ch.chan]->flags |= DAHDI_FLAG_HDLC;
 			} else {
 				/* Clear the HDLC flag */
-				chans[ch.chan]->flags &= ~ZT_FLAG_HDLC;
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_HDLC;
 			}
-			if ((ch.sigtype & ZT_SIG_HDLCFCS) == ZT_SIG_HDLCFCS) {
+			if ((ch.sigtype & DAHDI_SIG_HDLCFCS) == DAHDI_SIG_HDLCFCS) {
 				/* Set FCS to be calculated if appropriate */
-				chans[ch.chan]->flags |= ZT_FLAG_FCS;
+				chans[ch.chan]->flags |= DAHDI_FLAG_FCS;
 			} else {
 				/* Clear FCS flag */
-				chans[ch.chan]->flags &= ~ZT_FLAG_FCS;
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_FCS;
 			}
-			if ((ch.sigtype & __ZT_SIG_DACS) == __ZT_SIG_DACS) {
+			if ((ch.sigtype & __DAHDI_SIG_DACS) == __DAHDI_SIG_DACS) {
 				/* Setup conference properly */
-				chans[ch.chan]->confmode = ZT_CONF_DIGITALMON;
+				chans[ch.chan]->confmode = DAHDI_CONF_DIGITALMON;
 				chans[ch.chan]->confna = ch.idlebits;
 				if (chans[ch.chan]->span && 
 				    chans[ch.chan]->span->dacs && 
@@ -3800,23 +3800,23 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 			if (newmaster != chans[ch.chan]) {
 				recalc_slaves(chans[ch.chan]->master);
 			}
-			if ((ch.sigtype & ZT_SIG_HARDHDLC) == ZT_SIG_HARDHDLC) {
-				chans[ch.chan]->flags &= ~ZT_FLAG_FCS;
-				chans[ch.chan]->flags &= ~ZT_FLAG_HDLC;
-				chans[ch.chan]->flags |= ZT_FLAG_NOSTDTXRX;
+			if ((ch.sigtype & DAHDI_SIG_HARDHDLC) == DAHDI_SIG_HARDHDLC) {
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_FCS;
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_HDLC;
+				chans[ch.chan]->flags |= DAHDI_FLAG_NOSTDTXRX;
 			} else
-				chans[ch.chan]->flags &= ~ZT_FLAG_NOSTDTXRX;
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_NOSTDTXRX;
 
-			if ((ch.sigtype & ZT_SIG_MTP2) == ZT_SIG_MTP2)
-				chans[ch.chan]->flags |= ZT_FLAG_MTP2;
+			if ((ch.sigtype & DAHDI_SIG_MTP2) == DAHDI_SIG_MTP2)
+				chans[ch.chan]->flags |= DAHDI_FLAG_MTP2;
 			else
-				chans[ch.chan]->flags &= ~ZT_FLAG_MTP2;
+				chans[ch.chan]->flags &= ~DAHDI_FLAG_MTP2;
 		}
 #ifdef CONFIG_ZAPATA_NET
 		if (!res && 
 			(newmaster == chans[ch.chan]) && 
-		        (chans[ch.chan]->sig == ZT_SIG_HDLCNET)) {
-			chans[ch.chan]->hdlcnetdev = zt_hdlc_alloc();
+		        (chans[ch.chan]->sig == DAHDI_SIG_HDLCNET)) {
+			chans[ch.chan]->hdlcnetdev = dahdi_hdlc_alloc();
 			if (chans[ch.chan]->hdlcnetdev) {
 /*				struct hdlc_device *hdlc = chans[ch.chan]->hdlcnetdev;
 				struct net_device *d = hdlc_to_dev(hdlc); mmm...get it right later --byg */
@@ -3829,14 +3829,14 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 #endif
 					chans[ch.chan]->hdlcnetdev->netdev->irq = chans[ch.chan]->span->irq;
 					chans[ch.chan]->hdlcnetdev->netdev->tx_queue_len = 50;
-					chans[ch.chan]->hdlcnetdev->netdev->do_ioctl = zt_net_ioctl;
-					chans[ch.chan]->hdlcnetdev->netdev->open = zt_net_open;
-					chans[ch.chan]->hdlcnetdev->netdev->stop = zt_net_stop;
-					dev_to_hdlc(chans[ch.chan]->hdlcnetdev->netdev)->attach = zt_net_attach;
-					dev_to_hdlc(chans[ch.chan]->hdlcnetdev->netdev)->xmit = zt_xmit;
+					chans[ch.chan]->hdlcnetdev->netdev->do_ioctl = dahdi_net_ioctl;
+					chans[ch.chan]->hdlcnetdev->netdev->open = dahdi_net_open;
+					chans[ch.chan]->hdlcnetdev->netdev->stop = dahdi_net_stop;
+					dev_to_hdlc(chans[ch.chan]->hdlcnetdev->netdev)->attach = dahdi_net_attach;
+					dev_to_hdlc(chans[ch.chan]->hdlcnetdev->netdev)->xmit = dahdi_xmit;
 					spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
 					/* Briefly restore interrupts while we register the device */
-					res = zt_register_hdlc_device(chans[ch.chan]->hdlcnetdev->netdev, ch.netdev_name);
+					res = dahdi_register_hdlc_device(chans[ch.chan]->hdlcnetdev->netdev, ch.netdev_name);
 					spin_lock_irqsave(&chans[ch.chan]->lock, flags);
 				} else {
 					printk("Unable to allocate hdlc: *shrug*\n");
@@ -3845,49 +3845,49 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 #else /* LINUX26 */
 				chans[ch.chan]->hdlcnetdev->chan = chans[ch.chan];
 #ifndef HDLC_MAINTAINERS_ARE_MORE_STUPID_THAN_I_THOUGHT
-				chans[ch.chan]->hdlcnetdev->netdev.ioctl = zt_net_ioctl;
+				chans[ch.chan]->hdlcnetdev->netdev.ioctl = dahdi_net_ioctl;
 #endif
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.do_ioctl = zt_net_ioctl;
+				chans[ch.chan]->hdlcnetdev->netdev.netdev.do_ioctl = dahdi_net_ioctl;
 #ifdef NEW_HDLC_INTERFACE
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.open = zt_net_open;
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.stop = zt_net_stop;
-				chans[ch.chan]->hdlcnetdev->netdev.xmit = zt_xmit;
-				chans[ch.chan]->hdlcnetdev->netdev.attach = zt_net_attach;
+				chans[ch.chan]->hdlcnetdev->netdev.netdev.open = dahdi_net_open;
+				chans[ch.chan]->hdlcnetdev->netdev.netdev.stop = dahdi_net_stop;
+				chans[ch.chan]->hdlcnetdev->netdev.xmit = dahdi_xmit;
+				chans[ch.chan]->hdlcnetdev->netdev.attach = dahdi_net_attach;
 #else
-				chans[ch.chan]->hdlcnetdev->netdev.open = zt_net_open;
-				chans[ch.chan]->hdlcnetdev->netdev.close = zt_net_close;
+				chans[ch.chan]->hdlcnetdev->netdev.open = dahdi_net_open;
+				chans[ch.chan]->hdlcnetdev->netdev.close = dahdi_net_close;
 				chans[ch.chan]->hdlcnetdev->netdev.set_mode = NULL;
-				chans[ch.chan]->hdlcnetdev->netdev.xmit = zt_xmit;
+				chans[ch.chan]->hdlcnetdev->netdev.xmit = dahdi_xmit;
 #endif /* NEW_HDLC_INTERFACE */
 				chans[ch.chan]->hdlcnetdev->netdev.netdev.irq = chans[ch.chan]->span->irq;
 				chans[ch.chan]->hdlcnetdev->netdev.netdev.tx_queue_len = 50;
 				res = register_hdlc_device(&chans[ch.chan]->hdlcnetdev->netdev);
 #endif /* LINUX26 */
 				if (!res)
-					chans[ch.chan]->flags |= ZT_FLAG_NETDEV;
+					chans[ch.chan]->flags |= DAHDI_FLAG_NETDEV;
 			} else {
 				printk("Unable to allocate netdev: out of memory\n");
 				res = -1;
 			}
 		}
 #endif			
-		if ((chans[ch.chan]->sig == ZT_SIG_HDLCNET) && 
+		if ((chans[ch.chan]->sig == DAHDI_SIG_HDLCNET) && 
 		    (chans[ch.chan] == newmaster) &&
-		    !(chans[ch.chan]->flags & ZT_FLAG_NETDEV))
+		    !(chans[ch.chan]->flags & DAHDI_FLAG_NETDEV))
 			printk("Unable to register HDLC device for channel %s\n", chans[ch.chan]->name);
 		if (!res) {
 			/* Setup default law */
 			chans[ch.chan]->deflaw = ch.deflaw;
 			/* Copy back any modified settings */
 			spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
-			if (copy_to_user((struct zt_chanconfig *)data, &ch, sizeof(ch)))
+			if (copy_to_user((struct dahdi_chanconfig *)data, &ch, sizeof(ch)))
 				return -EFAULT;
 			spin_lock_irqsave(&chans[ch.chan]->lock, flags);
 			/* And hangup */
-			zt_hangup(chans[ch.chan]);
-			y = zt_q_sig(chans[ch.chan]) & 0xff;
+			dahdi_hangup(chans[ch.chan]);
+			y = dahdi_q_sig(chans[ch.chan]) & 0xff;
 			if (y >= 0) chans[ch.chan]->rxsig = (unsigned char)y;
-			chans[ch.chan]->rxhooksig = ZT_RXSIG_INITIAL;
+			chans[ch.chan]->rxhooksig = DAHDI_RXSIG_INITIAL;
 		}
 #ifdef CONFIG_ZAPATA_DEBUG
 		printk("Configured channel %s, flags %04x, sig %04x\n", chans[ch.chan]->name, chans[ch.chan]->flags, chans[ch.chan]->sig);
@@ -3895,14 +3895,14 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
 		return res;
 	}
-	case ZT_SFCONFIG:
+	case DAHDI_SFCONFIG:
 	{
-		struct zt_sfconfig sf;
+		struct dahdi_sfconfig sf;
 
-		if (copy_from_user(&sf, (struct zt_chanconfig *)data, sizeof(sf)))
+		if (copy_from_user(&sf, (struct dahdi_chanconfig *)data, sizeof(sf)))
 			return -EFAULT;
 		VALID_CHANNEL(sf.chan);
-		if (chans[sf.chan]->sig != ZT_SIG_SF) return -EINVAL;
+		if (chans[sf.chan]->sig != DAHDI_SIG_SF) return -EINVAL;
 		spin_lock_irqsave(&chans[sf.chan]->lock, flags);
 		chans[sf.chan]->rxp1 = sf.rxp1;
 		chans[sf.chan]->rxp2 = sf.rxp2;
@@ -3913,8 +3913,8 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		chans[sf.chan]->toneflags = sf.toneflag;
 		if (sf.txtone) /* if set to make tone for tx */
 		{
-			if ((chans[sf.chan]->txhooksig && !(sf.toneflag & ZT_REVERSE_TXTONE)) ||
-			 ((!chans[sf.chan]->txhooksig) && (sf.toneflag & ZT_REVERSE_TXTONE))) 
+			if ((chans[sf.chan]->txhooksig && !(sf.toneflag & DAHDI_REVERSE_TXTONE)) ||
+			 ((!chans[sf.chan]->txhooksig) && (sf.toneflag & DAHDI_REVERSE_TXTONE))) 
 			{
 				set_txtone(chans[sf.chan],sf.txtone,sf.tx_v2,sf.tx_v3);
 			}
@@ -3926,20 +3926,20 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		spin_unlock_irqrestore(&chans[sf.chan]->lock, flags);
 		return res;
 	}
-	case ZT_DEFAULTZONE:
+	case DAHDI_DEFAULTZONE:
 		if (get_user(j,(int *)data))
 			return -EFAULT;
-		return zt_set_default_zone(j);
-	case ZT_LOADZONE:
+		return dahdi_set_default_zone(j);
+	case DAHDI_LOADZONE:
 		return ioctl_load_zone(data);
-	case ZT_FREEZONE:
+	case DAHDI_FREEZONE:
 		get_user(j, (int *) data);
 		return free_tone_zone(j);
-	case ZT_SET_DIALPARAMS:
+	case DAHDI_SET_DIALPARAMS:
 	{
-		struct zt_dialparams tdp;
+		struct dahdi_dialparams tdp;
 
-		if (copy_from_user(&tdp, (struct zt_dialparams *) data, sizeof(tdp)))
+		if (copy_from_user(&tdp, (struct dahdi_dialparams *) data, sizeof(tdp)))
 			return -EFAULT;
 
 		if ((tdp.dtmf_tonelen <= 4000) || (tdp.dtmf_tonelen >= 10)) {
@@ -3955,64 +3955,64 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		/* update the lengths in all currently loaded zones */
 		write_lock(&zone_lock);
 		for (j = 0; j < sizeof(tone_zones) / sizeof(tone_zones[0]); j++) {
-			struct zt_zone *z = tone_zones[j];
+			struct dahdi_zone *z = tone_zones[j];
 
 			if (!z)
 				continue;
 
 			for (i = 0; i < sizeof(z->dtmf) / sizeof(z->dtmf[0]); i++) {
-				z->dtmf[i].tonesamples = global_dialparams.dtmf_tonelen * ZT_CHUNKSIZE;
+				z->dtmf[i].tonesamples = global_dialparams.dtmf_tonelen * DAHDI_CHUNKSIZE;
 			}
 
 			/* for MFR1, we only adjust the length of the digits */
-			for (i = ZT_TONE_MFR1_0; i <= ZT_TONE_MFR1_9; i++) {
-				z->mfr1[i - ZT_TONE_MFR1_BASE].tonesamples = global_dialparams.mfv1_tonelen * ZT_CHUNKSIZE;
+			for (i = DAHDI_TONE_MFR1_0; i <= DAHDI_TONE_MFR1_9; i++) {
+				z->mfr1[i - DAHDI_TONE_MFR1_BASE].tonesamples = global_dialparams.mfv1_tonelen * DAHDI_CHUNKSIZE;
 			}
 
 			for (i = 0; i < sizeof(z->mfr2_fwd) / sizeof(z->mfr2_fwd[0]); i++) {
-				z->mfr2_fwd[i].tonesamples = global_dialparams.mfr2_tonelen * ZT_CHUNKSIZE;
+				z->mfr2_fwd[i].tonesamples = global_dialparams.mfr2_tonelen * DAHDI_CHUNKSIZE;
 			}
 
 			for (i = 0; i < sizeof(z->mfr2_rev) / sizeof(z->mfr2_rev[0]); i++) {
-				z->mfr2_rev[i].tonesamples = global_dialparams.mfr2_tonelen * ZT_CHUNKSIZE;
+				z->mfr2_rev[i].tonesamples = global_dialparams.mfr2_tonelen * DAHDI_CHUNKSIZE;
 			}
 		}
 		write_unlock(&zone_lock);
 
-		dtmf_silence.tonesamples = global_dialparams.dtmf_tonelen * ZT_CHUNKSIZE;
-		mfr1_silence.tonesamples = global_dialparams.mfv1_tonelen * ZT_CHUNKSIZE;
-		mfr2_silence.tonesamples = global_dialparams.mfr2_tonelen * ZT_CHUNKSIZE;
+		dtmf_silence.tonesamples = global_dialparams.dtmf_tonelen * DAHDI_CHUNKSIZE;
+		mfr1_silence.tonesamples = global_dialparams.mfv1_tonelen * DAHDI_CHUNKSIZE;
+		mfr2_silence.tonesamples = global_dialparams.mfr2_tonelen * DAHDI_CHUNKSIZE;
 
 		break;
 	}
-	case ZT_GET_DIALPARAMS:
+	case DAHDI_GET_DIALPARAMS:
 	{
-		struct zt_dialparams tdp;
+		struct dahdi_dialparams tdp;
 
 		tdp = global_dialparams;
-		if (copy_to_user((struct zt_dialparams *) data, &tdp, sizeof(tdp)))
+		if (copy_to_user((struct dahdi_dialparams *) data, &tdp, sizeof(tdp)))
 			return -EFAULT;
 		break;
 	}
-	case ZT_GETVERSION:
+	case DAHDI_GETVERSION:
 	{
-		struct zt_versioninfo vi;
+		struct dahdi_versioninfo vi;
 
 		memset(&vi, 0, sizeof(vi));
 		zap_copy_string(vi.version, ZAPTEL_VERSION, sizeof(vi.version));
 		echo_can_identify(vi.echo_canceller, sizeof(vi.echo_canceller) - 1);
-		if (copy_to_user((struct zt_versioninfo *) data, &vi, sizeof(vi)))
+		if (copy_to_user((struct dahdi_versioninfo *) data, &vi, sizeof(vi)))
 			return -EFAULT;
 		break;
 	}
-	case ZT_MAINT:  /* do maintenance stuff */
+	case DAHDI_MAINT:  /* do maintenance stuff */
 	{
-		struct zt_maintinfo maint;
+		struct dahdi_maintinfo maint;
 		  /* get struct from user */
-		if (copy_from_user(&maint,(struct zt_maintinfo *) data, sizeof(maint)))
+		if (copy_from_user(&maint,(struct dahdi_maintinfo *) data, sizeof(maint)))
 			return -EFAULT;
 		/* must be valid span number */
-		if ((maint.spanno < 1) || (maint.spanno > ZT_MAX_SPANS) || (!spans[maint.spanno]))
+		if ((maint.spanno < 1) || (maint.spanno > DAHDI_MAX_SPANS) || (!spans[maint.spanno]))
 			return -EINVAL;
 		if (!spans[maint.spanno]->maint)
 			return -ENOSYS;
@@ -4022,9 +4022,9 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		  /* set maint mode */
 		spans[maint.spanno]->maintstat = maint.command;
 		switch(maint.command) {
-		case ZT_MAINT_NONE:
-		case ZT_MAINT_LOCALLOOP:
-		case ZT_MAINT_REMOTELOOP:
+		case DAHDI_MAINT_NONE:
+		case DAHDI_MAINT_LOCALLOOP:
+		case DAHDI_MAINT_REMOTELOOP:
 			/* if same, ignore it */
 			if (i == maint.command) break;
 			rv = spans[maint.spanno]->maint(spans[maint.spanno], maint.command);
@@ -4032,9 +4032,9 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 			if (rv) return rv;
 			spin_lock_irqsave(&spans[maint.spanno]->lock, flags);
 			break;
-		case ZT_MAINT_LOOPUP:
-		case ZT_MAINT_LOOPDOWN:
-			spans[maint.spanno]->mainttimer = ZT_LOOPCODE_TIME * ZT_CHUNKSIZE;
+		case DAHDI_MAINT_LOOPUP:
+		case DAHDI_MAINT_LOOPDOWN:
+			spans[maint.spanno]->mainttimer = DAHDI_LOOPCODE_TIME * DAHDI_CHUNKSIZE;
 			rv = spans[maint.spanno]->maint(spans[maint.spanno], maint.command);
 			spin_unlock_irqrestore(&spans[maint.spanno]->lock, flags);
 			if (rv) return rv;
@@ -4045,34 +4045,34 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		default:
 			printk("zaptel: Unknown maintenance event: %d\n", maint.command);
 		}
-		zt_alarm_notify(spans[maint.spanno]);  /* process alarm-related events */
+		dahdi_alarm_notify(spans[maint.spanno]);  /* process alarm-related events */
 		spin_unlock_irqrestore(&spans[maint.spanno]->lock, flags);
 		break;
 	}
-	case ZT_DYNAMIC_CREATE:
-	case ZT_DYNAMIC_DESTROY:
-		if (zt_dynamic_ioctl)
-			return zt_dynamic_ioctl(cmd, data);
+	case DAHDI_DYNAMIC_CREATE:
+	case DAHDI_DYNAMIC_DESTROY:
+		if (dahdi_dynamic_ioctl)
+			return dahdi_dynamic_ioctl(cmd, data);
 		else {
 			request_module("dahdi_dynamic");
-			if (zt_dynamic_ioctl)
-				return zt_dynamic_ioctl(cmd, data);
+			if (dahdi_dynamic_ioctl)
+				return dahdi_dynamic_ioctl(cmd, data);
 		}
 		return -ENOSYS;
 #if defined(ECHO_CAN_HPEC)
-	case ZT_EC_LICENSE_CHALLENGE:
-	case ZT_EC_LICENSE_RESPONSE:
+	case DAHDI_EC_LICENSE_CHALLENGE:
+	case DAHDI_EC_LICENSE_RESPONSE:
 		return hpec_license_ioctl(cmd, data);
 #endif /* defined(ECHO_CAN_HPEC) */
 	default:
-		return zt_common_ioctl(inode, file, cmd, data, 0);
+		return dahdi_common_ioctl(inode, file, cmd, data, 0);
 	}
 	return 0;
 }
 
-static int ioctl_zt_dial(struct zt_chan *chan, unsigned long data)
+static int ioctl_dahdi_dial(struct dahdi_chan *chan, unsigned long data)
 {
-	struct zt_dialoperation *tdo;
+	struct dahdi_dialoperation *tdo;
 	unsigned long flags;
 	char *s;
 	int rv;
@@ -4082,11 +4082,11 @@ static int ioctl_zt_dial(struct zt_chan *chan, unsigned long data)
 	if (!tdo)
 		return -ENOMEM;
 
-	if (copy_from_user(tdo, (struct zt_dialoperation *)data, sizeof(*tdo)))
+	if (copy_from_user(tdo, (struct dahdi_dialoperation *)data, sizeof(*tdo)))
 		return -EFAULT;
 	rv = 0;
 	/* Force proper NULL termination and uppercase entry */
-	tdo->dialstr[ZT_MAX_DTMF_BUF - 1] = '\0';
+	tdo->dialstr[DAHDI_MAX_DTMF_BUF - 1] = '\0';
 	for (s = tdo->dialstr; *s; s++)
 		*s = toupper(*s);
 	spin_lock_irqsave(&chan->lock, flags);
@@ -4097,24 +4097,24 @@ static int ioctl_zt_dial(struct zt_chan *chan, unsigned long data)
 		return -ENODATA;
 	}
 	switch (tdo->op) {
-	case ZT_DIAL_OP_CANCEL:
+	case DAHDI_DIAL_OP_CANCEL:
 		chan->curtone = NULL;
 		chan->dialing = 0;
 		chan->txdialbuf[0] = '\0';
 		chan->tonep = 0;
 		chan->pdialcount = 0;
 		break;
-	case ZT_DIAL_OP_REPLACE:
+	case DAHDI_DIAL_OP_REPLACE:
 		strcpy(chan->txdialbuf, tdo->dialstr);
 		chan->dialing = 1;
 		__do_dtmf(chan);
 		break;
-	case ZT_DIAL_OP_APPEND:
-		if (strlen(tdo->dialstr) + strlen(chan->txdialbuf) >= (ZT_MAX_DTMF_BUF - 1)) {
+	case DAHDI_DIAL_OP_APPEND:
+		if (strlen(tdo->dialstr) + strlen(chan->txdialbuf) >= (DAHDI_MAX_DTMF_BUF - 1)) {
 			rv = -EBUSY;
 			break;
 		}
-		zap_copy_string(chan->txdialbuf + strlen(chan->txdialbuf), tdo->dialstr, ZT_MAX_DTMF_BUF - strlen(chan->txdialbuf));
+		zap_copy_string(chan->txdialbuf + strlen(chan->txdialbuf), tdo->dialstr, DAHDI_MAX_DTMF_BUF - strlen(chan->txdialbuf));
 		if (!chan->dialing) {
 			chan->dialing = 1;
 			__do_dtmf(chan);
@@ -4127,13 +4127,13 @@ static int ioctl_zt_dial(struct zt_chan *chan, unsigned long data)
 	return rv;
 }
 
-static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit)
+static int dahdi_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit)
 {
-	struct zt_chan *chan = chans[unit];
+	struct dahdi_chan *chan = chans[unit];
 	union {
-		struct zt_bufferinfo bi;
-		struct zt_confinfo conf;
-		struct zt_ring_cadence cad;
+		struct dahdi_bufferinfo bi;
+		struct dahdi_confinfo conf;
+		struct dahdi_ring_cadence cad;
 	} stack;
 	unsigned long flags, flagso;
 	int i, j, k, rv;
@@ -4142,16 +4142,16 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 	if (!chan)
 		return -EINVAL;
 	switch(cmd) {
-	case ZT_DIALING:
+	case DAHDI_DIALING:
 		spin_lock_irqsave(&chan->lock, flags);
 		j = chan->dialing;
 		spin_unlock_irqrestore(&chan->lock, flags);
 		if (copy_to_user((int *)data,&j,sizeof(int)))
 			return -EFAULT;
 		return 0;
-	case ZT_DIAL:
-		return ioctl_zt_dial(chan, data);
-	case ZT_GET_BUFINFO:
+	case DAHDI_DIAL:
+		return ioctl_dahdi_dial(chan, data);
+	case DAHDI_GET_BUFINFO:
 		stack.bi.rxbufpolicy = chan->rxbufpolicy;
 		stack.bi.txbufpolicy = chan->txbufpolicy;
 		stack.bi.numbufs = chan->numbufs;
@@ -4159,41 +4159,41 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		/* XXX FIXME! XXX */
 		stack.bi.readbufs = -1;
 		stack.bi.writebufs = -1;
-		if (copy_to_user((struct zt_bufferinfo *)data, &stack.bi, sizeof(stack.bi)))
+		if (copy_to_user((struct dahdi_bufferinfo *)data, &stack.bi, sizeof(stack.bi)))
 			return -EFAULT;
 		break;
-	case ZT_SET_BUFINFO:
-		if (copy_from_user(&stack.bi, (struct zt_bufferinfo *)data, sizeof(stack.bi)))
+	case DAHDI_SET_BUFINFO:
+		if (copy_from_user(&stack.bi, (struct dahdi_bufferinfo *)data, sizeof(stack.bi)))
 			return -EFAULT;
-		if (stack.bi.bufsize > ZT_MAX_BLOCKSIZE)
+		if (stack.bi.bufsize > DAHDI_MAX_BLOCKSIZE)
 			return -EINVAL;
 		if (stack.bi.bufsize < 16)
 			return -EINVAL;
-		if (stack.bi.bufsize * stack.bi.numbufs > ZT_MAX_BUF_SPACE)
+		if (stack.bi.bufsize * stack.bi.numbufs > DAHDI_MAX_BUF_SPACE)
 			return -EINVAL;
 		chan->rxbufpolicy = stack.bi.rxbufpolicy & 0x1;
 		chan->txbufpolicy = stack.bi.txbufpolicy & 0x1;
-		if ((rv = zt_reallocbufs(chan,  stack.bi.bufsize, stack.bi.numbufs)))
+		if ((rv = dahdi_reallocbufs(chan,  stack.bi.bufsize, stack.bi.numbufs)))
 			return (rv);
 		break;
-	case ZT_GET_BLOCKSIZE:  /* get blocksize */
+	case DAHDI_GET_BLOCKSIZE:  /* get blocksize */
 		put_user(chan->blocksize,(int *)data); /* return block size */
 		break;
-	case ZT_SET_BLOCKSIZE:  /* set blocksize */
+	case DAHDI_SET_BLOCKSIZE:  /* set blocksize */
 		get_user(j,(int *)data);
 		  /* cannot be larger than max amount */
-		if (j > ZT_MAX_BLOCKSIZE) return(-EINVAL);
+		if (j > DAHDI_MAX_BLOCKSIZE) return(-EINVAL);
 		  /* cannot be less then 16 */
 		if (j < 16) return(-EINVAL);
 		  /* allocate a single kernel buffer which we then
 		     sub divide into four pieces */
-		if ((rv = zt_reallocbufs(chan, j, chan->numbufs)))
+		if ((rv = dahdi_reallocbufs(chan, j, chan->numbufs)))
 			return (rv);
 		break;
-	case ZT_FLUSH:  /* flush input buffer, output buffer, and/or event queue */
+	case DAHDI_FLUSH:  /* flush input buffer, output buffer, and/or event queue */
 		get_user(i,(int *)data);  /* get param */
 		spin_lock_irqsave(&chan->lock, flags);
-		if (i & ZT_FLUSH_READ)  /* if for read (input) */
+		if (i & DAHDI_FLUSH_READ)  /* if for read (input) */
 		   {
 			  /* initialize read buffers and pointers */
 			chan->inreadbuf = 0;
@@ -4206,7 +4206,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			wake_up_interruptible(&chan->readbufq);  /* wake_up_interruptible waiting on read */
 			wake_up_interruptible(&chan->sel); /* wake_up_interruptible waiting on select */
 		   }
-		if (i & ZT_FLUSH_WRITE) /* if for write (output) */
+		if (i & DAHDI_FLUSH_WRITE) /* if for write (output) */
 		   {
 			  /* initialize write buffers and pointers */
 			chan->outwritebuf = -1;
@@ -4220,17 +4220,17 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			wake_up_interruptible(&chan->sel);  /* wake_up_interruptible waiting on select */
 			   /* if IO MUX wait on write empty, well, this
 				certainly *did* empty the write */
-			if (chan->iomask & ZT_IOMUX_WRITEEMPTY)
+			if (chan->iomask & DAHDI_IOMUX_WRITEEMPTY)
 				wake_up_interruptible(&chan->eventbufq); /* wake_up_interruptible waiting on IOMUX */
 		   }
-		if (i & ZT_FLUSH_EVENT) /* if for events */
+		if (i & DAHDI_FLUSH_EVENT) /* if for events */
 		   {
 			   /* initialize the event pointers */
 			chan->eventinidx = chan->eventoutidx = 0;
 		   }
 		spin_unlock_irqrestore(&chan->lock, flags);
 		break;
-	case ZT_SYNC:  /* wait for no tx */
+	case DAHDI_SYNC:  /* wait for no tx */
 		for(;;)  /* loop forever */
 		   {
 			spin_lock_irqsave(&chan->lock, flags);
@@ -4242,7 +4242,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			if (rv) return(rv);
 		   }
 		break;
-	case ZT_IOMUX: /* wait for something to happen */
+	case DAHDI_IOMUX: /* wait for something to happen */
 		get_user(chan->iomask,(int*)data);  /* save mask */
 		if (!chan->iomask) return(-EINVAL);  /* cant wait for nothing */
 		for(;;)  /* loop forever */
@@ -4251,36 +4251,36 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			ret = 0;  /* start with empty return value */
 			spin_lock_irqsave(&chan->lock, flags);
 			  /* if looking for read */
-			if (chan->iomask & ZT_IOMUX_READ)
+			if (chan->iomask & DAHDI_IOMUX_READ)
 			   {
 				/* if read available */
 				if ((chan->outreadbuf > -1)  && !chan->rxdisable)
-					ret |= ZT_IOMUX_READ;
+					ret |= DAHDI_IOMUX_READ;
 			   }
 			  /* if looking for write avail */
-			if (chan->iomask & ZT_IOMUX_WRITE)
+			if (chan->iomask & DAHDI_IOMUX_WRITE)
 			   {
 				if (chan->inwritebuf > -1)
-					ret |= ZT_IOMUX_WRITE;
+					ret |= DAHDI_IOMUX_WRITE;
 			   }
 			  /* if looking for write empty */
-			if (chan->iomask & ZT_IOMUX_WRITEEMPTY)
+			if (chan->iomask & DAHDI_IOMUX_WRITEEMPTY)
 			   {
 				  /* if everything empty -- be sure the transmitter is enabled */
 				chan->txdisable = 0;
 				if (chan->outwritebuf < 0)
-					ret |= ZT_IOMUX_WRITEEMPTY;
+					ret |= DAHDI_IOMUX_WRITEEMPTY;
 			   }
 			  /* if looking for signalling event */
-			if (chan->iomask & ZT_IOMUX_SIGEVENT)
+			if (chan->iomask & DAHDI_IOMUX_SIGEVENT)
 			   {
 				  /* if event */
 				if (chan->eventinidx != chan->eventoutidx)
-					ret |= ZT_IOMUX_SIGEVENT;
+					ret |= DAHDI_IOMUX_SIGEVENT;
 			   }
 			spin_unlock_irqrestore(&chan->lock, flags);
 			  /* if something to return, or not to wait */
-			if (ret || (chan->iomask & ZT_IOMUX_NOWAIT))
+			if (ret || (chan->iomask & DAHDI_IOMUX_NOWAIT))
 			   {
 				  /* set return value */
 				put_user(ret,(int *)data);
@@ -4292,9 +4292,9 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		  /* clear IO MUX mask */
 		chan->iomask = 0;
 		break;
-	case ZT_GETEVENT:  /* Get event on queue */
+	case DAHDI_GETEVENT:  /* Get event on queue */
 		  /* set up for no event */
-		j = ZT_EVENT_NONE;
+		j = DAHDI_EVENT_NONE;
 		spin_lock_irqsave(&chan->lock, flags);
 		  /* if some event in queue */
 		if (chan->eventinidx != chan->eventoutidx)
@@ -4302,77 +4302,77 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			j = chan->eventbuf[chan->eventoutidx++];
 			  /* get the data, bump index */
 			  /* if index overflow, set to beginning */
-			if (chan->eventoutidx >= ZT_MAX_EVENTSIZE)
+			if (chan->eventoutidx >= DAHDI_MAX_EVENTSIZE)
 				chan->eventoutidx = 0;
 		   }		
 		spin_unlock_irqrestore(&chan->lock, flags);
 		put_user(j,(int *)data);
 		break;
-	case ZT_CONFMUTE:  /* set confmute flag */
+	case DAHDI_CONFMUTE:  /* set confmute flag */
 		get_user(j,(int *)data);  /* get conf # */
-		if (!(chan->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
+		if (!(chan->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 		spin_lock_irqsave(&bigzaplock, flags);
 		chan->confmute = j;
 		spin_unlock_irqrestore(&bigzaplock, flags);
 		break;
-	case ZT_GETCONFMUTE:  /* get confmute flag */
-		if (!(chan->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
+	case DAHDI_GETCONFMUTE:  /* get confmute flag */
+		if (!(chan->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 		j = chan->confmute;
 		put_user(j,(int *)data);  /* get conf # */
 		rv = 0;
 		break;
-	case ZT_SETTONEZONE:
+	case DAHDI_SETTONEZONE:
 		get_user(j, (int *) data);
 		rv = set_tone_zone(chan, j);
 		return rv;
-	case ZT_GETTONEZONE:
+	case DAHDI_GETTONEZONE:
 		spin_lock_irqsave(&chan->lock, flags);
 		if (chan->curzone)
 			j = chan->tonezone;
 		spin_unlock_irqrestore(&chan->lock, flags);
 		put_user(j, (int *) data);
 		break;
-	case ZT_SENDTONE:
+	case DAHDI_SENDTONE:
 		get_user(j,(int *)data);
 		spin_lock_irqsave(&chan->lock, flags);
 		rv = start_tone(chan, j);	
 		spin_unlock_irqrestore(&chan->lock, flags);
 		return rv;
-	case ZT_GETCONF:  /* get conf stuff */
-		if (copy_from_user(&stack.conf,(struct zt_confinfo *) data,sizeof(stack.conf)))
+	case DAHDI_GETCONF:  /* get conf stuff */
+		if (copy_from_user(&stack.conf,(struct dahdi_confinfo *) data,sizeof(stack.conf)))
 			return -EFAULT;
 		i = stack.conf.chan;  /* get channel no */
 		   /* if zero, use current channel no */
 		if (!i) i = chan->channo;
 		  /* make sure channel number makes sense */
-		if ((i < 0) || (i > ZT_MAX_CONF) || (!chans[i])) return(-EINVAL);
-		if (!(chans[i]->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
+		if ((i < 0) || (i > DAHDI_MAX_CONF) || (!chans[i])) return(-EINVAL);
+		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 		stack.conf.chan = i;  /* get channel number */
 		stack.conf.confno = chans[i]->confna;  /* get conference number */
 		stack.conf.confmode = chans[i]->confmode; /* get conference mode */
-		if (copy_to_user((struct zt_confinfo *) data,&stack.conf,sizeof(stack.conf)))
+		if (copy_to_user((struct dahdi_confinfo *) data,&stack.conf,sizeof(stack.conf)))
 			return -EFAULT;
 		break;
-	case ZT_SETCONF:  /* set conf stuff */
-		if (copy_from_user(&stack.conf,(struct zt_confinfo *) data,sizeof(stack.conf)))
+	case DAHDI_SETCONF:  /* set conf stuff */
+		if (copy_from_user(&stack.conf,(struct dahdi_confinfo *) data,sizeof(stack.conf)))
 			return -EFAULT;
 		i = stack.conf.chan;  /* get channel no */
 		   /* if zero, use current channel no */
 		if (!i) i = chan->channo;
 		  /* make sure channel number makes sense */
-		if ((i < 1) || (i > ZT_MAX_CHANNELS) || (!chans[i])) return(-EINVAL);
-		if (!(chans[i]->flags & ZT_FLAG_AUDIO)) return (-EINVAL); 
-		if ((stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITORTX ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITORBOTH ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR_RX_PREECHO ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR_TX_PREECHO ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITORBOTH_PREECHO) {
+		if ((i < 1) || (i > DAHDI_MAX_CHANNELS) || (!chans[i])) return(-EINVAL);
+		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL); 
+		if ((stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITORTX ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITORBOTH ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR_RX_PREECHO ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR_TX_PREECHO ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITORBOTH_PREECHO) {
 			/* Monitor mode -- it's a channel */
-			if ((stack.conf.confno < 0) || (stack.conf.confno >= ZT_MAX_CHANNELS) || !chans[stack.conf.confno]) return(-EINVAL);
+			if ((stack.conf.confno < 0) || (stack.conf.confno >= DAHDI_MAX_CHANNELS) || !chans[stack.conf.confno]) return(-EINVAL);
 		} else {
 			  /* make sure conf number makes sense, too */
-			if ((stack.conf.confno < -1) || (stack.conf.confno > ZT_MAX_CONF)) return(-EINVAL);
+			if ((stack.conf.confno < -1) || (stack.conf.confno > DAHDI_MAX_CONF)) return(-EINVAL);
 		}
 			
 		  /* if taking off of any conf, must have 0 mode */
@@ -4383,7 +4383,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		spin_lock_irqsave(&bigzaplock, flagso);
 		spin_lock_irqsave(&chan->lock, flags);
 		if (stack.conf.confno == -1) 
-			stack.conf.confno = zt_first_empty_conference();
+			stack.conf.confno = dahdi_first_empty_conference();
 		if ((stack.conf.confno < 1) && (stack.conf.confmode)) {
 			/* No more empty conferences */
 			spin_unlock_irqrestore(&chan->lock, flags);
@@ -4392,18 +4392,18 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		}
 		  /* if changing confs, clear last added info */
 		if (stack.conf.confno != chans[i]->confna) {
-			memset(chans[i]->conflast, 0, ZT_MAX_CHUNKSIZE);
-			memset(chans[i]->conflast1, 0, ZT_MAX_CHUNKSIZE);
-			memset(chans[i]->conflast2, 0, ZT_MAX_CHUNKSIZE);
+			memset(chans[i]->conflast, 0, DAHDI_MAX_CHUNKSIZE);
+			memset(chans[i]->conflast1, 0, DAHDI_MAX_CHUNKSIZE);
+			memset(chans[i]->conflast2, 0, DAHDI_MAX_CHUNKSIZE);
 		}
 		j = chans[i]->confna;  /* save old conference number */
 		chans[i]->confna = stack.conf.confno;   /* set conference number */
 		chans[i]->confmode = stack.conf.confmode;  /* set conference mode */
 		chans[i]->_confn = 0;		     /* Clear confn */
-		zt_check_conf(j);
-		zt_check_conf(stack.conf.confno);
+		dahdi_check_conf(j);
+		dahdi_check_conf(stack.conf.confno);
 		if (chans[i]->span && chans[i]->span->dacs) {
-			if (((stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_DIGITALMON) &&
+			if (((stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_DIGITALMON) &&
 			    chans[stack.conf.confno]->span &&
 			    chans[stack.conf.confno]->span->dacs == chans[i]->span->dacs &&
 			    chans[i]->txgain == defgain &&
@@ -4417,20 +4417,20 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		}
 		/* if we are going onto a conf */
 		if (stack.conf.confno &&
-			((stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONF ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONFANN ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONFMON ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_CONFANNMON ||
-			(stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_REALANDPSEUDO)) {
+			((stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONF ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANN ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFMON ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANNMON ||
+			(stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_REALANDPSEUDO)) {
 			/* Get alias */
-			chans[i]->_confn = zt_get_conf_alias(stack.conf.confno);
+			chans[i]->_confn = dahdi_get_conf_alias(stack.conf.confno);
 		}
 
 		if (chans[stack.conf.confno]) {
-			if ((stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR_RX_PREECHO ||
-			    (stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITOR_TX_PREECHO ||
-			    (stack.conf.confmode & ZT_CONF_MODE_MASK) == ZT_CONF_MONITORBOTH_PREECHO)
-				chans[stack.conf.confno]->readchunkpreec = kmalloc(sizeof(*chans[stack.conf.confno]->readchunkpreec) * ZT_CHUNKSIZE, GFP_ATOMIC);
+			if ((stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR_RX_PREECHO ||
+			    (stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITOR_TX_PREECHO ||
+			    (stack.conf.confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_MONITORBOTH_PREECHO)
+				chans[stack.conf.confno]->readchunkpreec = kmalloc(sizeof(*chans[stack.conf.confno]->readchunkpreec) * DAHDI_CHUNKSIZE, GFP_ATOMIC);
 			else {
 				if (chans[stack.conf.confno]->readchunkpreec) {
 					kfree(chans[stack.conf.confno]->readchunkpreec);
@@ -4441,16 +4441,16 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 
 		spin_unlock_irqrestore(&chan->lock, flags);
 		spin_unlock_irqrestore(&bigzaplock, flagso);
-		if (copy_to_user((struct zt_confinfo *) data,&stack.conf,sizeof(stack.conf)))
+		if (copy_to_user((struct dahdi_confinfo *) data,&stack.conf,sizeof(stack.conf)))
 			return -EFAULT;
 		break;
-	case ZT_CONFLINK:  /* do conf link stuff */
-		if (!(chan->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
-		if (copy_from_user(&stack.conf,(struct zt_confinfo *) data,sizeof(stack.conf)))
+	case DAHDI_CONFLINK:  /* do conf link stuff */
+		if (!(chan->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
+		if (copy_from_user(&stack.conf,(struct dahdi_confinfo *) data,sizeof(stack.conf)))
 			return -EFAULT;
 		  /* check sanity of arguments */
-		if ((stack.conf.chan < 0) || (stack.conf.chan > ZT_MAX_CONF)) return(-EINVAL);
-		if ((stack.conf.confno < 0) || (stack.conf.confno > ZT_MAX_CONF)) return(-EINVAL);
+		if ((stack.conf.chan < 0) || (stack.conf.chan > DAHDI_MAX_CONF)) return(-EINVAL);
+		if ((stack.conf.confno < 0) || (stack.conf.confno > DAHDI_MAX_CONF)) return(-EINVAL);
 		  /* cant listen to self!! */
 		if (stack.conf.chan && (stack.conf.chan == stack.conf.confno)) return(-EINVAL);
 		spin_lock_irqsave(&bigzaplock, flagso);
@@ -4467,13 +4467,13 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		   }
 		rv = 0;  /* clear return value */
 		/* look for already existant specified combination */
-		for(i = 1; i <= ZT_MAX_CONF; i++)
+		for(i = 1; i <= DAHDI_MAX_CONF; i++)
 		   {
 			  /* if found, exit */
 			if ((conf_links[i].src == stack.conf.chan) &&
 				(conf_links[i].dst == stack.conf.confno)) break;
 		   }
-		if (i <= ZT_MAX_CONF) /* if found */
+		if (i <= DAHDI_MAX_CONF) /* if found */
 		   {
 			if (!stack.conf.confmode) /* if to remove link */
 			   {
@@ -4489,14 +4489,14 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			if (stack.conf.confmode) /* if to add link */
 			   {
 				/* look for empty location */
-				for(i = 1; i <= ZT_MAX_CONF; i++)
+				for(i = 1; i <= DAHDI_MAX_CONF; i++)
 				   {
 					  /* if empty, exit loop */
 					if ((!conf_links[i].src) &&
 						 (!conf_links[i].dst)) break;
 				   }
 				   /* if empty spot found */
-				if (i <= ZT_MAX_CONF)
+				if (i <= DAHDI_MAX_CONF)
 				   {
 					conf_links[i].src = stack.conf.chan;
 					conf_links[i].dst = stack.conf.confno;
@@ -4515,14 +4515,14 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		spin_unlock_irqrestore(&chan->lock, flags);
 		spin_unlock_irqrestore(&bigzaplock, flagso);
 		return(rv);
-	case ZT_CONFDIAG:  /* output diagnostic info to console */
-		if (!(chan->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
+	case DAHDI_CONFDIAG:  /* output diagnostic info to console */
+		if (!(chan->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 		get_user(j,(int *)data);  /* get conf # */
  		  /* loop thru the interesting ones */
-		for(i = ((j) ? j : 1); i <= ((j) ? j : ZT_MAX_CONF); i++)
+		for(i = ((j) ? j : 1); i <= ((j) ? j : DAHDI_MAX_CONF); i++)
 		   {
 			c = 0;
-			for(k = 1; k < ZT_MAX_CHANNELS; k++)
+			for(k = 1; k < DAHDI_MAX_CHANNELS; k++)
 			   {
 				  /* skip if no pointer */
 				if (!chans[k]) continue;
@@ -4534,7 +4534,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 					k,chans[k]->confmode);
 			   }
 			rv = 0;
-			for(k = 1; k <= ZT_MAX_CONF; k++)
+			for(k = 1; k <= DAHDI_MAX_CONF; k++)
 			   {
 				if (conf_links[k].dst == i)
 				   {
@@ -4548,35 +4548,35 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			if (c) printk("\n");
 		   }
 		break;
-	case ZT_CHANNO:  /* get channel number of stream */
+	case DAHDI_CHANNO:  /* get channel number of stream */
 		put_user(unit,(int *)data); /* return unit/channel number */
 		break;
-	case ZT_SETLAW:
+	case DAHDI_SETLAW:
 		get_user(j, (int *)data);
-		if ((j < 0) || (j > ZT_LAW_ALAW))
+		if ((j < 0) || (j > DAHDI_LAW_ALAW))
 			return -EINVAL;
-		zt_set_law(chan, j);
+		dahdi_set_law(chan, j);
 		break;
-	case ZT_SETLINEAR:
+	case DAHDI_SETLINEAR:
 		get_user(j, (int *)data);
 		/* Makes no sense on non-audio channels */
-		if (!(chan->flags & ZT_FLAG_AUDIO))
+		if (!(chan->flags & DAHDI_FLAG_AUDIO))
 			return -EINVAL;
 
 		if (j)
-			chan->flags |= ZT_FLAG_LINEAR;
+			chan->flags |= DAHDI_FLAG_LINEAR;
 		else
-			chan->flags &= ~ZT_FLAG_LINEAR;
+			chan->flags &= ~DAHDI_FLAG_LINEAR;
 		break;
-	case ZT_SETCADENCE:
+	case DAHDI_SETCADENCE:
 		if (data) {
 			/* Use specific ring cadence */
-			if (copy_from_user(&stack.cad, (struct zt_ring_cadence *)data, sizeof(stack.cad)))
+			if (copy_from_user(&stack.cad, (struct dahdi_ring_cadence *)data, sizeof(stack.cad)))
 				return -EFAULT;
 			memcpy(chan->ringcadence, &stack.cad, sizeof(chan->ringcadence));
 			chan->firstcadencepos = 0;
 			/* Looking for negative ringing time indicating where to loop back into ringcadence */
-			for (i=0; i<ZT_MAX_CADENCE; i+=2 ) {
+			for (i=0; i<DAHDI_MAX_CADENCE; i+=2 ) {
 				if (chan->ringcadence[i]<0) {
 					chan->ringcadence[i] *= -1;
 					chan->firstcadencepos = i;
@@ -4589,7 +4589,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			if (chan->curzone) {
 				memcpy(chan->ringcadence, chan->curzone->ringcadence, sizeof(chan->ringcadence));
 				/* Looking for negative ringing time indicating where to loop back into ringcadence */
-				for (i=0; i<ZT_MAX_CADENCE; i+=2 ) {
+				for (i=0; i<DAHDI_MAX_CADENCE; i+=2 ) {
 					if (chan->ringcadence[i]<0) {
 						chan->ringcadence[i] *= -1;
 						chan->firstcadencepos = i;
@@ -4599,13 +4599,13 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			} else {
 				memset(chan->ringcadence, 0, sizeof(chan->ringcadence));
 				chan->ringcadence[0] = chan->starttime;
-				chan->ringcadence[1] = ZT_RINGOFFTIME;
+				chan->ringcadence[1] = DAHDI_RINGOFFTIME;
 			}
 		}
 		break;
 	default:
 		/* Check for common ioctl's and private ones */
-		rv = zt_common_ioctl(inode, file, cmd, data, unit);
+		rv = dahdi_common_ioctl(inode, file, cmd, data, unit);
 		/* if no span, just return with value */
 		if (!chan->span) return rv;
 		if ((rv == -ENOTTY) && chan->span->ioctl) 
@@ -4625,7 +4625,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
  */
 static void do_ppp_calls(unsigned long data)
 {
-	struct zt_chan *chan = (struct zt_chan *) data;
+	struct dahdi_chan *chan = (struct dahdi_chan *) data;
 	struct sk_buff *skb;
 
 	if (!chan->ppp)
@@ -4643,14 +4643,14 @@ static void do_ppp_calls(unsigned long data)
 }
 #endif
 
-static int ioctl_echocancel(struct zt_chan *chan, struct zt_echocanparams *ecp, void *data)
+static int ioctl_echocancel(struct dahdi_chan *chan, struct dahdi_echocanparams *ecp, void *data)
 {
 	struct echo_can_state *ec = NULL, *tec;
-	struct zt_echocanparam *params;
+	struct dahdi_echocanparam *params;
 	int ret;
 	unsigned long flags;
 
-	if (ecp->param_count > ZT_MAX_ECHOCANPARAMS)
+	if (ecp->param_count > DAHDI_MAX_ECHOCANPARAMS)
 		return -E2BIG;
 
 	if (ecp->tap_length == 0) {
@@ -4676,14 +4676,14 @@ static int ioctl_echocancel(struct zt_chan *chan, struct zt_echocanparams *ecp, 
 	    !chan->span->echocan_with_params)
 		return -EINVAL;
 	
-	params = kmalloc(sizeof(params[0]) * ZT_MAX_ECHOCANPARAMS, GFP_KERNEL);
+	params = kmalloc(sizeof(params[0]) * DAHDI_MAX_ECHOCANPARAMS, GFP_KERNEL);
 	
 	if (!params)
 		return -ENOMEM;
 
 	/* enable mode, need the params */
 	
-	if (copy_from_user(params, (struct zt_echocanparam *) data, sizeof(params[0]) * ecp->param_count)) {
+	if (copy_from_user(params, (struct dahdi_echocanparam *) data, sizeof(params[0]) * ecp->param_count)) {
 		ret = -EFAULT;
 		goto exit_with_free;
 	}
@@ -4739,9 +4739,9 @@ exit_with_free:
 	return ret;
 }
 
-static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit)
+static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit)
 {
-	struct zt_chan *chan = chans[unit];
+	struct dahdi_chan *chan = chans[unit];
 	unsigned long flags;
 	int j, rv;
 	int ret;
@@ -4753,40 +4753,40 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 		return -ENOSYS;
 
 	switch(cmd) {
-	case ZT_SIGFREEZE:
+	case DAHDI_SIGFREEZE:
 		get_user(j, (int *)data);
 		spin_lock_irqsave(&chan->lock, flags);
 		if (j) {
-			chan->flags |= ZT_FLAG_SIGFREEZE;
+			chan->flags |= DAHDI_FLAG_SIGFREEZE;
 		} else {
-			chan->flags &= ~ZT_FLAG_SIGFREEZE;
+			chan->flags &= ~DAHDI_FLAG_SIGFREEZE;
 		}
 		spin_unlock_irqrestore(&chan->lock, flags);
 		break;
-	case ZT_GETSIGFREEZE:
+	case DAHDI_GETSIGFREEZE:
 		spin_lock_irqsave(&chan->lock, flags);
-		if (chan->flags & ZT_FLAG_SIGFREEZE)
+		if (chan->flags & DAHDI_FLAG_SIGFREEZE)
 			j = 1;
 		else
 			j = 0;
 		spin_unlock_irqrestore(&chan->lock, flags);
 		put_user(j, (int *)data);
 		break;
-	case ZT_AUDIOMODE:
+	case DAHDI_AUDIOMODE:
 		/* Only literal clear channels can be put in  */
-		if (chan->sig != ZT_SIG_CLEAR) return (-EINVAL);
+		if (chan->sig != DAHDI_SIG_CLEAR) return (-EINVAL);
 		get_user(j, (int *)data);
 		if (j) {
 			spin_lock_irqsave(&chan->lock, flags);
-			chan->flags |= ZT_FLAG_AUDIO;
-			chan->flags &= ~(ZT_FLAG_HDLC | ZT_FLAG_FCS);
+			chan->flags |= DAHDI_FLAG_AUDIO;
+			chan->flags &= ~(DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS);
 			spin_unlock_irqrestore(&chan->lock, flags);
 		} else {
 			/* Coming out of audio mode, also clear all 
 			   conferencing and gain related info as well
 			   as echo canceller */
 			spin_lock_irqsave(&chan->lock, flags);
-			chan->flags &= ~ZT_FLAG_AUDIO;
+			chan->flags &= ~DAHDI_FLAG_AUDIO;
 			/* save old conf number, if any */
 			oldconf = chan->confna;
 			  /* initialize conference variables */
@@ -4820,12 +4820,12 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 				kfree(rxgain);
 			if (ec)
 				echo_can_free(ec);
-			if (oldconf) zt_check_conf(oldconf);
+			if (oldconf) dahdi_check_conf(oldconf);
 		}
 		break;
-	case ZT_HDLCPPP:
+	case DAHDI_HDLCPPP:
 #ifdef CONFIG_ZAPATA_PPP
-		if (chan->sig != ZT_SIG_CLEAR) return (-EINVAL);
+		if (chan->sig != DAHDI_SIG_CLEAR) return (-EINVAL);
 		get_user(j, (int *)data);
 		if (j) {
 			if (!chan->ppp) {
@@ -4835,13 +4835,13 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 					memset(chan->ppp, 0, sizeof(struct ppp_channel));
 					chan->ppp->private = chan;
 					chan->ppp->ops = &ztppp_ops;
-					chan->ppp->mtu = ZT_DEFAULT_MTU_MRU;
+					chan->ppp->mtu = DAHDI_DEFAULT_MTU_MRU;
 					chan->ppp->hdrlen = 0;
 					skb_queue_head_init(&chan->ppp_rq);
 					chan->do_ppp_wakeup = 0;
 					tasklet_init(&chan->ppp_calls, do_ppp_calls,
 						     (unsigned long)chan);
-					if ((ret = zt_reallocbufs(chan, ZT_DEFAULT_MTU_MRU, ZT_DEFAULT_NUM_BUFS))) {
+					if ((ret = dahdi_reallocbufs(chan, DAHDI_DEFAULT_MTU_MRU, DAHDI_DEFAULT_NUM_BUFS))) {
 						kfree(chan->ppp);
 						chan->ppp = NULL;
 						return ret;
@@ -4864,8 +4864,8 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 					chan->rxgain = defgain;
 					chan->txgain = defgain;
 					chan->gainalloc = 0;
-					chan->flags &= ~ZT_FLAG_AUDIO;
-					chan->flags |= (ZT_FLAG_PPP | ZT_FLAG_HDLC | ZT_FLAG_FCS);
+					chan->flags &= ~DAHDI_FLAG_AUDIO;
+					chan->flags |= (DAHDI_FLAG_PPP | DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS);
 					hw_echocancel_off(chan);
 					
 					if (tec)
@@ -4874,7 +4874,7 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 					return -ENOMEM;
 			}
 		} else {
-			chan->flags &= ~(ZT_FLAG_PPP | ZT_FLAG_HDLC | ZT_FLAG_FCS);
+			chan->flags &= ~(DAHDI_FLAG_PPP | DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS);
 			if (chan->ppp) {
 				struct ppp_channel *ppp = chan->ppp;
 				chan->ppp = NULL;
@@ -4889,44 +4889,44 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 		return -ENOSYS;
 #endif
 		break;
-	case ZT_HDLCRAWMODE:
-		if (chan->sig != ZT_SIG_CLEAR)	return (-EINVAL);
+	case DAHDI_HDLCRAWMODE:
+		if (chan->sig != DAHDI_SIG_CLEAR)	return (-EINVAL);
 		get_user(j, (int *)data);
-		chan->flags &= ~(ZT_FLAG_AUDIO | ZT_FLAG_HDLC | ZT_FLAG_FCS);
+		chan->flags &= ~(DAHDI_FLAG_AUDIO | DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS);
 		if (j) {
-			chan->flags |= ZT_FLAG_HDLC;
+			chan->flags |= DAHDI_FLAG_HDLC;
 			fasthdlc_init(&chan->rxhdlc);
 			fasthdlc_init(&chan->txhdlc);
 		}
 		break;
-	case ZT_HDLCFCSMODE:
-		if (chan->sig != ZT_SIG_CLEAR)	return (-EINVAL);
+	case DAHDI_HDLCFCSMODE:
+		if (chan->sig != DAHDI_SIG_CLEAR)	return (-EINVAL);
 		get_user(j, (int *)data);
-		chan->flags &= ~(ZT_FLAG_AUDIO | ZT_FLAG_HDLC | ZT_FLAG_FCS);
+		chan->flags &= ~(DAHDI_FLAG_AUDIO | DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS);
 		if (j) {
-			chan->flags |= ZT_FLAG_HDLC | ZT_FLAG_FCS;
+			chan->flags |= DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS;
 			fasthdlc_init(&chan->rxhdlc);
 			fasthdlc_init(&chan->txhdlc);
 		}
 		break;
-	case ZT_ECHOCANCEL_PARAMS:
+	case DAHDI_ECHOCANCEL_PARAMS:
 	{
-		struct zt_echocanparams ecp;
+		struct dahdi_echocanparams ecp;
 
-		if (!(chan->flags & ZT_FLAG_AUDIO))
+		if (!(chan->flags & DAHDI_FLAG_AUDIO))
 			return -EINVAL;
-		if (copy_from_user(&ecp, (struct zt_echocanparams *) data, sizeof(ecp)))
+		if (copy_from_user(&ecp, (struct dahdi_echocanparams *) data, sizeof(ecp)))
 			return -EFAULT;
 		data += sizeof(ecp);
 		if ((ret = ioctl_echocancel(chan, &ecp, (void *) data)))
 			return ret;
 		break;
 	}
-	case ZT_ECHOCANCEL:
+	case DAHDI_ECHOCANCEL:
 	{
-		struct zt_echocanparams ecp;
+		struct dahdi_echocanparams ecp;
 
-		if (!(chan->flags & ZT_FLAG_AUDIO))
+		if (!(chan->flags & DAHDI_FLAG_AUDIO))
 			return -EINVAL;
 		get_user(j, (int *) data);
 		ecp.tap_length = j;
@@ -4935,9 +4935,9 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 			return ret;
 		break;
 	}
-	case ZT_ECHOTRAIN:
+	case DAHDI_ECHOTRAIN:
 		get_user(j, (int *)data); /* get pre-training time from user */
-		if ((j < 0) || (j >= ZT_MAX_PRETRAINING))
+		if ((j < 0) || (j >= DAHDI_MAX_PRETRAINING))
 			return -EINVAL;
 		j <<= 3;
 		if (chan->ec) {
@@ -4947,32 +4947,32 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 		} else
 			return -EINVAL;
 		break;
-	case ZT_SETTXBITS:
-		if (chan->sig != ZT_SIG_CAS)
+	case DAHDI_SETTXBITS:
+		if (chan->sig != DAHDI_SIG_CAS)
 			return -EINVAL;
 		get_user(j,(int *)data);
-		zt_cas_setbits(chan, j);
+		dahdi_cas_setbits(chan, j);
 		rv = 0;
 		break;
-	case ZT_GETRXBITS:
+	case DAHDI_GETRXBITS:
 		put_user(chan->rxsig, (int *)data);
 		rv = 0;
 		break;
-	case ZT_LOOPBACK:
+	case DAHDI_LOOPBACK:
 		get_user(j, (int *)data);
 		spin_lock_irqsave(&chan->lock, flags);
 		if (j)
-			chan->flags |= ZT_FLAG_LOOPED;
+			chan->flags |= DAHDI_FLAG_LOOPED;
 		else
-			chan->flags &= ~ZT_FLAG_LOOPED;
+			chan->flags &= ~DAHDI_FLAG_LOOPED;
 		spin_unlock_irqrestore(&chan->lock, flags);
 		rv = 0;
 		break;
-	case ZT_HOOK:
+	case DAHDI_HOOK:
 		get_user(j,(int *)data);
-		if (chan->flags & ZT_FLAG_CLEAR)
+		if (chan->flags & DAHDI_FLAG_CLEAR)
 			return -EINVAL;
-		if (chan->sig == ZT_SIG_CAS) 
+		if (chan->sig == DAHDI_SIG_CAS) 
 			return -EINVAL;
 		/* if no span, just do nothing */
 		if (!chan->span) return(0);
@@ -4984,42 +4984,42 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 		chan->tonep = 0;
 		chan->pdialcount = 0;
 		spin_unlock_irqrestore(&chan->lock, flags);
-		if (chan->span->flags & ZT_FLAG_RBS) {
+		if (chan->span->flags & DAHDI_FLAG_RBS) {
 			switch (j) {
-			case ZT_ONHOOK:
+			case DAHDI_ONHOOK:
 				spin_lock_irqsave(&chan->lock, flags);
-				zt_hangup(chan);
+				dahdi_hangup(chan);
 				spin_unlock_irqrestore(&chan->lock, flags);
 				break;
-			case ZT_OFFHOOK:
+			case DAHDI_OFFHOOK:
 				spin_lock_irqsave(&chan->lock, flags);
-				if ((chan->txstate == ZT_TXSTATE_KEWL) ||
-				  (chan->txstate == ZT_TXSTATE_AFTERKEWL)) {
+				if ((chan->txstate == DAHDI_TXSTATE_KEWL) ||
+				  (chan->txstate == DAHDI_TXSTATE_AFTERKEWL)) {
 					spin_unlock_irqrestore(&chan->lock, flags);
 					return -EBUSY;
 				}
-				zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_DEBOUNCE, chan->debouncetime);
+				dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_DEBOUNCE, chan->debouncetime);
 				spin_unlock_irqrestore(&chan->lock, flags);
 				break;
-			case ZT_RING:
-			case ZT_START:
+			case DAHDI_RING:
+			case DAHDI_START:
 				spin_lock_irqsave(&chan->lock, flags);
 				if (!chan->curzone) {
 					spin_unlock_irqrestore(&chan->lock, flags);
 					printk(KERN_WARNING "zaptel: Cannot start tone until a tone zone is loaded.\n");
 					return -ENODATA;
 				}
-				if (chan->txstate != ZT_TXSTATE_ONHOOK) {
+				if (chan->txstate != DAHDI_TXSTATE_ONHOOK) {
 					spin_unlock_irqrestore(&chan->lock, flags);
 					return -EBUSY;
 				}
-				if (chan->sig & __ZT_SIG_FXO) {
+				if (chan->sig & __DAHDI_SIG_FXO) {
 					ret = 0;
 					chan->cadencepos = 0;
 					ret = chan->ringcadence[0];
-					zt_rbs_sethook(chan, ZT_TXSIG_START, ZT_TXSTATE_RINGON, ret);
+					dahdi_rbs_sethook(chan, DAHDI_TXSIG_START, DAHDI_TXSTATE_RINGON, ret);
 				} else
-					zt_rbs_sethook(chan, ZT_TXSIG_START, ZT_TXSTATE_START, chan->starttime);
+					dahdi_rbs_sethook(chan, DAHDI_TXSIG_START, DAHDI_TXSTATE_START, chan->starttime);
 				spin_unlock_irqrestore(&chan->lock, flags);
 				if (file->f_flags & O_NONBLOCK)
 					return -EINPROGRESS;
@@ -5029,35 +5029,35 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 #endif				
 				rv = 0;
 				break;
-			case ZT_WINK:
+			case DAHDI_WINK:
 				spin_lock_irqsave(&chan->lock, flags);
-				if (chan->txstate != ZT_TXSTATE_ONHOOK) {
+				if (chan->txstate != DAHDI_TXSTATE_ONHOOK) {
 					spin_unlock_irqrestore(&chan->lock, flags);
 					return -EBUSY;
 				}
-				zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_PREWINK, chan->prewinktime);
+				dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, DAHDI_TXSTATE_PREWINK, chan->prewinktime);
 				spin_unlock_irqrestore(&chan->lock, flags);
 				if (file->f_flags & O_NONBLOCK)
 					return -EINPROGRESS;
 				rv = schluffen(&chan->txstateq);
 				if (rv) return rv;
 				break;
-			case ZT_FLASH:
+			case DAHDI_FLASH:
 				spin_lock_irqsave(&chan->lock, flags);
-				if (chan->txstate != ZT_TXSTATE_OFFHOOK) {
+				if (chan->txstate != DAHDI_TXSTATE_OFFHOOK) {
 					spin_unlock_irqrestore(&chan->lock, flags);
 					return -EBUSY;
 				}
-				zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_PREFLASH, chan->preflashtime);
+				dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_PREFLASH, chan->preflashtime);
 				spin_unlock_irqrestore(&chan->lock, flags);
 				if (file->f_flags & O_NONBLOCK)
 					return -EINPROGRESS;
 				rv = schluffen(&chan->txstateq);
 				if (rv) return rv;
 				break;
-			case ZT_RINGOFF:
+			case DAHDI_RINGOFF:
 				spin_lock_irqsave(&chan->lock, flags);
-				zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_ONHOOK, 0);
+				dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, DAHDI_TXSTATE_ONHOOK, 0);
 				spin_unlock_irqrestore(&chan->lock, flags);
 				break;
 			default:
@@ -5073,27 +5073,27 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 		break;
 #ifdef CONFIG_ZAPATA_PPP
 	case PPPIOCGCHAN:
-		if (chan->flags & ZT_FLAG_PPP)
+		if (chan->flags & DAHDI_FLAG_PPP)
 			return put_user(ppp_channel_index(chan->ppp), (int *)data) ? -EFAULT : 0;
 		else
 			return -EINVAL;
 		break;
 	case PPPIOCGUNIT:
-		if (chan->flags & ZT_FLAG_PPP)
+		if (chan->flags & DAHDI_FLAG_PPP)
 			return put_user(ppp_unit_number(chan->ppp), (int *)data) ? -EFAULT : 0;
 		else
 			return -EINVAL;
 		break;
 #endif
 	default:
-		return zt_chanandpseudo_ioctl(inode, file, cmd, data, unit);
+		return dahdi_chanandpseudo_ioctl(inode, file, cmd, data, unit);
 	}
 	return 0;
 }
 
-static int zt_prechan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit)
+static int dahdi_prechan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit)
 {
-	struct zt_chan *chan = file->private_data;
+	struct dahdi_chan *chan = file->private_data;
 	int channo;
 	int res;
 
@@ -5101,13 +5101,13 @@ static int zt_prechan_ioctl(struct inode *inode, struct file *file, unsigned int
 		printk("Huh?  Prechan already has private data??\n");
 	}
 	switch(cmd) {
-	case ZT_SPECIFY:
+	case DAHDI_SPECIFY:
 		get_user(channo,(int *)data);
 		if (channo < 1)
 			return -EINVAL;
-		if (channo > ZT_MAX_CHANNELS)
+		if (channo > DAHDI_MAX_CHANNELS)
 			return -EINVAL;
-		res = zt_specchan_open(inode, file, channo, 0);
+		res = dahdi_specchan_open(inode, file, channo, 0);
 		if (!res) {
 			/* Setup the pointer for future stuff */
 			chan = chans[channo];
@@ -5122,31 +5122,31 @@ static int zt_prechan_ioctl(struct inode *inode, struct file *file, unsigned int
 	return 0;
 }
 
-static int zt_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data)
+static int dahdi_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data)
 {
 	int unit = UNIT(file);
-	struct zt_chan *chan;
-	struct zt_timer *timer;
+	struct dahdi_chan *chan;
+	struct dahdi_timer *timer;
 
 	if (!unit)
-		return zt_ctl_ioctl(inode, file, cmd, data);
+		return dahdi_ctl_ioctl(inode, file, cmd, data);
 
 	if (unit == 250)
-		return zt_transcode_fops->ioctl(inode, file, cmd, data);
+		return dahdi_transcode_fops->ioctl(inode, file, cmd, data);
 
 	if (unit == 253) {
 		timer = file->private_data;
 		if (timer)
-			return zt_timer_ioctl(inode, file, cmd, data, timer);
+			return dahdi_timer_ioctl(inode, file, cmd, data, timer);
 		else
 			return -EINVAL;
 	}
 	if (unit == 254) {
 		chan = file->private_data;
 		if (chan)
-			return zt_chan_ioctl(inode, file, cmd, data, chan->channo);
+			return dahdi_chan_ioctl(inode, file, cmd, data, chan->channo);
 		else
-			return zt_prechan_ioctl(inode, file, cmd, data, unit);
+			return dahdi_prechan_ioctl(inode, file, cmd, data, unit);
 	}
 	if (unit == 255) {
 		chan = file->private_data;
@@ -5154,12 +5154,12 @@ static int zt_ioctl(struct inode *inode, struct file *file, unsigned int cmd, un
 			printk("No pseudo channel structure to read?\n");
 			return -EINVAL;
 		}
-		return zt_chanandpseudo_ioctl(inode, file, cmd, data, chan->channo);
+		return dahdi_chanandpseudo_ioctl(inode, file, cmd, data, chan->channo);
 	}
-	return zt_chan_ioctl(inode, file, cmd, data, unit);
+	return dahdi_chan_ioctl(inode, file, cmd, data, unit);
 }
 
-int zt_register(struct zt_span *span, int prefmaster)
+int dahdi_register(struct dahdi_span *span, int prefmaster)
 {
 	int x;
 
@@ -5168,7 +5168,7 @@ int zt_register(struct zt_span *span, int prefmaster)
 #endif
 	if (!span)
 		return -EINVAL;
-	if (span->flags & ZT_FLAG_REGISTERED) {
+	if (span->flags & DAHDI_FLAG_REGISTERED) {
 		printk(KERN_ERR "Span %s already appears to be registered\n", span->name);
 		return -EBUSY;
 	}
@@ -5177,10 +5177,10 @@ int zt_register(struct zt_span *span, int prefmaster)
 			printk(KERN_ERR "Span %s already in list\n", span->name);
 			return -EBUSY;
 		}
-	for (x=1;x<ZT_MAX_SPANS;x++)
+	for (x=1;x<DAHDI_MAX_SPANS;x++)
 		if (!spans[x])
 			break;
-	if (x < ZT_MAX_SPANS) {
+	if (x < DAHDI_MAX_SPANS) {
 		spans[x] = span;
 		if (maxspans < x + 1)
 			maxspans = x + 1;
@@ -5188,12 +5188,12 @@ int zt_register(struct zt_span *span, int prefmaster)
 		printk(KERN_ERR "Too many zapata spans registered\n");
 		return -EBUSY;
 	}
-	span->flags |= ZT_FLAG_REGISTERED;
+	span->flags |= DAHDI_FLAG_REGISTERED;
 	span->spanno = x;
 	spin_lock_init(&span->lock);
 	if (!span->deflaw) {
 		printk("zaptel: Span %s didn't specify default law.  Assuming mulaw, please fix driver!\n", span->name);
-		span->deflaw = ZT_LAW_MULAW;
+		span->deflaw = DAHDI_LAW_MULAW;
 	}
 
 	if (span->echocan && span->echocan_with_params) {
@@ -5203,7 +5203,7 @@ int zt_register(struct zt_span *span, int prefmaster)
 
 	for (x=0;x<span->channels;x++) {
 		span->chans[x].span = span;
-		zt_chan_reg(&span->chans[x]); 
+		dahdi_chan_reg(&span->chans[x]); 
 	}
 
 #ifdef CONFIG_PROC_FS
@@ -5217,7 +5217,7 @@ int zt_register(struct zt_span *span, int prefmaster)
 		sprintf(span_name, "span%d", span->spanno);
 		span->dhandle = devfs_mk_dir(zaptel_devfs_dir, span_name, NULL);
 		for (x = 0; x < span->channels; x++) {
-			struct zt_chan *chan = &span->chans[x];
+			struct dahdi_chan *chan = &span->chans[x];
 			chan->fhandle = register_devfs_channel(chan, chan->span->dhandle); /* Register our stuff with devfs */
 		}
 	}
@@ -5228,7 +5228,7 @@ int zt_register(struct zt_span *span, int prefmaster)
 		char chan_name[50];
 		if (span->chans[x].channo < 250) {
 			sprintf(chan_name, "zap%d", span->chans[x].channo);
-			CLASS_DEV_CREATE(zap_class, MKDEV(ZT_MAJOR, span->chans[x].channo), NULL, chan_name);
+			CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo), NULL, chan_name);
 		}
 	}
 #endif /* CONFIG_ZAP_UDEV */
@@ -5243,22 +5243,22 @@ int zt_register(struct zt_span *span, int prefmaster)
 	return 0;
 }
 
-int zt_unregister(struct zt_span *span)
+int dahdi_unregister(struct dahdi_span *span)
 {
 	int x;
 	int new_maxspans;
-	static struct zt_span *new_master;
+	static struct dahdi_span *new_master;
 
 #ifdef CONFIG_PROC_FS
 	char tempfile[17];
 #endif /* CONFIG_PROC_FS */
 
-	if (!(span->flags & ZT_FLAG_REGISTERED)) {
+	if (!(span->flags & DAHDI_FLAG_REGISTERED)) {
 		printk(KERN_ERR "Span %s does not appear to be registered\n", span->name);
 		return -1;
 	}
 	/* Shutdown the span if it's running */
-	if (span->flags & ZT_FLAG_RUNNING)
+	if (span->flags & DAHDI_FLAG_RUNNING)
 		if (span->shutdown)
 			span->shutdown(span);
 			
@@ -5283,20 +5283,20 @@ int zt_unregister(struct zt_span *span)
 #ifdef CONFIG_ZAP_UDEV
 	for (x = 0; x < span->channels; x++) {
 		if (span->chans[x].channo < 250)
-			class_device_destroy(zap_class, MKDEV(ZT_MAJOR, span->chans[x].channo));
+			class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo));
 	}
 #endif /* CONFIG_ZAP_UDEV */
 
 	spans[span->spanno] = NULL;
 	span->spanno = 0;
-	span->flags &= ~ZT_FLAG_REGISTERED;
+	span->flags &= ~DAHDI_FLAG_REGISTERED;
 	for (x=0;x<span->channels;x++)
-		zt_chan_unreg(&span->chans[x]);
+		dahdi_chan_unreg(&span->chans[x]);
 	new_maxspans = 0;
 	new_master = master; /* FIXME: locking */
 	if (master == span)
 		new_master = NULL;
-	for (x=1;x<ZT_MAX_SPANS;x++) {
+	for (x=1;x<DAHDI_MAX_SPANS;x++) {
 		if (spans[x]) {
 			new_maxspans = x+1;
 			if (!new_master)
@@ -5343,7 +5343,7 @@ unsigned char
 #else
 static unsigned char  __init
 #endif
-__zt_lineartoulaw(short sample)
+__dahdi_lineartoulaw(short sample)
 {
   static int exp_lut[256] = {0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,
                              4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
@@ -5388,7 +5388,7 @@ unsigned char
 #else
 static inline unsigned char __init
 #endif
-__zt_lineartoalaw (short linear)
+__dahdi_lineartoalaw (short linear)
 {
     int mask;
     int seg;
@@ -5435,7 +5435,7 @@ static inline short int __init alaw2linear (uint8_t alaw)
     return (short int) ((alaw & 0x80)  ?  i  :  -i);
 }
 /*- End of function --------------------------------------------------------*/
-static void  __init zt_conv_init(void)
+static void  __init dahdi_conv_init(void)
 {
 	int i;
 
@@ -5453,8 +5453,8 @@ static void  __init zt_conv_init(void)
 		y = f * (1 << (e + 3));
 		y += etab[e];
 		if (mu & 0x80) y = -y;
-	        __zt_mulaw[i] = y;
-		__zt_alaw[i] = alaw2linear(i);
+	        __dahdi_mulaw[i] = y;
+		__dahdi_alaw[i] = alaw2linear(i);
 		/* Default (0.0 db) gain table */
 		defgain[i] = i;
 	   }
@@ -5462,27 +5462,27 @@ static void  __init zt_conv_init(void)
 	  /* set up the reverse (mu-law) conversion table */
 	for(i = -32768; i < 32768; i += 4)
 	   {
-		__zt_lin2mu[((unsigned short)(short)i) >> 2] = __zt_lineartoulaw(i);
-		__zt_lin2a[((unsigned short)(short)i) >> 2] = __zt_lineartoalaw(i);
+		__dahdi_lin2mu[((unsigned short)(short)i) >> 2] = __dahdi_lineartoulaw(i);
+		__dahdi_lin2a[((unsigned short)(short)i) >> 2] = __dahdi_lineartoalaw(i);
 	   }
 #endif
 }
 
-static inline void __zt_process_getaudio_chunk(struct zt_chan *ss, unsigned char *txb)
+static inline void __dahdi_process_getaudio_chunk(struct dahdi_chan *ss, unsigned char *txb)
 {
 	/* We transmit data from our master channel */
 	/* Called with ss->lock held */
-	struct zt_chan *ms = ss->master;
+	struct dahdi_chan *ms = ss->master;
 	/* Linear representation */
-	short getlin[ZT_CHUNKSIZE], k[ZT_CHUNKSIZE];
+	short getlin[DAHDI_CHUNKSIZE], k[DAHDI_CHUNKSIZE];
 	int x;
 
 	/* Okay, now we've got something to transmit */
-	for (x=0;x<ZT_CHUNKSIZE;x++)
-		getlin[x] = ZT_XLAW(txb[x], ms);
+	for (x=0;x<DAHDI_CHUNKSIZE;x++)
+		getlin[x] = DAHDI_XLAW(txb[x], ms);
 #ifndef NO_ECHOCAN_DISABLE
 	if (ms->ec) {
-		for (x=0;x<ZT_CHUNKSIZE;x++) {
+		for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 			/* Check for echo cancel disabling tone */
 			if (echo_can_disable_detector_update(&ms->txecdis, getlin[x])) {
 				printk("zaptel Disabled echo canceller because of tone (tx) on channel %d\n", ss->channo);
@@ -5492,84 +5492,84 @@ static inline void __zt_process_getaudio_chunk(struct zt_chan *ss, unsigned char
 				ms->echotimer = 0;
 				echo_can_free(ms->ec);
 				ms->ec = NULL;
-				__qevent(ss, ZT_EVENT_EC_DISABLED);
+				__qevent(ss, DAHDI_EVENT_EC_DISABLED);
 				break;
 			}
 		}
 	}
 #endif
-	if ((!ms->confmute && !ms->dialing) || (ms->flags & ZT_FLAG_PSEUDO)) {
+	if ((!ms->confmute && !ms->dialing) || (ms->flags & DAHDI_FLAG_PSEUDO)) {
 		/* Handle conferencing on non-clear channel and non-HDLC channels */
-		switch(ms->confmode & ZT_CONF_MODE_MASK) {
-		case ZT_CONF_NORMAL:
+		switch(ms->confmode & DAHDI_CONF_MODE_MASK) {
+		case DAHDI_CONF_NORMAL:
 			/* Do nuffin */
 			break;
-		case ZT_CONF_MONITOR:	/* Monitor a channel's rx mode */
+		case DAHDI_CONF_MONITOR:	/* Monitor a channel's rx mode */
 			  /* if a pseudo-channel, ignore */
-			if (ms->flags & ZT_FLAG_PSEUDO) break;
+			if (ms->flags & DAHDI_FLAG_PSEUDO) break;
 			/* Add monitored channel */
-			if (chans[ms->confna]->flags & ZT_FLAG_PSEUDO) {
+			if (chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO) {
 				ACSS(getlin, chans[ms->confna]->getlin);
 			} else {
 				ACSS(getlin, chans[ms->confna]->putlin);
 			}
-			for (x=0;x<ZT_CHUNKSIZE;x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x=0;x<DAHDI_CHUNKSIZE;x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 			break;
-		case ZT_CONF_MONITORTX: /* Monitor a channel's tx mode */
+		case DAHDI_CONF_MONITORTX: /* Monitor a channel's tx mode */
 			  /* if a pseudo-channel, ignore */
-			if (ms->flags & ZT_FLAG_PSEUDO) break;
+			if (ms->flags & DAHDI_FLAG_PSEUDO) break;
 			/* Add monitored channel */
-			if (chans[ms->confna]->flags & ZT_FLAG_PSEUDO) {
+			if (chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO) {
 				ACSS(getlin, chans[ms->confna]->putlin);
 			} else {
 				ACSS(getlin, chans[ms->confna]->getlin);
 			}
 
-			for (x=0;x<ZT_CHUNKSIZE;x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x=0;x<DAHDI_CHUNKSIZE;x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 			break;
-		case ZT_CONF_MONITORBOTH: /* monitor a channel's rx and tx mode */
+		case DAHDI_CONF_MONITORBOTH: /* monitor a channel's rx and tx mode */
 			  /* if a pseudo-channel, ignore */
-			if (ms->flags & ZT_FLAG_PSEUDO) break;
+			if (ms->flags & DAHDI_FLAG_PSEUDO) break;
 			ACSS(getlin, chans[ms->confna]->putlin);
 			ACSS(getlin, chans[ms->confna]->getlin);
-			for (x=0;x<ZT_CHUNKSIZE;x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x=0;x<DAHDI_CHUNKSIZE;x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 			break;
-		case ZT_CONF_MONITOR_RX_PREECHO:	/* Monitor a channel's rx mode */
+		case DAHDI_CONF_MONITOR_RX_PREECHO:	/* Monitor a channel's rx mode */
 			  /* if a pseudo-channel, ignore */
-			if (ms->flags & ZT_FLAG_PSEUDO)
+			if (ms->flags & DAHDI_FLAG_PSEUDO)
 				break;
 
 			if (!chans[ms->confna]->readchunkpreec)
 				break;
 
 			/* Add monitored channel */
-			ACSS(getlin, chans[ms->confna]->flags & ZT_FLAG_PSEUDO ?
+			ACSS(getlin, chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO ?
 			     chans[ms->confna]->readchunkpreec : chans[ms->confna]->putlin);
-			for (x = 0; x < ZT_CHUNKSIZE; x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 
 			break;
-		case ZT_CONF_MONITOR_TX_PREECHO: /* Monitor a channel's tx mode */
+		case DAHDI_CONF_MONITOR_TX_PREECHO: /* Monitor a channel's tx mode */
 			  /* if a pseudo-channel, ignore */
-			if (ms->flags & ZT_FLAG_PSEUDO)
+			if (ms->flags & DAHDI_FLAG_PSEUDO)
 				break;
 
 			if (!chans[ms->confna]->readchunkpreec)
 				break;
 
 			/* Add monitored channel */
-			ACSS(getlin, chans[ms->confna]->flags & ZT_FLAG_PSEUDO ?
+			ACSS(getlin, chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO ?
 			     chans[ms->confna]->putlin : chans[ms->confna]->readchunkpreec);
-			for (x = 0; x < ZT_CHUNKSIZE; x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 
 			break;
-		case ZT_CONF_MONITORBOTH_PREECHO: /* monitor a channel's rx and tx mode */
+		case DAHDI_CONF_MONITORBOTH_PREECHO: /* monitor a channel's rx and tx mode */
 			  /* if a pseudo-channel, ignore */
-			if (ms->flags & ZT_FLAG_PSEUDO)
+			if (ms->flags & DAHDI_FLAG_PSEUDO)
 				break;
 
 			if (!chans[ms->confna]->readchunkpreec)
@@ -5578,144 +5578,144 @@ static inline void __zt_process_getaudio_chunk(struct zt_chan *ss, unsigned char
 			ACSS(getlin, chans[ms->confna]->putlin);
 			ACSS(getlin, chans[ms->confna]->readchunkpreec);
 
-			for (x = 0; x < ZT_CHUNKSIZE; x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 
 			break;
-		case ZT_CONF_REALANDPSEUDO:
+		case DAHDI_CONF_REALANDPSEUDO:
 			/* This strange mode takes the transmit buffer and
 				puts it on the conference, minus its last sample,
 				then outputs from the conference minus the 
 				real channel's last sample. */
 			  /* if to talk on conf */
-			if (ms->confmode & ZT_CONF_PSEUDO_TALKER) {
+			if (ms->confmode & DAHDI_CONF_PSEUDO_TALKER) {
 				/* Store temp value */
-				memcpy(k, getlin, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(k, getlin, DAHDI_CHUNKSIZE * sizeof(short));
 				/* Add conf value */
 				ACSS(k, conf_sums_next[ms->_confn]);
 				/* save last one */
-				memcpy(ms->conflast2, ms->conflast1, ZT_CHUNKSIZE * sizeof(short));
-				memcpy(ms->conflast1, k, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(ms->conflast2, ms->conflast1, DAHDI_CHUNKSIZE * sizeof(short));
+				memcpy(ms->conflast1, k, DAHDI_CHUNKSIZE * sizeof(short));
 				/*  get amount actually added */
 				SCSS(ms->conflast1, conf_sums_next[ms->_confn]);
 				/* Really add in new value */
 				ACSS(conf_sums_next[ms->_confn], ms->conflast1);
 			} else {
-				memset(ms->conflast1, 0, ZT_CHUNKSIZE * sizeof(short));
-				memset(ms->conflast2, 0, ZT_CHUNKSIZE * sizeof(short));
+				memset(ms->conflast1, 0, DAHDI_CHUNKSIZE * sizeof(short));
+				memset(ms->conflast2, 0, DAHDI_CHUNKSIZE * sizeof(short));
 			}
-			memset(getlin, 0, ZT_CHUNKSIZE * sizeof(short));
-			txb[0] = ZT_LIN2X(0, ms);
-			memset(txb + 1, txb[0], ZT_CHUNKSIZE - 1);
+			memset(getlin, 0, DAHDI_CHUNKSIZE * sizeof(short));
+			txb[0] = DAHDI_LIN2X(0, ms);
+			memset(txb + 1, txb[0], DAHDI_CHUNKSIZE - 1);
 			/* fall through to normal conf mode */
-		case ZT_CONF_CONF:	/* Normal conference mode */
-			if (ms->flags & ZT_FLAG_PSEUDO) /* if pseudo-channel */
+		case DAHDI_CONF_CONF:	/* Normal conference mode */
+			if (ms->flags & DAHDI_FLAG_PSEUDO) /* if pseudo-channel */
 			   {
 				  /* if to talk on conf */
-				if (ms->confmode & ZT_CONF_TALKER) {
+				if (ms->confmode & DAHDI_CONF_TALKER) {
 					/* Store temp value */
-					memcpy(k, getlin, ZT_CHUNKSIZE * sizeof(short));
+					memcpy(k, getlin, DAHDI_CHUNKSIZE * sizeof(short));
 					/* Add conf value */
 					ACSS(k, conf_sums[ms->_confn]);
 					/*  get amount actually added */
-					memcpy(ms->conflast, k, ZT_CHUNKSIZE * sizeof(short));
+					memcpy(ms->conflast, k, DAHDI_CHUNKSIZE * sizeof(short));
 					SCSS(ms->conflast, conf_sums[ms->_confn]);
 					/* Really add in new value */
 					ACSS(conf_sums[ms->_confn], ms->conflast);
-					memcpy(ms->getlin, getlin, ZT_CHUNKSIZE * sizeof(short));
+					memcpy(ms->getlin, getlin, DAHDI_CHUNKSIZE * sizeof(short));
 				} else {
-					memset(ms->conflast, 0, ZT_CHUNKSIZE * sizeof(short));
-					memcpy(getlin, ms->getlin, ZT_CHUNKSIZE * sizeof(short));
+					memset(ms->conflast, 0, DAHDI_CHUNKSIZE * sizeof(short));
+					memcpy(getlin, ms->getlin, DAHDI_CHUNKSIZE * sizeof(short));
 				}
-				txb[0] = ZT_LIN2X(0, ms);
-				memset(txb + 1, txb[0], ZT_CHUNKSIZE - 1);
+				txb[0] = DAHDI_LIN2X(0, ms);
+				memset(txb + 1, txb[0], DAHDI_CHUNKSIZE - 1);
 				break;
 		 	   }
 			/* fall through */
-		case ZT_CONF_CONFMON:	/* Conference monitor mode */
-			if (ms->confmode & ZT_CONF_LISTENER) {
+		case DAHDI_CONF_CONFMON:	/* Conference monitor mode */
+			if (ms->confmode & DAHDI_CONF_LISTENER) {
 				/* Subtract out last sample written to conf */
 				SCSS(getlin, ms->conflast);
 				/* Add in conference */
 				ACSS(getlin, conf_sums[ms->_confn]);
 			}
-			for (x=0;x<ZT_CHUNKSIZE;x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x=0;x<DAHDI_CHUNKSIZE;x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 			break;
-		case ZT_CONF_CONFANN:
-		case ZT_CONF_CONFANNMON:
+		case DAHDI_CONF_CONFANN:
+		case DAHDI_CONF_CONFANNMON:
 			/* First, add tx buffer to conf */
 			ACSS(conf_sums_next[ms->_confn], getlin);
 			/* Start with silence */
-			memset(getlin, 0, ZT_CHUNKSIZE * sizeof(short));
+			memset(getlin, 0, DAHDI_CHUNKSIZE * sizeof(short));
 			/* If a listener on the conf... */
-			if (ms->confmode & ZT_CONF_LISTENER) {
+			if (ms->confmode & DAHDI_CONF_LISTENER) {
 				/* Subtract last value written */
 				SCSS(getlin, ms->conflast);
 				/* Add in conf */
 				ACSS(getlin, conf_sums[ms->_confn]);
 			}
-			for (x=0;x<ZT_CHUNKSIZE;x++)
-				txb[x] = ZT_LIN2X(getlin[x], ms);
+			for (x=0;x<DAHDI_CHUNKSIZE;x++)
+				txb[x] = DAHDI_LIN2X(getlin[x], ms);
 			break;
-		case ZT_CONF_DIGITALMON:
+		case DAHDI_CONF_DIGITALMON:
 			/* Real digital monitoring, but still echo cancel if desired */
 			if (!chans[ms->confna])
 				break;
-			if (chans[ms->confna]->flags & ZT_FLAG_PSEUDO) {
+			if (chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO) {
 				if (ms->ec) {
-					for (x=0;x<ZT_CHUNKSIZE;x++)
-						txb[x] = ZT_LIN2X(chans[ms->confna]->getlin[x], ms);
+					for (x=0;x<DAHDI_CHUNKSIZE;x++)
+						txb[x] = DAHDI_LIN2X(chans[ms->confna]->getlin[x], ms);
 				} else {
-					memcpy(txb, chans[ms->confna]->getraw, ZT_CHUNKSIZE);
+					memcpy(txb, chans[ms->confna]->getraw, DAHDI_CHUNKSIZE);
 				}
 			} else {
 				if (ms->ec) {
-					for (x=0;x<ZT_CHUNKSIZE;x++)
-						txb[x] = ZT_LIN2X(chans[ms->confna]->putlin[x], ms);
+					for (x=0;x<DAHDI_CHUNKSIZE;x++)
+						txb[x] = DAHDI_LIN2X(chans[ms->confna]->putlin[x], ms);
 				} else {
-					memcpy(txb, chans[ms->confna]->putraw, ZT_CHUNKSIZE);
+					memcpy(txb, chans[ms->confna]->putraw, DAHDI_CHUNKSIZE);
 				}
 			}
-			for (x=0;x<ZT_CHUNKSIZE;x++)
-				getlin[x] = ZT_XLAW(txb[x], ms);
+			for (x=0;x<DAHDI_CHUNKSIZE;x++)
+				getlin[x] = DAHDI_XLAW(txb[x], ms);
 			break;
 		}
 	}
 	if (ms->confmute || (ms->echostate & __ECHO_STATE_MUTE)) {
-		txb[0] = ZT_LIN2X(0, ms);
-		memset(txb + 1, txb[0], ZT_CHUNKSIZE - 1);
+		txb[0] = DAHDI_LIN2X(0, ms);
+		memset(txb + 1, txb[0], DAHDI_CHUNKSIZE - 1);
 		if (ms->echostate == ECHO_STATE_STARTTRAINING) {
 			/* Transmit impulse now */
-			txb[0] = ZT_LIN2X(16384, ms);
+			txb[0] = DAHDI_LIN2X(16384, ms);
 			ms->echostate = ECHO_STATE_AWAITINGECHO;
 		}
 	}
 	/* save value from last chunk */
-	memcpy(ms->getlin_lastchunk, ms->getlin, ZT_CHUNKSIZE * sizeof(short));
+	memcpy(ms->getlin_lastchunk, ms->getlin, DAHDI_CHUNKSIZE * sizeof(short));
 	/* save value from current */
-	memcpy(ms->getlin, getlin, ZT_CHUNKSIZE * sizeof(short));
+	memcpy(ms->getlin, getlin, DAHDI_CHUNKSIZE * sizeof(short));
 	/* save value from current */
-	memcpy(ms->getraw, txb, ZT_CHUNKSIZE);
+	memcpy(ms->getraw, txb, DAHDI_CHUNKSIZE);
 	/* if to make tx tone */
 	if (ms->v1_1 || ms->v2_1 || ms->v3_1)
 	{
-		for (x=0;x<ZT_CHUNKSIZE;x++)
+		for (x=0;x<DAHDI_CHUNKSIZE;x++)
 		{
-			getlin[x] += zt_txtone_nextsample(ms);
-			txb[x] = ZT_LIN2X(getlin[x], ms);
+			getlin[x] += dahdi_txtone_nextsample(ms);
+			txb[x] = DAHDI_LIN2X(getlin[x], ms);
 		}
 	}
 	/* This is what to send (after having applied gain) */
-	for (x=0;x<ZT_CHUNKSIZE;x++)
+	for (x=0;x<DAHDI_CHUNKSIZE;x++)
 		txb[x] = ms->txgain[txb[x]];
 }
 
-static inline void __zt_getbuf_chunk(struct zt_chan *ss, unsigned char *txb)
+static inline void __dahdi_getbuf_chunk(struct dahdi_chan *ss, unsigned char *txb)
 {
 	/* Called with ss->lock held */
 	/* We transmit data from our master channel */
-	struct zt_chan *ms = ss->master;
+	struct dahdi_chan *ms = ss->master;
 	/* Buffer we're using */
 	unsigned char *buf;
 	/* Old buffer number */
@@ -5723,7 +5723,7 @@ static inline void __zt_getbuf_chunk(struct zt_chan *ss, unsigned char *txb)
 	/* Linear representation */
 	int getlin;
 	/* How many bytes we need to process */
-	int bytes = ZT_CHUNKSIZE, left;
+	int bytes = DAHDI_CHUNKSIZE, left;
 	int x;
 
 	/* Let's pick something to transmit.  First source to
@@ -5735,7 +5735,7 @@ static inline void __zt_getbuf_chunk(struct zt_chan *ss, unsigned char *txb)
 			left = ms->writen[ms->outwritebuf] - ms->writeidx[ms->outwritebuf];
 			if (left > bytes)
 				left = bytes;
-			if (ms->flags & ZT_FLAG_HDLC) {
+			if (ms->flags & DAHDI_FLAG_HDLC) {
 				/* If this is an HDLC channel we only send a byte of
 				   HDLC. */
 				for(x=0;x<left;x++) {
@@ -5759,26 +5759,26 @@ static inline void __zt_getbuf_chunk(struct zt_chan *ss, unsigned char *txb)
 				ms->writeidx[oldbuf] = 0;
 				ms->outwritebuf = (ms->outwritebuf + 1) % ms->numbufs;
 
-				if (!(ms->flags & ZT_FLAG_MTP2)) {
+				if (!(ms->flags & DAHDI_FLAG_MTP2)) {
 					ms->writen[oldbuf] = 0;
 					if (ms->outwritebuf == ms->inwritebuf) {
 						/* Whoopsies, we're run out of buffers.  Mark ours
 						as -1 and wait for the filler to notify us that
 						there is something to write */
 						ms->outwritebuf = -1;
-						if (ms->iomask & (ZT_IOMUX_WRITE | ZT_IOMUX_WRITEEMPTY))
+						if (ms->iomask & (DAHDI_IOMUX_WRITE | DAHDI_IOMUX_WRITEEMPTY))
 							wake_up_interruptible(&ms->eventbufq);
 						/* If we're only supposed to start when full, disable the transmitter */
-						if (ms->txbufpolicy == ZT_POLICY_WHEN_FULL)
+						if (ms->txbufpolicy == DAHDI_POLICY_WHEN_FULL)
 							ms->txdisable = 1;
 					}
 				} else {
 					if (ms->outwritebuf == ms->inwritebuf) {
 						ms->outwritebuf = oldbuf;
-						if (ms->iomask & (ZT_IOMUX_WRITE | ZT_IOMUX_WRITEEMPTY))
+						if (ms->iomask & (DAHDI_IOMUX_WRITE | DAHDI_IOMUX_WRITEEMPTY))
 							wake_up_interruptible(&ms->eventbufq);
 						/* If we're only supposed to start when full, disable the transmitter */
-						if (ms->txbufpolicy == ZT_POLICY_WHEN_FULL)
+						if (ms->txbufpolicy == DAHDI_POLICY_WHEN_FULL)
 							ms->txdisable = 1;
 					}
 				}
@@ -5797,39 +5797,39 @@ in the read or iomux call, etc). That is why the write and iomux calls start
 with an infinite loop that gets broken out of upon an active condition,
 otherwise keeps sleeping and looking. The part in this code got "optimized"
 out in the later versions, and is put back now. */
-				if (!(ms->flags & (ZT_FLAG_NETDEV | ZT_FLAG_PPP))) {
+				if (!(ms->flags & (DAHDI_FLAG_NETDEV | DAHDI_FLAG_PPP))) {
 					wake_up_interruptible(&ms->writebufq);
 					wake_up_interruptible(&ms->sel);
-					if (ms->iomask & ZT_IOMUX_WRITE)
+					if (ms->iomask & DAHDI_IOMUX_WRITE)
 						wake_up_interruptible(&ms->eventbufq);
 				}
 				/* Transmit a flag if this is an HDLC channel */
-				if (ms->flags & ZT_FLAG_HDLC)
+				if (ms->flags & DAHDI_FLAG_HDLC)
 					fasthdlc_tx_frame_nocheck(&ms->txhdlc);
 #ifdef CONFIG_ZAPATA_NET
-				if (ms->flags & ZT_FLAG_NETDEV)
+				if (ms->flags & DAHDI_FLAG_NETDEV)
 					netif_wake_queue(ztchan_to_dev(ms));
 #endif				
 #ifdef CONFIG_ZAPATA_PPP
-				if (ms->flags & ZT_FLAG_PPP) {
+				if (ms->flags & DAHDI_FLAG_PPP) {
 					ms->do_ppp_wakeup = 1;
 					tasklet_schedule(&ms->ppp_calls);
 				}
 #endif
 			}
-		} else if (ms->curtone && !(ms->flags & ZT_FLAG_PSEUDO)) {
+		} else if (ms->curtone && !(ms->flags & DAHDI_FLAG_PSEUDO)) {
 			left = ms->curtone->tonesamples - ms->tonep;
 			if (left > bytes)
 				left = bytes;
 			for (x=0;x<left;x++) {
 				/* Pick our default value from the next sample of the current tone */
-				getlin = zt_tone_nextsample(&ms->ts, ms->curtone);
-				*(txb++) = ZT_LIN2X(getlin, ms);
+				getlin = dahdi_tone_nextsample(&ms->ts, ms->curtone);
+				*(txb++) = DAHDI_LIN2X(getlin, ms);
 			}
 			ms->tonep+=left;
 			bytes -= left;
 			if (ms->tonep >= ms->curtone->tonesamples) {
-				struct zt_tone *last;
+				struct dahdi_tone *last;
 				/* Go to the next sample of the tone */
 				ms->tonep = 0;
 				last = ms->curtone;
@@ -5840,14 +5840,14 @@ out in the later versions, and is put back now. */
 						__do_dtmf(ms);
 				} else {
 					if (last != ms->curtone)
-						zt_init_tone_state(&ms->ts, ms->curtone);
+						dahdi_init_tone_state(&ms->ts, ms->curtone);
 				}
 			}
-		} else if (ms->flags & ZT_FLAG_LOOPED) {
+		} else if (ms->flags & DAHDI_FLAG_LOOPED) {
 			for (x = 0; x < bytes; x++)
 				txb[x] = ms->readchunk[x];
 			bytes = 0;
-		} else if (ms->flags & ZT_FLAG_HDLC) {
+		} else if (ms->flags & DAHDI_FLAG_HDLC) {
 			for (x=0;x<bytes;x++) {
 				/* Okay, if we're HDLC, then transmit a flag by default */
 				if (ms->txhdlc.bits < 8) 
@@ -5855,62 +5855,62 @@ out in the later versions, and is put back now. */
 				*(txb++) = fasthdlc_tx_run_nocheck(&ms->txhdlc);
 			}
 			bytes = 0;
-		} else if (ms->flags & ZT_FLAG_CLEAR) {
+		} else if (ms->flags & DAHDI_FLAG_CLEAR) {
 			/* Clear channels that are idle in audio mode need
 			   to send silence; in non-audio mode, always send 0xff
 			   so stupid switches won't consider the channel active
 			*/
-			if (ms->flags & ZT_FLAG_AUDIO) {
-				memset(txb, ZT_LIN2X(0, ms), bytes);
+			if (ms->flags & DAHDI_FLAG_AUDIO) {
+				memset(txb, DAHDI_LIN2X(0, ms), bytes);
 			} else {
 				memset(txb, 0xFF, bytes);
 			}
 			bytes = 0;
 		} else {
-			memset(txb, ZT_LIN2X(0, ms), bytes);	/* Lastly we use silence on telephony channels */
+			memset(txb, DAHDI_LIN2X(0, ms), bytes);	/* Lastly we use silence on telephony channels */
 			bytes = 0;
 		}
 	}	
 }
 
-static inline void rbs_itimer_expire(struct zt_chan *chan)
+static inline void rbs_itimer_expire(struct dahdi_chan *chan)
 {
 	/* the only way this could have gotten here, is if a channel
 	    went onf hook longer then the wink or flash detect timeout */
 	/* Called with chan->lock held */
 	switch(chan->sig)
 	{
-	    case ZT_SIG_FXOLS:  /* if FXO, its definitely on hook */
-	    case ZT_SIG_FXOGS:
-	    case ZT_SIG_FXOKS:
-		__qevent(chan,ZT_EVENT_ONHOOK);
+	    case DAHDI_SIG_FXOLS:  /* if FXO, its definitely on hook */
+	    case DAHDI_SIG_FXOGS:
+	    case DAHDI_SIG_FXOKS:
+		__qevent(chan,DAHDI_EVENT_ONHOOK);
 		chan->gotgs = 0; 
 		break;
 #if defined(EMFLASH) || defined(EMPULSE)
-	    case ZT_SIG_EM:
-	    case ZT_SIG_EM_E1:
-		if (chan->rxhooksig == ZT_RXSIG_ONHOOK) {
-			__qevent(chan,ZT_EVENT_ONHOOK); 
+	    case DAHDI_SIG_EM:
+	    case DAHDI_SIG_EM_E1:
+		if (chan->rxhooksig == DAHDI_RXSIG_ONHOOK) {
+			__qevent(chan,DAHDI_EVENT_ONHOOK); 
 			break;
 		}
-		__qevent(chan,ZT_EVENT_RINGOFFHOOK); 
+		__qevent(chan,DAHDI_EVENT_RINGOFFHOOK); 
 		break;
 #endif
 #ifdef	FXSFLASH
-	    case ZT_SIG_FXSKS:
-		if (chan->rxhooksig == ZT_RXSIG_ONHOOK) {
-			__qevent(chan, ZT_EVENT_ONHOOK); 
+	    case DAHDI_SIG_FXSKS:
+		if (chan->rxhooksig == DAHDI_RXSIG_ONHOOK) {
+			__qevent(chan, DAHDI_EVENT_ONHOOK); 
 			break;
 		}
 #endif
 		/* fall thru intentionally */
 	    default:  /* otherwise, its definitely off hook */
-		__qevent(chan,ZT_EVENT_RINGOFFHOOK); 
+		__qevent(chan,DAHDI_EVENT_RINGOFFHOOK); 
 		break;
 	}
 }
 
-static inline void __rbs_otimer_expire(struct zt_chan *chan)
+static inline void __rbs_otimer_expire(struct dahdi_chan *chan)
 {
 	int len = 0;
 	/* Called with chan->lock held */
@@ -5918,10 +5918,10 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 	chan->otimer = 0;
 	/* Move to the next timer state */	
 	switch(chan->txstate) {
-	case ZT_TXSTATE_RINGOFF:
+	case DAHDI_TXSTATE_RINGOFF:
 		/* Turn on the ringer now that the silent time has passed */
 		++chan->cadencepos;
-		if (chan->cadencepos >= ZT_MAX_CADENCE)
+		if (chan->cadencepos >= DAHDI_MAX_CADENCE)
 			chan->cadencepos = chan->firstcadencepos;
 		len = chan->ringcadence[chan->cadencepos];
 
@@ -5930,14 +5930,14 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 			len = chan->ringcadence[chan->cadencepos];
 		}
 
-		zt_rbs_sethook(chan, ZT_TXSIG_START, ZT_TXSTATE_RINGON, len);
-		__qevent(chan, ZT_EVENT_RINGERON);
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_START, DAHDI_TXSTATE_RINGON, len);
+		__qevent(chan, DAHDI_EVENT_RINGERON);
 		break;
 		
-	case ZT_TXSTATE_RINGON:
+	case DAHDI_TXSTATE_RINGON:
 		/* Turn off the ringer now that the loud time has passed */
 		++chan->cadencepos;
-		if (chan->cadencepos >= ZT_MAX_CADENCE)
+		if (chan->cadencepos >= DAHDI_MAX_CADENCE)
 			chan->cadencepos = 0;
 		len = chan->ringcadence[chan->cadencepos];
 
@@ -5946,93 +5946,93 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 			len = chan->curzone->ringcadence[chan->cadencepos];
 		}
 
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_RINGOFF, len);
-		__qevent(chan, ZT_EVENT_RINGEROFF);
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_RINGOFF, len);
+		__qevent(chan, DAHDI_EVENT_RINGEROFF);
 		break;
 		
-	case ZT_TXSTATE_START:
+	case DAHDI_TXSTATE_START:
 		/* If we were starting, go off hook now ready to debounce */
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_AFTERSTART, ZT_AFTERSTART_TIME);
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_AFTERSTART, DAHDI_AFTERSTART_TIME);
 		wake_up_interruptible(&chan->txstateq);
 		break;
 		
-	case ZT_TXSTATE_PREWINK:
+	case DAHDI_TXSTATE_PREWINK:
 		/* Actually wink */
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_WINK, chan->winktime);
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_WINK, chan->winktime);
 		break;
 		
-	case ZT_TXSTATE_WINK:
+	case DAHDI_TXSTATE_WINK:
 		/* Wink complete, go on hook and stabalize */
-		zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_ONHOOK, 0);
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, DAHDI_TXSTATE_ONHOOK, 0);
 		if (chan->file && (chan->file->f_flags & O_NONBLOCK))
-			__qevent(chan, ZT_EVENT_HOOKCOMPLETE);
+			__qevent(chan, DAHDI_EVENT_HOOKCOMPLETE);
 		wake_up_interruptible(&chan->txstateq);
 		break;
 		
-	case ZT_TXSTATE_PREFLASH:
+	case DAHDI_TXSTATE_PREFLASH:
 		/* Actually flash */
-		zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_FLASH, chan->flashtime);
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, DAHDI_TXSTATE_FLASH, chan->flashtime);
 		break;
 
-	case ZT_TXSTATE_FLASH:
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_OFFHOOK, 0);
+	case DAHDI_TXSTATE_FLASH:
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_OFFHOOK, 0);
 		if (chan->file && (chan->file->f_flags & O_NONBLOCK))
-			__qevent(chan, ZT_EVENT_HOOKCOMPLETE);
+			__qevent(chan, DAHDI_EVENT_HOOKCOMPLETE);
 		wake_up_interruptible(&chan->txstateq);
 		break;
 	
-	case ZT_TXSTATE_DEBOUNCE:
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_OFFHOOK, 0);
+	case DAHDI_TXSTATE_DEBOUNCE:
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_OFFHOOK, 0);
 		/* See if we've gone back on hook */
-		if ((chan->rxhooksig == ZT_RXSIG_ONHOOK) && (chan->rxflashtime > 2))
-			chan->itimerset = chan->itimer = chan->rxflashtime * ZT_CHUNKSIZE;
+		if ((chan->rxhooksig == DAHDI_RXSIG_ONHOOK) && (chan->rxflashtime > 2))
+			chan->itimerset = chan->itimer = chan->rxflashtime * DAHDI_CHUNKSIZE;
 		wake_up_interruptible(&chan->txstateq);
 		break;
 		
-	case ZT_TXSTATE_AFTERSTART:
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_OFFHOOK, 0);
+	case DAHDI_TXSTATE_AFTERSTART:
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_OFFHOOK, 0);
 		if (chan->file && (chan->file->f_flags & O_NONBLOCK))
-			__qevent(chan, ZT_EVENT_HOOKCOMPLETE);
+			__qevent(chan, DAHDI_EVENT_HOOKCOMPLETE);
 		wake_up_interruptible(&chan->txstateq);
 		break;
 
-	case ZT_TXSTATE_KEWL:
-		zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_AFTERKEWL, ZT_AFTERKEWLTIME);
+	case DAHDI_TXSTATE_KEWL:
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, DAHDI_TXSTATE_AFTERKEWL, DAHDI_AFTERKEWLTIME);
 		if (chan->file && (chan->file->f_flags & O_NONBLOCK))
-			__qevent(chan, ZT_EVENT_HOOKCOMPLETE);
+			__qevent(chan, DAHDI_EVENT_HOOKCOMPLETE);
 		wake_up_interruptible(&chan->txstateq);
 		break;
 
-	case ZT_TXSTATE_AFTERKEWL:
+	case DAHDI_TXSTATE_AFTERKEWL:
 		if (chan->kewlonhook)  {
-			__qevent(chan,ZT_EVENT_ONHOOK);
+			__qevent(chan,DAHDI_EVENT_ONHOOK);
 		}
-		chan->txstate = ZT_TXSTATE_ONHOOK;
+		chan->txstate = DAHDI_TXSTATE_ONHOOK;
 		chan->gotgs = 0;
 		break;
 
-	case ZT_TXSTATE_PULSEBREAK:
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_PULSEMAKE, 
+	case DAHDI_TXSTATE_PULSEBREAK:
+		dahdi_rbs_sethook(chan, DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_PULSEMAKE, 
 			chan->pulsemaketime);
 		wake_up_interruptible(&chan->txstateq);
 		break;
 
-	case ZT_TXSTATE_PULSEMAKE:
+	case DAHDI_TXSTATE_PULSEMAKE:
 		if (chan->pdialcount)
 			chan->pdialcount--;
 		if (chan->pdialcount)
 		{
-			zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, 
-				ZT_TXSTATE_PULSEBREAK, chan->pulsebreaktime);
+			dahdi_rbs_sethook(chan, DAHDI_TXSIG_ONHOOK, 
+				DAHDI_TXSTATE_PULSEBREAK, chan->pulsebreaktime);
 			break;
 		}
-		chan->txstate = ZT_TXSTATE_PULSEAFTER;
-		chan->otimer = chan->pulseaftertime * ZT_CHUNKSIZE;
+		chan->txstate = DAHDI_TXSTATE_PULSEAFTER;
+		chan->otimer = chan->pulseaftertime * DAHDI_CHUNKSIZE;
 		wake_up_interruptible(&chan->txstateq);
 		break;
 
-	case ZT_TXSTATE_PULSEAFTER:
-		chan->txstate = ZT_TXSTATE_OFFHOOK;
+	case DAHDI_TXSTATE_PULSEAFTER:
+		chan->txstate = DAHDI_TXSTATE_OFFHOOK;
 		__do_dtmf(chan);
 		wake_up_interruptible(&chan->txstateq);
 		break;
@@ -6042,7 +6042,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 	}
 }
 
-static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
+static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, dahdi_rxsig_t rxsig)
 {
 
 	/* State machines for receive hookstate transitions 
@@ -6050,24 +6050,24 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 
 	if ((chan->rxhooksig) == rxsig) return;
 	
-	if ((chan->flags & ZT_FLAG_SIGFREEZE)) return;
+	if ((chan->flags & DAHDI_FLAG_SIGFREEZE)) return;
 
 	chan->rxhooksig = rxsig;
 #ifdef	RINGBEGIN
-	if ((chan->sig & __ZT_SIG_FXS) && (rxsig == ZT_RXSIG_RING) &&
+	if ((chan->sig & __DAHDI_SIG_FXS) && (rxsig == DAHDI_RXSIG_RING) &&
 	    (!chan->ringdebtimer))
-		__qevent(chan,ZT_EVENT_RINGBEGIN);  
+		__qevent(chan,DAHDI_EVENT_RINGBEGIN);  
 #endif
 	switch(chan->sig) {
-	    case ZT_SIG_EM:  /* E and M */
-	    case ZT_SIG_EM_E1:
+	    case DAHDI_SIG_EM:  /* E and M */
+	    case DAHDI_SIG_EM_E1:
 		switch(rxsig) {
-		    case ZT_RXSIG_OFFHOOK: /* went off hook */
+		    case DAHDI_RXSIG_OFFHOOK: /* went off hook */
 			/* The interface is going off hook */
 #ifdef	EMFLASH
 			if (chan->itimer)
 			{
-				__qevent(chan,ZT_EVENT_WINKFLASH); 
+				__qevent(chan,DAHDI_EVENT_WINKFLASH); 
 				chan->itimerset = chan->itimer = 0;
 				break;				
 			}
@@ -6076,36 +6076,36 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 			if (chan->itimer) /* if timer still running */
 			{
 			    int plen = chan->itimerset - chan->itimer;
-			    if (plen <= ZT_MAXPULSETIME)
+			    if (plen <= DAHDI_MAXPULSETIME)
 			    {
-					if (plen >= ZT_MINPULSETIME)
+					if (plen >= DAHDI_MINPULSETIME)
 					{
 						chan->pulsecount++;
 
-						chan->pulsetimer = ZT_PULSETIMEOUT;
+						chan->pulsetimer = DAHDI_PULSETIMEOUT;
                                                 chan->itimerset = chan->itimer = 0;
 						if (chan->pulsecount == 1)
-							__qevent(chan,ZT_EVENT_PULSE_START); 
+							__qevent(chan,DAHDI_EVENT_PULSE_START); 
 					} 
 			    } 
 			    break;
 			}
 #endif
 			/* set wink timer */
-			chan->itimerset = chan->itimer = chan->rxwinktime * ZT_CHUNKSIZE;
+			chan->itimerset = chan->itimer = chan->rxwinktime * DAHDI_CHUNKSIZE;
 			break;
-		    case ZT_RXSIG_ONHOOK: /* went on hook */
+		    case DAHDI_RXSIG_ONHOOK: /* went on hook */
 			/* This interface is now going on hook.
 			   Check for WINK, etc */
 			if (chan->itimer)
-				__qevent(chan,ZT_EVENT_WINKFLASH); 
+				__qevent(chan,DAHDI_EVENT_WINKFLASH); 
 #if defined(EMFLASH) || defined(EMPULSE)
 			else {
 #ifdef EMFLASH
-				chan->itimerset = chan->itimer = chan->rxflashtime * ZT_CHUNKSIZE;
+				chan->itimerset = chan->itimer = chan->rxflashtime * DAHDI_CHUNKSIZE;
 
 #else /* EMFLASH */
-				chan->itimerset = chan->itimer = chan->rxwinktime * ZT_CHUNKSIZE;
+				chan->itimerset = chan->itimer = chan->rxwinktime * DAHDI_CHUNKSIZE;
 
 #endif /* EMFLASH */
 				chan->gotgs = 0;
@@ -6113,7 +6113,7 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 			}
 #else /* EMFLASH || EMPULSE */
 			else {
-				__qevent(chan,ZT_EVENT_ONHOOK); 
+				__qevent(chan,DAHDI_EVENT_ONHOOK); 
 				chan->gotgs = 0;
 			}
 #endif
@@ -6123,50 +6123,50 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 			break;
 		}
 		break;
-	   case ZT_SIG_FXSKS:  /* FXS Kewlstart */
+	   case DAHDI_SIG_FXSKS:  /* FXS Kewlstart */
 		  /* ignore a bit poopy if loop not closed and stable */
-		if (chan->txstate != ZT_TXSTATE_OFFHOOK) break;
+		if (chan->txstate != DAHDI_TXSTATE_OFFHOOK) break;
 #ifdef	FXSFLASH
-		if (rxsig == ZT_RXSIG_ONHOOK) {
-			chan->itimer = ZT_FXSFLASHMAXTIME * ZT_CHUNKSIZE;
+		if (rxsig == DAHDI_RXSIG_ONHOOK) {
+			chan->itimer = DAHDI_FXSFLASHMAXTIME * DAHDI_CHUNKSIZE;
 			break;
-		} else 	if (rxsig == ZT_RXSIG_OFFHOOK) {
+		} else 	if (rxsig == DAHDI_RXSIG_OFFHOOK) {
 			if (chan->itimer) {
 				/* did the offhook occur in the window? if not, ignore both events */
-				if (chan->itimer <= ((ZT_FXSFLASHMAXTIME - ZT_FXSFLASHMINTIME) * ZT_CHUNKSIZE))
-					__qevent(chan, ZT_EVENT_WINKFLASH);
+				if (chan->itimer <= ((DAHDI_FXSFLASHMAXTIME - DAHDI_FXSFLASHMINTIME) * DAHDI_CHUNKSIZE))
+					__qevent(chan, DAHDI_EVENT_WINKFLASH);
 			}
 			chan->itimer = 0;
 			break;
 		}
 #endif
 		/* fall through intentionally */
-	   case ZT_SIG_FXSGS:  /* FXS Groundstart */
-		if (rxsig == ZT_RXSIG_ONHOOK) {
+	   case DAHDI_SIG_FXSGS:  /* FXS Groundstart */
+		if (rxsig == DAHDI_RXSIG_ONHOOK) {
 			chan->ringdebtimer = RING_DEBOUNCE_TIME;
 			chan->ringtrailer = 0;
-			if (chan->txstate != ZT_TXSTATE_DEBOUNCE) {
+			if (chan->txstate != DAHDI_TXSTATE_DEBOUNCE) {
 				chan->gotgs = 0;
-				__qevent(chan,ZT_EVENT_ONHOOK);
+				__qevent(chan,DAHDI_EVENT_ONHOOK);
 			}
 		}
 		break;
-	   case ZT_SIG_FXOGS: /* FXO Groundstart */
-		if (rxsig == ZT_RXSIG_START) {
+	   case DAHDI_SIG_FXOGS: /* FXO Groundstart */
+		if (rxsig == DAHDI_RXSIG_START) {
 			  /* if havent got gs, report it */
 			if (!chan->gotgs) {
-				__qevent(chan,ZT_EVENT_RINGOFFHOOK);
+				__qevent(chan,DAHDI_EVENT_RINGOFFHOOK);
 				chan->gotgs = 1;
 			}
 		}
 		/* fall through intentionally */
-	   case ZT_SIG_FXOLS: /* FXO Loopstart */
-	   case ZT_SIG_FXOKS: /* FXO Kewlstart */
+	   case DAHDI_SIG_FXOLS: /* FXO Loopstart */
+	   case DAHDI_SIG_FXOKS: /* FXO Kewlstart */
 		switch(rxsig) {
-		    case ZT_RXSIG_OFFHOOK: /* went off hook */
+		    case DAHDI_RXSIG_OFFHOOK: /* went off hook */
 			  /* if asserti ng ring, stop it */
-			if (chan->txstate == ZT_TXSTATE_START) {
-				zt_rbs_sethook(chan,ZT_TXSIG_OFFHOOK, ZT_TXSTATE_AFTERSTART, ZT_AFTERSTART_TIME);
+			if (chan->txstate == DAHDI_TXSTATE_START) {
+				dahdi_rbs_sethook(chan,DAHDI_TXSIG_OFFHOOK, DAHDI_TXSTATE_AFTERSTART, DAHDI_AFTERSTART_TIME);
 			}
 			chan->kewlonhook = 0;
 #ifdef CONFIG_ZAPATA_DEBUG
@@ -6175,36 +6175,36 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 			if (chan->itimer) /* if timer still running */
 			{
 			    int plen = chan->itimerset - chan->itimer;
-			    if (plen <= ZT_MAXPULSETIME)
+			    if (plen <= DAHDI_MAXPULSETIME)
 			    {
-					if (plen >= ZT_MINPULSETIME)
+					if (plen >= DAHDI_MINPULSETIME)
 					{
 						chan->pulsecount++;
-						chan->pulsetimer = ZT_PULSETIMEOUT;
+						chan->pulsetimer = DAHDI_PULSETIMEOUT;
 						chan->itimer = chan->itimerset;
 						if (chan->pulsecount == 1)
-							__qevent(chan,ZT_EVENT_PULSE_START); 
+							__qevent(chan,DAHDI_EVENT_PULSE_START); 
 					} 
 			    } else 
-					__qevent(chan,ZT_EVENT_WINKFLASH); 
+					__qevent(chan,DAHDI_EVENT_WINKFLASH); 
 			} else {
 				  /* if havent got GS detect */
 				if (!chan->gotgs) {
-					__qevent(chan,ZT_EVENT_RINGOFFHOOK); 
+					__qevent(chan,DAHDI_EVENT_RINGOFFHOOK); 
 					chan->gotgs = 1;
 					chan->itimerset = chan->itimer = 0;
 				}
 			}
 			chan->itimerset = chan->itimer = 0;
 			break;
-		    case ZT_RXSIG_ONHOOK: /* went on hook */
+		    case DAHDI_RXSIG_ONHOOK: /* went on hook */
 			  /* if not during offhook debounce time */
-			if ((chan->txstate != ZT_TXSTATE_DEBOUNCE) &&
-			    (chan->txstate != ZT_TXSTATE_KEWL) && 
-			    (chan->txstate != ZT_TXSTATE_AFTERKEWL)) {
-				chan->itimerset = chan->itimer = chan->rxflashtime * ZT_CHUNKSIZE;
+			if ((chan->txstate != DAHDI_TXSTATE_DEBOUNCE) &&
+			    (chan->txstate != DAHDI_TXSTATE_KEWL) && 
+			    (chan->txstate != DAHDI_TXSTATE_AFTERKEWL)) {
+				chan->itimerset = chan->itimer = chan->rxflashtime * DAHDI_CHUNKSIZE;
 			}
-			if (chan->txstate == ZT_TXSTATE_KEWL)
+			if (chan->txstate == DAHDI_TXSTATE_KEWL)
 				chan->kewlonhook = 1;
 			break;
 		    default:
@@ -6215,61 +6215,61 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 	}
 }
 
-void zt_hooksig(struct zt_chan *chan, zt_rxsig_t rxsig)
+void dahdi_hooksig(struct dahdi_chan *chan, dahdi_rxsig_t rxsig)
 {
 	  /* skip if no change */
 	unsigned long flags;
 	spin_lock_irqsave(&chan->lock, flags);
-	__zt_hooksig_pvt(chan,rxsig);
+	__dahdi_hooksig_pvt(chan,rxsig);
 	spin_unlock_irqrestore(&chan->lock, flags);
 }
 
-void zt_rbsbits(struct zt_chan *chan, int cursig)
+void dahdi_rbsbits(struct dahdi_chan *chan, int cursig)
 {
 	unsigned long flags;
 	if (cursig == chan->rxsig)
 		return;
 
-	if ((chan->flags & ZT_FLAG_SIGFREEZE)) return;
+	if ((chan->flags & DAHDI_FLAG_SIGFREEZE)) return;
 
 	spin_lock_irqsave(&chan->lock, flags);
 	switch(chan->sig) {
-	    case ZT_SIG_FXOGS: /* FXO Groundstart */
+	    case DAHDI_SIG_FXOGS: /* FXO Groundstart */
 		/* B-bit only matters for FXO GS */
-		if (!(cursig & ZT_BBIT)) {
-			__zt_hooksig_pvt(chan, ZT_RXSIG_START);
+		if (!(cursig & DAHDI_BBIT)) {
+			__dahdi_hooksig_pvt(chan, DAHDI_RXSIG_START);
 			break;
 		}
 		/* Fall through */
-	    case ZT_SIG_EM:  /* E and M */
-	    case ZT_SIG_EM_E1:
-	    case ZT_SIG_FXOLS: /* FXO Loopstart */
-	    case ZT_SIG_FXOKS: /* FXO Kewlstart */
-		if (cursig & ZT_ABIT)  /* off hook */
-			__zt_hooksig_pvt(chan,ZT_RXSIG_OFFHOOK);
+	    case DAHDI_SIG_EM:  /* E and M */
+	    case DAHDI_SIG_EM_E1:
+	    case DAHDI_SIG_FXOLS: /* FXO Loopstart */
+	    case DAHDI_SIG_FXOKS: /* FXO Kewlstart */
+		if (cursig & DAHDI_ABIT)  /* off hook */
+			__dahdi_hooksig_pvt(chan,DAHDI_RXSIG_OFFHOOK);
 		else /* on hook */
-			__zt_hooksig_pvt(chan,ZT_RXSIG_ONHOOK);
+			__dahdi_hooksig_pvt(chan,DAHDI_RXSIG_ONHOOK);
 		break;
 
-	   case ZT_SIG_FXSKS:  /* FXS Kewlstart */
-	   case ZT_SIG_FXSGS:  /* FXS Groundstart */
+	   case DAHDI_SIG_FXSKS:  /* FXS Kewlstart */
+	   case DAHDI_SIG_FXSGS:  /* FXS Groundstart */
 		/* Fall through */
-	   case ZT_SIG_FXSLS:
-		if (!(cursig & ZT_BBIT)) {
+	   case DAHDI_SIG_FXSLS:
+		if (!(cursig & DAHDI_BBIT)) {
 			/* Check for ringing first */
-			__zt_hooksig_pvt(chan, ZT_RXSIG_RING);
+			__dahdi_hooksig_pvt(chan, DAHDI_RXSIG_RING);
 			break;
 		}
-		if ((chan->sig != ZT_SIG_FXSLS) && (cursig & ZT_ABIT)) { 
+		if ((chan->sig != DAHDI_SIG_FXSLS) && (cursig & DAHDI_ABIT)) { 
 			    /* if went on hook */
-			__zt_hooksig_pvt(chan, ZT_RXSIG_ONHOOK);
+			__dahdi_hooksig_pvt(chan, DAHDI_RXSIG_ONHOOK);
 		} else {
-			__zt_hooksig_pvt(chan, ZT_RXSIG_OFFHOOK);
+			__dahdi_hooksig_pvt(chan, DAHDI_RXSIG_OFFHOOK);
 		}
 		break;
-	   case ZT_SIG_CAS:
+	   case DAHDI_SIG_CAS:
 		/* send event that something changed */
-		__qevent(chan, ZT_EVENT_BITSCHANGED);
+		__qevent(chan, DAHDI_EVENT_BITSCHANGED);
 		break;
 
 	   default:
@@ -6280,7 +6280,7 @@ void zt_rbsbits(struct zt_chan *chan, int cursig)
 	spin_unlock_irqrestore(&chan->lock, flags);
 }
 
-static inline void __zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, const unsigned char *txchunk)
+static inline void __dahdi_ec_chunk(struct dahdi_chan *ss, unsigned char *rxchunk, const unsigned char *txchunk)
 {
 	short rxlin, txlin;
 	int x;
@@ -6290,21 +6290,21 @@ static inline void __zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, con
 
 	if (ss->readchunkpreec) {
 		/* Save a copy of the audio before the echo can has its way with it */
-		for (x = 0; x < ZT_CHUNKSIZE; x++)
+		for (x = 0; x < DAHDI_CHUNKSIZE; x++)
 			/* We only ever really need to deal with signed linear - let's just convert it now */
-			ss->readchunkpreec[x] = ZT_XLAW(rxchunk[x], ss);
+			ss->readchunkpreec[x] = DAHDI_XLAW(rxchunk[x], ss);
 	}
 
 	/* Perform echo cancellation on a chunk if necessary */
 	if (ss->ec) {
 #if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
-		zt_kernel_fpu_begin();
+		dahdi_kernel_fpu_begin();
 #endif		
 		if (ss->echostate & __ECHO_STATE_MUTE) {
 			/* Special stuff for training the echo can */
-			for (x=0;x<ZT_CHUNKSIZE;x++) {
-				rxlin = ZT_XLAW(rxchunk[x], ss);
-				txlin = ZT_XLAW(txchunk[x], ss);
+			for (x=0;x<DAHDI_CHUNKSIZE;x++) {
+				rxlin = DAHDI_XLAW(rxchunk[x], ss);
+				txlin = DAHDI_XLAW(txchunk[x], ss);
 				if (ss->echostate == ECHO_STATE_PRETRAINING) {
 					if (--ss->echotimer <= 0) {
 						ss->echotimer = 0;
@@ -6324,25 +6324,25 @@ static inline void __zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, con
 					}
 				}
 				rxlin = 0;
-				rxchunk[x] = ZT_LIN2X((int)rxlin, ss);
+				rxchunk[x] = DAHDI_LIN2X((int)rxlin, ss);
 			}
 		} else {
-#if !defined(ZT_EC_ARRAY_UPDATE)
-			for (x=0;x<ZT_CHUNKSIZE;x++) {
-				rxlin = ZT_XLAW(rxchunk[x], ss);
-				rxlin = echo_can_update(ss->ec, ZT_XLAW(txchunk[x], ss), rxlin);
-				rxchunk[x] = ZT_LIN2X((int) rxlin, ss);
+#if !defined(DAHDI_EC_ARRAY_UPDATE)
+			for (x=0;x<DAHDI_CHUNKSIZE;x++) {
+				rxlin = DAHDI_XLAW(rxchunk[x], ss);
+				rxlin = echo_can_update(ss->ec, DAHDI_XLAW(txchunk[x], ss), rxlin);
+				rxchunk[x] = DAHDI_LIN2X((int) rxlin, ss);
 			}
-#else /* defined(ZT_EC_ARRAY_UPDATE) */
-			short rxlins[ZT_CHUNKSIZE], txlins[ZT_CHUNKSIZE];
-			for (x = 0; x < ZT_CHUNKSIZE; x++) {
-				rxlins[x] = ZT_XLAW(rxchunk[x], ss);
-				txlins[x] = ZT_XLAW(txchunk[x], ss);
+#else /* defined(DAHDI_EC_ARRAY_UPDATE) */
+			short rxlins[DAHDI_CHUNKSIZE], txlins[DAHDI_CHUNKSIZE];
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
+				rxlins[x] = DAHDI_XLAW(rxchunk[x], ss);
+				txlins[x] = DAHDI_XLAW(txchunk[x], ss);
 			}
 			echo_can_array_update(ss->ec, rxlins, txlins);
-			for (x = 0; x < ZT_CHUNKSIZE; x++)
-				rxchunk[x] = ZT_LIN2X((int) rxlins[x], ss);
-#endif /* defined(ZT_EC_ARRAY_UPDATE) */
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
+				rxchunk[x] = DAHDI_LIN2X((int) rxlins[x], ss);
+#endif /* defined(DAHDI_EC_ARRAY_UPDATE) */
 		}
 #if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
 		kernel_fpu_end();
@@ -6351,17 +6351,17 @@ static inline void __zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, con
 	spin_unlock_irqrestore(&ss->lock, flags);
 }
 
-void zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, const unsigned char *txchunk)
+void dahdi_ec_chunk(struct dahdi_chan *ss, unsigned char *rxchunk, const unsigned char *txchunk)
 {
-	__zt_ec_chunk(ss, rxchunk, txchunk);
+	__dahdi_ec_chunk(ss, rxchunk, txchunk);
 }
 
-void zt_ec_span(struct zt_span *span)
+void dahdi_ec_span(struct dahdi_span *span)
 {
 	int x;
 	for (x = 0; x < span->channels; x++) {
 		if (span->chans[x].ec)
-			__zt_ec_chunk(&span->chans[x], span->chans[x].readchunk, span->chans[x].writechunk);
+			__dahdi_ec_chunk(&span->chans[x], span->chans[x].readchunk, span->chans[x].writechunk);
 	}
 }
 
@@ -6374,7 +6374,7 @@ static inline int sf_detect (sf_detect_state_t *s,
 int     i,rv = 0;
 long x,y;
 
-#define	SF_DETECT_SAMPLES (ZT_CHUNKSIZE * 5)
+#define	SF_DETECT_SAMPLES (DAHDI_CHUNKSIZE * 5)
 #define	SF_DETECT_MIN_ENERGY 500
 #define	NB 14  /* number of bits to shift left */
          
@@ -6414,30 +6414,30 @@ long x,y;
 	return(rv);		
 }
 
-static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char *rxb)
+static inline void __dahdi_process_putaudio_chunk(struct dahdi_chan *ss, unsigned char *rxb)
 {
 	/* We transmit data from our master channel */
 	/* Called with ss->lock held */
-	struct zt_chan *ms = ss->master;
+	struct dahdi_chan *ms = ss->master;
 	/* Linear version of received data */
-	short putlin[ZT_CHUNKSIZE],k[ZT_CHUNKSIZE];
+	short putlin[DAHDI_CHUNKSIZE],k[DAHDI_CHUNKSIZE];
 	int x,r;
 
 	if (ms->dialing) ms->afterdialingtimer = 50;
 	else if (ms->afterdialingtimer) ms->afterdialingtimer--;
-	if (ms->afterdialingtimer && (!(ms->flags & ZT_FLAG_PSEUDO))) {
+	if (ms->afterdialingtimer && (!(ms->flags & DAHDI_FLAG_PSEUDO))) {
 		/* Be careful since memset is likely a macro */
-		rxb[0] = ZT_LIN2X(0, ms);
-		memset(&rxb[1], rxb[0], ZT_CHUNKSIZE - 1);  /* receive as silence if dialing */
+		rxb[0] = DAHDI_LIN2X(0, ms);
+		memset(&rxb[1], rxb[0], DAHDI_CHUNKSIZE - 1);  /* receive as silence if dialing */
 	} 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		rxb[x] = ms->rxgain[rxb[x]];
-		putlin[x] = ZT_XLAW(rxb[x], ms);
+		putlin[x] = DAHDI_XLAW(rxb[x], ms);
 	}
 
 #ifndef NO_ECHOCAN_DISABLE
 	if (ms->ec) {
-		for (x=0;x<ZT_CHUNKSIZE;x++) {
+		for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 			if (echo_can_disable_detector_update(&ms->rxecdis, putlin[x])) {
 				printk("zaptel Disabled echo canceller because of tone (rx) on channel %d\n", ss->channo);
 				ms->echocancel = 0;
@@ -6454,71 +6454,71 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 	/* if doing rx tone decoding */
 	if (ms->rxp1 && ms->rxp2 && ms->rxp3)
 	{
-		r = sf_detect(&ms->rd,putlin,ZT_CHUNKSIZE,ms->rxp1,
+		r = sf_detect(&ms->rd,putlin,DAHDI_CHUNKSIZE,ms->rxp1,
 			ms->rxp2,ms->rxp3);
 		/* Convert back */
-		for(x=0;x<ZT_CHUNKSIZE;x++)
-			rxb[x] = ZT_LIN2X(putlin[x], ms);
+		for(x=0;x<DAHDI_CHUNKSIZE;x++)
+			rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 		if (r) /* if something happened */
 		{
 			if (r != ms->rd.lastdetect)
 			{
-				if (((r == 2) && !(ms->toneflags & ZT_REVERSE_RXTONE)) ||
-				    ((r == 1) && (ms->toneflags & ZT_REVERSE_RXTONE)))
+				if (((r == 2) && !(ms->toneflags & DAHDI_REVERSE_RXTONE)) ||
+				    ((r == 1) && (ms->toneflags & DAHDI_REVERSE_RXTONE)))
 				{
-					__qevent(ms,ZT_EVENT_RINGOFFHOOK);
+					__qevent(ms,DAHDI_EVENT_RINGOFFHOOK);
 				}
 				else
 				{
-					__qevent(ms,ZT_EVENT_ONHOOK);
+					__qevent(ms,DAHDI_EVENT_ONHOOK);
 				}
 				ms->rd.lastdetect = r;
 			}
 		}
 	}		
 
-	if (!(ms->flags &  ZT_FLAG_PSEUDO)) {
-		memcpy(ms->putlin, putlin, ZT_CHUNKSIZE * sizeof(short));
-		memcpy(ms->putraw, rxb, ZT_CHUNKSIZE);
+	if (!(ms->flags &  DAHDI_FLAG_PSEUDO)) {
+		memcpy(ms->putlin, putlin, DAHDI_CHUNKSIZE * sizeof(short));
+		memcpy(ms->putraw, rxb, DAHDI_CHUNKSIZE);
 	}
 	
 	/* Take the rxc, twiddle it for conferencing if appropriate and put it
 	   back */
 	if ((!ms->confmute && !ms->afterdialingtimer) ||
-	    (ms->flags & ZT_FLAG_PSEUDO)) {
-		switch(ms->confmode & ZT_CONF_MODE_MASK) {
-		case ZT_CONF_NORMAL:		/* Normal mode */
+	    (ms->flags & DAHDI_FLAG_PSEUDO)) {
+		switch(ms->confmode & DAHDI_CONF_MODE_MASK) {
+		case DAHDI_CONF_NORMAL:		/* Normal mode */
 			/* Do nothing.  rx goes output */
 			break;
-		case ZT_CONF_MONITOR:		/* Monitor a channel's rx mode */
+		case DAHDI_CONF_MONITOR:		/* Monitor a channel's rx mode */
 			  /* if not a pseudo-channel, ignore */
-			if (!(ms->flags & ZT_FLAG_PSEUDO)) break;
+			if (!(ms->flags & DAHDI_FLAG_PSEUDO)) break;
 			/* Add monitored channel */
-			if (chans[ms->confna]->flags & ZT_FLAG_PSEUDO) {
+			if (chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO) {
 				ACSS(putlin, chans[ms->confna]->getlin);
 			} else {
 				ACSS(putlin, chans[ms->confna]->putlin);
 			}
 			/* Convert back */
-			for(x=0;x<ZT_CHUNKSIZE;x++)
-				rxb[x] = ZT_LIN2X(putlin[x], ms);
+			for(x=0;x<DAHDI_CHUNKSIZE;x++)
+				rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 			break;
-		case ZT_CONF_MONITORTX:	/* Monitor a channel's tx mode */
+		case DAHDI_CONF_MONITORTX:	/* Monitor a channel's tx mode */
 			  /* if not a pseudo-channel, ignore */
-			if (!(ms->flags & ZT_FLAG_PSEUDO)) break;
+			if (!(ms->flags & DAHDI_FLAG_PSEUDO)) break;
 			/* Add monitored channel */
-			if (chans[ms->confna]->flags & ZT_FLAG_PSEUDO) {
+			if (chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO) {
 				ACSS(putlin, chans[ms->confna]->putlin);
 			} else {
 				ACSS(putlin, chans[ms->confna]->getlin);
 			}
 			/* Convert back */
-			for(x=0;x<ZT_CHUNKSIZE;x++)
-				rxb[x] = ZT_LIN2X(putlin[x], ms);
+			for(x=0;x<DAHDI_CHUNKSIZE;x++)
+				rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 			break;
-		case ZT_CONF_MONITORBOTH:	/* Monitor a channel's tx and rx mode */
+		case DAHDI_CONF_MONITORBOTH:	/* Monitor a channel's tx and rx mode */
 			  /* if not a pseudo-channel, ignore */
-			if (!(ms->flags & ZT_FLAG_PSEUDO)) break;
+			if (!(ms->flags & DAHDI_FLAG_PSEUDO)) break;
 			/* Note: Technically, saturation should be done at 
 			   the end of the whole addition, but for performance
 			   reasons, we don't do that.  Besides, it only matters
@@ -6526,42 +6526,42 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 			ACSS(putlin, chans[ms->confna]->getlin);
 			ACSS(putlin, chans[ms->confna]->putlin);
 			/* Convert back */
-			for(x=0;x<ZT_CHUNKSIZE;x++)
-				rxb[x] = ZT_LIN2X(putlin[x], ms);
+			for(x=0;x<DAHDI_CHUNKSIZE;x++)
+				rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 			break;
-		case ZT_CONF_MONITOR_RX_PREECHO:		/* Monitor a channel's rx mode */
+		case DAHDI_CONF_MONITOR_RX_PREECHO:		/* Monitor a channel's rx mode */
 			  /* if not a pseudo-channel, ignore */
-			if (!(ms->flags & ZT_FLAG_PSEUDO))
+			if (!(ms->flags & DAHDI_FLAG_PSEUDO))
 				break;
 
 			if (!chans[ms->confna]->readchunkpreec)
 				break;
 
 			/* Add monitored channel */
-			ACSS(putlin, chans[ms->confna]->flags & ZT_FLAG_PSEUDO ?
+			ACSS(putlin, chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO ?
 			     chans[ms->confna]->getlin : chans[ms->confna]->readchunkpreec);
-			for (x = 0; x < ZT_CHUNKSIZE; x++)
-				rxb[x] = ZT_LIN2X(putlin[x], ms);
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
+				rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 
 			break;
-		case ZT_CONF_MONITOR_TX_PREECHO:	/* Monitor a channel's tx mode */
+		case DAHDI_CONF_MONITOR_TX_PREECHO:	/* Monitor a channel's tx mode */
 			  /* if not a pseudo-channel, ignore */
-			if (!(ms->flags & ZT_FLAG_PSEUDO))
+			if (!(ms->flags & DAHDI_FLAG_PSEUDO))
 				break;
 
 			if (!chans[ms->confna]->readchunkpreec)
 				break;
 
 			/* Add monitored channel */
-			ACSS(putlin, chans[ms->confna]->flags & ZT_FLAG_PSEUDO ?
+			ACSS(putlin, chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO ?
 			     chans[ms->confna]->readchunkpreec : chans[ms->confna]->getlin);
-			for (x = 0; x < ZT_CHUNKSIZE; x++)
-				rxb[x] = ZT_LIN2X(putlin[x], ms);
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
+				rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 
 			break;
-		case ZT_CONF_MONITORBOTH_PREECHO:	/* Monitor a channel's tx and rx mode */
+		case DAHDI_CONF_MONITORBOTH_PREECHO:	/* Monitor a channel's tx and rx mode */
 			  /* if not a pseudo-channel, ignore */
-			if (!(ms->flags & ZT_FLAG_PSEUDO))
+			if (!(ms->flags & DAHDI_FLAG_PSEUDO))
 				break;
 
 			if (!chans[ms->confna]->readchunkpreec)
@@ -6573,93 +6573,93 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 			   when you're so loud you're clipping anyway */
 			ACSS(putlin, chans[ms->confna]->getlin);
 			ACSS(putlin, chans[ms->confna]->readchunkpreec);
-			for (x = 0; x < ZT_CHUNKSIZE; x++)
-				rxb[x] = ZT_LIN2X(putlin[x], ms);
+			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
+				rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 
 			break;
-		case ZT_CONF_REALANDPSEUDO:
+		case DAHDI_CONF_REALANDPSEUDO:
 			  /* do normal conf mode processing */
-			if (ms->confmode & ZT_CONF_TALKER) {
+			if (ms->confmode & DAHDI_CONF_TALKER) {
 				/* Store temp value */
-				memcpy(k, putlin, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(k, putlin, DAHDI_CHUNKSIZE * sizeof(short));
 				/* Add conf value */
 				ACSS(k, conf_sums_next[ms->_confn]);
 				/*  get amount actually added */
-				memcpy(ms->conflast, k, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(ms->conflast, k, DAHDI_CHUNKSIZE * sizeof(short));
 				SCSS(ms->conflast, conf_sums_next[ms->_confn]);
 				/* Really add in new value */
 				ACSS(conf_sums_next[ms->_confn], ms->conflast);
-			} else memset(ms->conflast, 0, ZT_CHUNKSIZE * sizeof(short));
+			} else memset(ms->conflast, 0, DAHDI_CHUNKSIZE * sizeof(short));
 			  /* do the pseudo-channel part processing */
-			memset(putlin, 0, ZT_CHUNKSIZE * sizeof(short));
-			if (ms->confmode & ZT_CONF_PSEUDO_LISTENER) {
+			memset(putlin, 0, DAHDI_CHUNKSIZE * sizeof(short));
+			if (ms->confmode & DAHDI_CONF_PSEUDO_LISTENER) {
 				/* Subtract out previous last sample written to conf */
 				SCSS(putlin, ms->conflast2);
 				/* Add in conference */
 				ACSS(putlin, conf_sums[ms->_confn]);
 			}
 			/* Convert back */
-			for(x=0;x<ZT_CHUNKSIZE;x++)
-				rxb[x] = ZT_LIN2X(putlin[x], ms);
+			for(x=0;x<DAHDI_CHUNKSIZE;x++)
+				rxb[x] = DAHDI_LIN2X(putlin[x], ms);
 			break;
-		case ZT_CONF_CONF:	/* Normal conference mode */
-			if (ms->flags & ZT_FLAG_PSEUDO) /* if a pseudo-channel */
+		case DAHDI_CONF_CONF:	/* Normal conference mode */
+			if (ms->flags & DAHDI_FLAG_PSEUDO) /* if a pseudo-channel */
 			   {
-				if (ms->confmode & ZT_CONF_LISTENER) {
+				if (ms->confmode & DAHDI_CONF_LISTENER) {
 					/* Subtract out last sample written to conf */
 					SCSS(putlin, ms->conflast);
 					/* Add in conference */
 					ACSS(putlin, conf_sums[ms->_confn]);
 				}
 				/* Convert back */
-				for(x=0;x<ZT_CHUNKSIZE;x++)
-					rxb[x] = ZT_LIN2X(putlin[x], ms);
-				memcpy(ss->putlin, putlin, ZT_CHUNKSIZE * sizeof(short));
+				for(x=0;x<DAHDI_CHUNKSIZE;x++)
+					rxb[x] = DAHDI_LIN2X(putlin[x], ms);
+				memcpy(ss->putlin, putlin, DAHDI_CHUNKSIZE * sizeof(short));
 				break;
 			   }
 			/* fall through */
-		case ZT_CONF_CONFANN:  /* Conference with announce */
-			if (ms->confmode & ZT_CONF_TALKER) {
+		case DAHDI_CONF_CONFANN:  /* Conference with announce */
+			if (ms->confmode & DAHDI_CONF_TALKER) {
 				/* Store temp value */
-				memcpy(k, putlin, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(k, putlin, DAHDI_CHUNKSIZE * sizeof(short));
 				/* Add conf value */
 				ACSS(k, conf_sums_next[ms->_confn]);
 				/*  get amount actually added */
-				memcpy(ms->conflast, k, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(ms->conflast, k, DAHDI_CHUNKSIZE * sizeof(short));
 				SCSS(ms->conflast, conf_sums_next[ms->_confn]);
 				/* Really add in new value */
 				ACSS(conf_sums_next[ms->_confn], ms->conflast);
 			} else 
-				memset(ms->conflast, 0, ZT_CHUNKSIZE * sizeof(short));
+				memset(ms->conflast, 0, DAHDI_CHUNKSIZE * sizeof(short));
 			  /* rxc unmodified */
 			break;
-		case ZT_CONF_CONFMON:
-		case ZT_CONF_CONFANNMON:
-			if (ms->confmode & ZT_CONF_TALKER) {
+		case DAHDI_CONF_CONFMON:
+		case DAHDI_CONF_CONFANNMON:
+			if (ms->confmode & DAHDI_CONF_TALKER) {
 				/* Store temp value */
-				memcpy(k, putlin, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(k, putlin, DAHDI_CHUNKSIZE * sizeof(short));
 				/* Subtract last value */
 				SCSS(conf_sums[ms->_confn], ms->conflast);
 				/* Add conf value */
 				ACSS(k, conf_sums[ms->_confn]);
 				/*  get amount actually added */
-				memcpy(ms->conflast, k, ZT_CHUNKSIZE * sizeof(short));
+				memcpy(ms->conflast, k, DAHDI_CHUNKSIZE * sizeof(short));
 				SCSS(ms->conflast, conf_sums[ms->_confn]);
 				/* Really add in new value */
 				ACSS(conf_sums[ms->_confn], ms->conflast);
 			} else 
-				memset(ms->conflast, 0, ZT_CHUNKSIZE * sizeof(short));
-			for (x=0;x<ZT_CHUNKSIZE;x++)
-				rxb[x] = ZT_LIN2X((int)conf_sums_prev[ms->_confn][x], ms);
+				memset(ms->conflast, 0, DAHDI_CHUNKSIZE * sizeof(short));
+			for (x=0;x<DAHDI_CHUNKSIZE;x++)
+				rxb[x] = DAHDI_LIN2X((int)conf_sums_prev[ms->_confn][x], ms);
 			break;
-		case ZT_CONF_DIGITALMON:
+		case DAHDI_CONF_DIGITALMON:
 			  /* if not a pseudo-channel, ignore */
-			if (!(ms->flags & ZT_FLAG_PSEUDO)) break;
+			if (!(ms->flags & DAHDI_FLAG_PSEUDO)) break;
 			/* Add monitored channel */
-			if (chans[ms->confna]->flags & ZT_FLAG_PSEUDO) {
-				memcpy(rxb, chans[ms->confna]->getraw, ZT_CHUNKSIZE);
+			if (chans[ms->confna]->flags & DAHDI_FLAG_PSEUDO) {
+				memcpy(rxb, chans[ms->confna]->getraw, DAHDI_CHUNKSIZE);
 			} else {
-				memcpy(rxb, chans[ms->confna]->putraw, ZT_CHUNKSIZE);
+				memcpy(rxb, chans[ms->confna]->putraw, DAHDI_CHUNKSIZE);
 			}
 			break;			
 		}
@@ -6667,11 +6667,11 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 }
 
 /* HDLC (or other) receiver buffer functions for read side */
-static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int bytes)
+static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int bytes)
 {
 	/* We transmit data from our master channel */
 	/* Called with ss->lock held */
-	struct zt_chan *ms = ss->master;
+	struct dahdi_chan *ms = ss->master;
 	/* Our receive buffer */
 	unsigned char *buf;
 #if defined(CONFIG_ZAPATA_NET)  || defined(CONFIG_ZAPATA_PPP)
@@ -6697,7 +6697,7 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 			left = ms->blocksize - ms->readidx[ms->inreadbuf];
 			if (left > bytes)
 				left = bytes;
-			if (ms->flags & ZT_FLAG_HDLC) {
+			if (ms->flags & DAHDI_FLAG_HDLC) {
 				for (x=0;x<left;x++) {
 					/* Handle HDLC deframing */
 					fasthdlc_rx_load_nocheck(&ms->rxhdlc, *(rxb++));
@@ -6709,8 +6709,8 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 					else if (res & RETURN_COMPLETE_FLAG) {
 						/* Only count this if it's a non-empty frame */
 						if (ms->readidx[ms->inreadbuf]) {
-							if ((ms->flags & ZT_FLAG_FCS) && (ms->infcs != PPP_GOODFCS)) {
-								abort = ZT_EVENT_BADFCS;
+							if ((ms->flags & DAHDI_FLAG_FCS) && (ms->infcs != PPP_GOODFCS)) {
+								abort = DAHDI_EVENT_BADFCS;
 							} else
 								eof=1;
 							break;
@@ -6721,7 +6721,7 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 						  "idle" instead of "flag" */
 						if (!ms->readidx[ms->inreadbuf])
 							continue;
-						abort = ZT_EVENT_ABORT;
+						abort = DAHDI_EVENT_ABORT;
 						break;
 					} else {
 						unsigned char rxc;
@@ -6732,7 +6732,7 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 						if (ms->readidx[ms->inreadbuf] >= ms->blocksize) {
 							if (!ss->span->alarms) 
 								printk(KERN_WARNING "HDLC Receiver overrun on channel %s (master=%s)\n", ss->name, ss->master->name);
-							abort=ZT_EVENT_OVERRUN;
+							abort=DAHDI_EVENT_OVERRUN;
 							/* Force the HDLC state back to frame-search mode */
 							ms->rxhdlc.state = 0;
 							ms->rxhdlc.bits = 0;
@@ -6749,9 +6749,9 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 				bytes -= left;
 				/* End of frame is decided by block size of 'N' */
 				eof = (ms->readidx[ms->inreadbuf] >= ms->blocksize);
-				if (eof && (ss->flags & ZT_FLAG_NOSTDTXRX)) {
+				if (eof && (ss->flags & DAHDI_FLAG_NOSTDTXRX)) {
 					eof = 0;
-					abort = ZT_EVENT_OVERRUN;
+					abort = DAHDI_EVENT_OVERRUN;
 				}
 			}
 			if (eof)  {
@@ -6763,7 +6763,7 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 				printk("EOF, len is %d\n", ms->readn[ms->inreadbuf]);
 #endif
 #if defined(CONFIG_ZAPATA_NET) || defined(CONFIG_ZAPATA_PPP)
-				if (ms->flags & (ZT_FLAG_NETDEV | ZT_FLAG_PPP)) {
+				if (ms->flags & (DAHDI_FLAG_NETDEV | DAHDI_FLAG_PPP)) {
 #ifdef CONFIG_ZAPATA_NET
 #endif /* CONFIG_ZAPATA_NET */
 					/* Our network receiver logic is MUCH
@@ -6782,7 +6782,7 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 							memcpy(skb->data, ms->readbuf[ms->inreadbuf], ms->readn[ms->inreadbuf]);
 							skb_put(skb, ms->readn[ms->inreadbuf]);
 #ifdef CONFIG_ZAPATA_NET
-							if (ms->flags & ZT_FLAG_NETDEV) {
+							if (ms->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 								struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
 #else  /* LINUX26 */
@@ -6795,7 +6795,7 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 
 						} else {
 #ifdef CONFIG_ZAPATA_NET
-							if (ms->flags & ZT_FLAG_NETDEV) {
+							if (ms->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 								struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
 #else  /* LINUX26 */
@@ -6805,8 +6805,8 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 							}
 #endif
 #ifdef CONFIG_ZAPATA_PPP
-							if (ms->flags & ZT_FLAG_PPP) {
-								abort = ZT_EVENT_OVERRUN;
+							if (ms->flags & DAHDI_FLAG_PPP) {
+								abort = DAHDI_EVENT_OVERRUN;
 							}
 #endif
 #if 1
@@ -6831,13 +6831,13 @@ static inline void __putbuf_chunk(struct zt_chan *ss, unsigned char *rxb, int by
 
 					int comparemessage;
 
-					if (ms->flags & ZT_FLAG_MTP2) {
+					if (ms->flags & DAHDI_FLAG_MTP2) {
 						comparemessage = (ms->inreadbuf - 1) & (ms->numbufs - 1);
 
 						res = memcmp(ms->readbuf[comparemessage], ms->readbuf[ms->inreadbuf], ms->readn[ms->inreadbuf]);
 					}
 
-					if ((ms->flags & ZT_FLAG_MTP2) && !res) {
+					if ((ms->flags & DAHDI_FLAG_MTP2) && !res) {
 						/* Our messages are the same, so discard -
 						 * 	Don't advance buffers, reset indexes and buffer sizes. */
 						ms->readn[ms->inreadbuf] = 0;
@@ -6876,7 +6876,7 @@ out in the later versions, and is put back now. */
 #endif
 							wake_up_interruptible(&ms->readbufq);
 							wake_up_interruptible(&ms->sel);
-							if (ms->iomask & ZT_IOMUX_READ)
+							if (ms->iomask & DAHDI_IOMUX_READ)
 								wake_up_interruptible(&ms->eventbufq);
 						}
 					}
@@ -6888,29 +6888,29 @@ out in the later versions, and is put back now. */
 				ms->infcs = PPP_INITFCS;
 
 #ifdef CONFIG_ZAPATA_NET
-				if (ms->flags & ZT_FLAG_NETDEV) {
+				if (ms->flags & DAHDI_FLAG_NETDEV) {
 #ifdef LINUX26
 					struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
 #else  /* LINUX26 */
 					struct net_device_stats *stats = &ms->hdlcnetdev->netdev.stats;
 #endif /* LINUX26 */
 					stats->rx_errors++;
-					if (abort == ZT_EVENT_OVERRUN)
+					if (abort == DAHDI_EVENT_OVERRUN)
 						stats->rx_over_errors++;
-					if (abort == ZT_EVENT_BADFCS)
+					if (abort == DAHDI_EVENT_BADFCS)
 						stats->rx_crc_errors++;
-					if (abort == ZT_EVENT_ABORT)
+					if (abort == DAHDI_EVENT_ABORT)
 						stats->rx_frame_errors++;
 				} else 
 #endif			
 #ifdef CONFIG_ZAPATA_PPP
-				if (ms->flags & ZT_FLAG_PPP) {
+				if (ms->flags & DAHDI_FLAG_PPP) {
 					ms->do_ppp_error = 1;
 					tasklet_schedule(&ms->ppp_calls);
 				} else
 #endif
 
-				if ((ms->flags & ZT_FLAG_OPEN) && !ss->span->alarms) 
+				if ((ms->flags & DAHDI_FLAG_OPEN) && !ss->span->alarms) 
 						/* Notify the receiver... */
 					__qevent(ss->master, abort);
 #if 0
@@ -6921,7 +6921,7 @@ out in the later versions, and is put back now. */
 		} else /* No place to receive -- drop on the floor */
 			break;
 #ifdef CONFIG_ZAPATA_NET
-		if (skb && (ms->flags & ZT_FLAG_NETDEV))
+		if (skb && (ms->flags & DAHDI_FLAG_NETDEV))
 #ifdef NEW_HDLC_INTERFACE
 		{
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
@@ -6942,7 +6942,7 @@ out in the later versions, and is put back now. */
 #endif
 #endif
 #ifdef CONFIG_ZAPATA_PPP
-		if (skb && (ms->flags & ZT_FLAG_PPP)) {
+		if (skb && (ms->flags & DAHDI_FLAG_PPP)) {
 			unsigned char *tmp;
 			tmp = skb->data;
 			skb_pull(skb, 2);
@@ -6961,28 +6961,28 @@ out in the later versions, and is put back now. */
 	}
 }
 
-static inline void __zt_putbuf_chunk(struct zt_chan *ss, unsigned char *rxb)
+static inline void __dahdi_putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb)
 {
-	__putbuf_chunk(ss, rxb, ZT_CHUNKSIZE);
+	__putbuf_chunk(ss, rxb, DAHDI_CHUNKSIZE);
 }
 
-static void __zt_hdlc_abort(struct zt_chan *ss, int event)
+static void __dahdi_hdlc_abort(struct dahdi_chan *ss, int event)
 {
 	if (ss->inreadbuf >= 0)
 		ss->readidx[ss->inreadbuf] = 0;
-	if ((ss->flags & ZT_FLAG_OPEN) && !ss->span->alarms)
+	if ((ss->flags & DAHDI_FLAG_OPEN) && !ss->span->alarms)
 		__qevent(ss->master, event);
 }
 
-extern void zt_hdlc_abort(struct zt_chan *ss, int event)
+extern void dahdi_hdlc_abort(struct dahdi_chan *ss, int event)
 {
 	unsigned long flags;
 	spin_lock_irqsave(&ss->lock, flags);
-	__zt_hdlc_abort(ss, event);
+	__dahdi_hdlc_abort(ss, event);
 	spin_unlock_irqrestore(&ss->lock, flags);
 }
 
-extern void zt_hdlc_putbuf(struct zt_chan *ss, unsigned char *rxb, int bytes)
+extern void dahdi_hdlc_putbuf(struct dahdi_chan *ss, unsigned char *rxb, int bytes)
 {
 	unsigned long flags;
 	int res;
@@ -7011,13 +7011,13 @@ extern void zt_hdlc_putbuf(struct zt_chan *ss, unsigned char *rxb, int bytes)
 #ifdef CONFIG_ZAPATA_DEBUG
 		printk("HDLC frame isn't fit into buffer space\n");
 #endif
-		__zt_hdlc_abort(ss, ZT_EVENT_OVERRUN);
+		__dahdi_hdlc_abort(ss, DAHDI_EVENT_OVERRUN);
 	}
 	res = left;
 	spin_unlock_irqrestore(&ss->lock, flags);
 }
 
-extern void zt_hdlc_finish(struct zt_chan *ss)
+extern void dahdi_hdlc_finish(struct dahdi_chan *ss)
 {
 	int oldreadbuf;
 	unsigned long flags;
@@ -7056,14 +7056,14 @@ extern void zt_hdlc_finish(struct zt_chan *ss)
 	if (!ss->rxdisable) {
 		wake_up_interruptible(&ss->readbufq);
 		wake_up_interruptible(&ss->sel);
-		if (ss->iomask & ZT_IOMUX_READ)
+		if (ss->iomask & DAHDI_IOMUX_READ)
 			wake_up_interruptible(&ss->eventbufq);
 	}
 	spin_unlock_irqrestore(&ss->lock, flags);
 }
 
 /* Returns 1 if EOF, 0 if data is still in frame, -1 if EOF and no buffers left */
-extern int zt_hdlc_getbuf(struct zt_chan *ss, unsigned char *bufptr, unsigned int *size)
+extern int dahdi_hdlc_getbuf(struct dahdi_chan *ss, unsigned char *bufptr, unsigned int *size)
 {
 	unsigned char *buf;
 	unsigned long flags;
@@ -7094,10 +7094,10 @@ extern int zt_hdlc_getbuf(struct zt_chan *ss, unsigned char *bufptr, unsigned in
 			ss->outwritebuf = (ss->outwritebuf + 1) % ss->numbufs;
 			if (ss->outwritebuf == ss->inwritebuf) {
 				ss->outwritebuf = -1;
-				if (ss->iomask & (ZT_IOMUX_WRITE | ZT_IOMUX_WRITEEMPTY))
+				if (ss->iomask & (DAHDI_IOMUX_WRITE | DAHDI_IOMUX_WRITEEMPTY))
 					wake_up_interruptible(&ss->eventbufq);
 				/* If we're only supposed to start when full, disable the transmitter */
-				if (ss->txbufpolicy == ZT_POLICY_WHEN_FULL)
+				if (ss->txbufpolicy == DAHDI_POLICY_WHEN_FULL)
 					ss->txdisable = 1;
 				res = -1;
 			}
@@ -7105,10 +7105,10 @@ extern int zt_hdlc_getbuf(struct zt_chan *ss, unsigned char *bufptr, unsigned in
 			if (ss->inwritebuf < 0)
 				ss->inwritebuf = oldbuf;
 
-			if (!(ss->flags & (ZT_FLAG_NETDEV | ZT_FLAG_PPP))) {
+			if (!(ss->flags & (DAHDI_FLAG_NETDEV | DAHDI_FLAG_PPP))) {
 				wake_up_interruptible(&ss->writebufq);
 				wake_up_interruptible(&ss->sel);
-				if ((ss->iomask & ZT_IOMUX_WRITE) && (res >= 0))
+				if ((ss->iomask & DAHDI_IOMUX_WRITE) && (res >= 0))
 					wake_up_interruptible(&ss->eventbufq);
 			}
 		}
@@ -7125,12 +7125,12 @@ extern int zt_hdlc_getbuf(struct zt_chan *ss, unsigned char *bufptr, unsigned in
 static void process_timers(void)
 {
 	unsigned long flags;
-	struct zt_timer *cur;
+	struct dahdi_timer *cur;
 	spin_lock_irqsave(&zaptimerlock, flags);
 	cur = zaptimers;
 	while(cur) {
 		if (cur->ms) {
-			cur->pos -= ZT_CHUNKSIZE;
+			cur->pos -= DAHDI_CHUNKSIZE;
 			if (cur->pos <= 0) {
 				cur->tripped++;
 				cur->pos = cur->ms;
@@ -7142,9 +7142,9 @@ static void process_timers(void)
 	spin_unlock_irqrestore(&zaptimerlock, flags);
 }
 
-static unsigned int zt_timer_poll(struct file *file, struct poll_table_struct *wait_table)
+static unsigned int dahdi_timer_poll(struct file *file, struct poll_table_struct *wait_table)
 {
-	struct zt_timer *timer = file->private_data;
+	struct dahdi_timer *timer = file->private_data;
 	unsigned long flags;
 	int ret = 0;
 	if (timer) {
@@ -7160,10 +7160,10 @@ static unsigned int zt_timer_poll(struct file *file, struct poll_table_struct *w
 
 /* device poll routine */
 static unsigned int
-zt_chan_poll(struct file *file, struct poll_table_struct *wait_table, int unit)
+dahdi_chan_poll(struct file *file, struct poll_table_struct *wait_table, int unit)
 {   
 	
-	struct zt_chan *chan = chans[unit];
+	struct dahdi_chan *chan = chans[unit];
 	int	ret;
 	unsigned long flags;
 
@@ -7190,33 +7190,33 @@ zt_chan_poll(struct file *file, struct poll_table_struct *wait_table, int unit)
 	return(ret);  /* return what we found */
 }
 
-static int zt_mmap(struct file *file, struct vm_area_struct *vm)
+static int dahdi_mmap(struct file *file, struct vm_area_struct *vm)
 {
 	int unit = UNIT(file);
 	if (unit == 250)
-		return zt_transcode_fops->mmap(file, vm);
+		return dahdi_transcode_fops->mmap(file, vm);
 	return -ENOSYS;
 }
 
-static unsigned int zt_poll(struct file *file, struct poll_table_struct *wait_table)
+static unsigned int dahdi_poll(struct file *file, struct poll_table_struct *wait_table)
 {
 	int unit = UNIT(file);
-	struct zt_chan *chan;
+	struct dahdi_chan *chan;
 
 	if (!unit)
 		return -EINVAL;
 
 	if (unit == 250)
-		return zt_transcode_fops->poll(file, wait_table);
+		return dahdi_transcode_fops->poll(file, wait_table);
 
 	if (unit == 253)
-		return zt_timer_poll(file, wait_table);
+		return dahdi_timer_poll(file, wait_table);
 		
 	if (unit == 254) {
 		chan = file->private_data;
 		if (!chan)
 			return -EINVAL;
-		return zt_chan_poll(file, wait_table,chan->channo);
+		return dahdi_chan_poll(file, wait_table,chan->channo);
 	}
 	if (unit == 255) {
 		chan = file->private_data;
@@ -7224,14 +7224,14 @@ static unsigned int zt_poll(struct file *file, struct poll_table_struct *wait_ta
 			printk("No pseudo channel structure to read?\n");
 			return -EINVAL;
 		}
-		return zt_chan_poll(file, wait_table, chan->channo);
+		return dahdi_chan_poll(file, wait_table, chan->channo);
 	}
-	return zt_chan_poll(file, wait_table, unit);
+	return dahdi_chan_poll(file, wait_table, unit);
 }
 
-static void __zt_transmit_chunk(struct zt_chan *chan, unsigned char *buf)
+static void __dahdi_transmit_chunk(struct dahdi_chan *chan, unsigned char *buf)
 {
-	unsigned char silly[ZT_CHUNKSIZE];
+	unsigned char silly[DAHDI_CHUNKSIZE];
 	/* Called with chan->lock locked */
 #ifdef	OPTIMIZE_CHANMUTE
 	if(likely(chan->chanmute))
@@ -7239,20 +7239,20 @@ static void __zt_transmit_chunk(struct zt_chan *chan, unsigned char *buf)
 #endif
 	if (!buf)
 		buf = silly;
-	__zt_getbuf_chunk(chan, buf);
+	__dahdi_getbuf_chunk(chan, buf);
 
-	if ((chan->flags & ZT_FLAG_AUDIO) || (chan->confmode)) {
+	if ((chan->flags & DAHDI_FLAG_AUDIO) || (chan->confmode)) {
 #ifdef CONFIG_ZAPTEL_MMX
-		zt_kernel_fpu_begin();
+		dahdi_kernel_fpu_begin();
 #endif
-		__zt_process_getaudio_chunk(chan, buf);
+		__dahdi_process_getaudio_chunk(chan, buf);
 #ifdef CONFIG_ZAPTEL_MMX
 		kernel_fpu_end();
 #endif
 	}
 }
 
-static inline void __zt_real_transmit(struct zt_chan *chan)
+static inline void __dahdi_real_transmit(struct dahdi_chan *chan)
 {
 	/* Called with chan->lock held */
 #ifdef	OPTIMIZE_CHANMUTE
@@ -7261,15 +7261,15 @@ static inline void __zt_real_transmit(struct zt_chan *chan)
 #endif
 	if (chan->confmode) {
 		/* Pull queued data off the conference */
-		__buf_pull(&chan->confout, chan->writechunk, chan, "zt_real_transmit");
+		__buf_pull(&chan->confout, chan->writechunk, chan, "dahdi_real_transmit");
 	} else {
-		__zt_transmit_chunk(chan, chan->writechunk);
+		__dahdi_transmit_chunk(chan, chan->writechunk);
 	}
 }
 
-static void __zt_getempty(struct zt_chan *ms, unsigned char *buf)
+static void __dahdi_getempty(struct dahdi_chan *ms, unsigned char *buf)
 {
-	int bytes = ZT_CHUNKSIZE;
+	int bytes = DAHDI_CHUNKSIZE;
 	int left;
 	unsigned char *txb = buf;
 	int x;
@@ -7284,13 +7284,13 @@ static void __zt_getempty(struct zt_chan *ms, unsigned char *buf)
 				left = bytes;
 			for (x=0;x<left;x++) {
 				/* Pick our default value from the next sample of the current tone */
-				getlin = zt_tone_nextsample(&ms->ts, ms->curtone);
-				*(txb++) = ZT_LIN2X(getlin, ms);
+				getlin = dahdi_tone_nextsample(&ms->ts, ms->curtone);
+				*(txb++) = DAHDI_LIN2X(getlin, ms);
 			}
 			ms->tonep+=left;
 			bytes -= left;
 			if (ms->tonep >= ms->curtone->tonesamples) {
-				struct zt_tone *last;
+				struct dahdi_tone *last;
 				/* Go to the next sample of the tone */
 				ms->tonep = 0;
 				last = ms->curtone;
@@ -7301,44 +7301,44 @@ static void __zt_getempty(struct zt_chan *ms, unsigned char *buf)
 						__do_dtmf(ms);
 				} else {
 					if (last != ms->curtone)
-						zt_init_tone_state(&ms->ts, ms->curtone);
+						dahdi_init_tone_state(&ms->ts, ms->curtone);
 				}
 			}
 		} else {
 			/* Use silence */
-			memset(txb, ZT_LIN2X(0, ms), bytes);
+			memset(txb, DAHDI_LIN2X(0, ms), bytes);
 			bytes = 0;
 		}
 	}
 		
 }
 
-static void __zt_receive_chunk(struct zt_chan *chan, unsigned char *buf)
+static void __dahdi_receive_chunk(struct dahdi_chan *chan, unsigned char *buf)
 {
 	/* Receive chunk of audio -- called with chan->lock held */
-	unsigned char waste[ZT_CHUNKSIZE];
+	unsigned char waste[DAHDI_CHUNKSIZE];
 
 #ifdef	OPTIMIZE_CHANMUTE
 	if(likely(chan->chanmute))
 		return;
 #endif
 	if (!buf) {
-		memset(waste, ZT_LIN2X(0, chan), sizeof(waste));
+		memset(waste, DAHDI_LIN2X(0, chan), sizeof(waste));
 		buf = waste;
 	}
-	if ((chan->flags & ZT_FLAG_AUDIO) || (chan->confmode)) {
+	if ((chan->flags & DAHDI_FLAG_AUDIO) || (chan->confmode)) {
 #ifdef CONFIG_ZAPTEL_MMX                         
-		zt_kernel_fpu_begin();
+		dahdi_kernel_fpu_begin();
 #endif
-		__zt_process_putaudio_chunk(chan, buf);
+		__dahdi_process_putaudio_chunk(chan, buf);
 #ifdef CONFIG_ZAPTEL_MMX
 		kernel_fpu_end();
 #endif
 	}
-	__zt_putbuf_chunk(chan, buf);
+	__dahdi_putbuf_chunk(chan, buf);
 }
 
-static inline void __zt_real_receive(struct zt_chan *chan)
+static inline void __dahdi_real_receive(struct dahdi_chan *chan)
 {
 	/* Called with chan->lock held */
 #ifdef	OPTIMIZE_CHANMUTE
@@ -7347,13 +7347,13 @@ static inline void __zt_real_receive(struct zt_chan *chan)
 #endif
 	if (chan->confmode) {
 		/* Load into queue if we have space */
-		__buf_push(&chan->confin, chan->readchunk, "zt_real_receive");
+		__buf_push(&chan->confin, chan->readchunk, "dahdi_real_receive");
 	} else {
-		__zt_receive_chunk(chan, chan->readchunk);
+		__dahdi_receive_chunk(chan, chan->readchunk);
 	}
 }
 
-int zt_transmit(struct zt_span *span)
+int dahdi_transmit(struct dahdi_span *span)
 {
 	int x,y,z;
 	unsigned long flags;
@@ -7361,31 +7361,31 @@ int zt_transmit(struct zt_span *span)
 #if 1
 	for (x=0;x<span->channels;x++) {
 		spin_lock_irqsave(&span->chans[x].lock, flags);
-		if (span->chans[x].flags & ZT_FLAG_NOSTDTXRX) {
+		if (span->chans[x].flags & DAHDI_FLAG_NOSTDTXRX) {
 			spin_unlock_irqrestore(&span->chans[x].lock, flags);
 			continue;
 		}
 		if (&span->chans[x] == span->chans[x].master) {
 			if (span->chans[x].otimer) {
-				span->chans[x].otimer -= ZT_CHUNKSIZE;
+				span->chans[x].otimer -= DAHDI_CHUNKSIZE;
 				if (span->chans[x].otimer <= 0) {
 					__rbs_otimer_expire(&span->chans[x]);
 				}
 			}
-			if (span->chans[x].flags & ZT_FLAG_AUDIO) {
-				__zt_real_transmit(&span->chans[x]);
+			if (span->chans[x].flags & DAHDI_FLAG_AUDIO) {
+				__dahdi_real_transmit(&span->chans[x]);
 			} else {
 				if (span->chans[x].nextslave) {
-					u_char data[ZT_CHUNKSIZE];
-					int pos=ZT_CHUNKSIZE;
+					u_char data[DAHDI_CHUNKSIZE];
+					int pos=DAHDI_CHUNKSIZE;
 					/* Process master/slaves one way */
-					for (y=0;y<ZT_CHUNKSIZE;y++) {
+					for (y=0;y<DAHDI_CHUNKSIZE;y++) {
 						/* Process slaves for this byte too */
 						z = x;
 						do {
-							if (pos==ZT_CHUNKSIZE) {
+							if (pos==DAHDI_CHUNKSIZE) {
 								/* Get next chunk */
-								__zt_transmit_chunk(&span->chans[x], data);
+								__dahdi_transmit_chunk(&span->chans[x], data);
 								pos = 0;
 							}
 							span->chans[z].writechunk[y] = data[pos++]; 
@@ -7394,10 +7394,10 @@ int zt_transmit(struct zt_span *span)
 					}
 				} else {
 					/* Process independents elsewise */
-					__zt_real_transmit(&span->chans[x]);
+					__dahdi_real_transmit(&span->chans[x]);
 				}
 			}
-			if (span->chans[x].sig == ZT_SIG_DACS_RBS) {
+			if (span->chans[x].sig == DAHDI_SIG_DACS_RBS) {
 				if (chans[span->chans[x].confna]) {
 				    	/* Just set bits for our destination */
 					if (span->chans[x].txsig != chans[span->chans[x].confna]->rxsig) {
@@ -7411,11 +7411,11 @@ int zt_transmit(struct zt_span *span)
 		spin_unlock_irqrestore(&span->chans[x].lock, flags);
 	}
 	if (span->mainttimer) {
-		span->mainttimer -= ZT_CHUNKSIZE;
+		span->mainttimer -= DAHDI_CHUNKSIZE;
 		if (span->mainttimer <= 0) {
 			span->mainttimer = 0;
 			if (span->maint)
-				span->maint(span, ZT_MAINT_LOOPSTOP);
+				span->maint(span, DAHDI_MAINT_LOOPSTOP);
 			span->maintstat = 0;
 			wake_up_interruptible(&span->maintq);
 		}
@@ -7424,7 +7424,7 @@ int zt_transmit(struct zt_span *span)
 	return 0;
 }
 
-int zt_receive(struct zt_span *span)
+int dahdi_receive(struct dahdi_span *span)
 {
 	int x,y,z;
 	unsigned long flags, flagso;
@@ -7438,16 +7438,16 @@ int zt_receive(struct zt_span *span)
 			spin_lock_irqsave(&span->chans[x].lock, flags);
 			if (span->chans[x].nextslave) {
 				/* Must process each slave at the same time */
-				u_char data[ZT_CHUNKSIZE];
+				u_char data[DAHDI_CHUNKSIZE];
 				int pos = 0;
-				for (y=0;y<ZT_CHUNKSIZE;y++) {
+				for (y=0;y<DAHDI_CHUNKSIZE;y++) {
 					/* Put all its slaves, too */
 					z = x;
 					do {
 						data[pos++] = span->chans[z].readchunk[y];
-						if (pos == ZT_CHUNKSIZE) {
-							if(!(span->chans[x].flags & ZT_FLAG_NOSTDTXRX))
-								__zt_receive_chunk(&span->chans[x], data);
+						if (pos == DAHDI_CHUNKSIZE) {
+							if(!(span->chans[x].flags & DAHDI_FLAG_NOSTDTXRX))
+								__dahdi_receive_chunk(&span->chans[x], data);
 							pos = 0;
 						}
 						z=span->chans[z].nextslave;
@@ -7455,25 +7455,25 @@ int zt_receive(struct zt_span *span)
 				}
 			} else {
 				/* Process a normal channel */
-				if (!(span->chans[x].flags & ZT_FLAG_NOSTDTXRX))
-					__zt_real_receive(&span->chans[x]);
+				if (!(span->chans[x].flags & DAHDI_FLAG_NOSTDTXRX))
+					__dahdi_real_receive(&span->chans[x]);
 			}
 			if (span->chans[x].itimer) {
-				span->chans[x].itimer -= ZT_CHUNKSIZE;
+				span->chans[x].itimer -= DAHDI_CHUNKSIZE;
 				if (span->chans[x].itimer <= 0) {
 					rbs_itimer_expire(&span->chans[x]);
 				}
 			}
 			if (span->chans[x].ringdebtimer)
 				span->chans[x].ringdebtimer--;
-			if (span->chans[x].sig & __ZT_SIG_FXS) {
-				if (span->chans[x].rxhooksig == ZT_RXSIG_RING)
-					span->chans[x].ringtrailer = ZT_RINGTRAILER;
+			if (span->chans[x].sig & __DAHDI_SIG_FXS) {
+				if (span->chans[x].rxhooksig == DAHDI_RXSIG_RING)
+					span->chans[x].ringtrailer = DAHDI_RINGTRAILER;
 				else if (span->chans[x].ringtrailer) {
-					span->chans[x].ringtrailer-= ZT_CHUNKSIZE;
+					span->chans[x].ringtrailer-= DAHDI_CHUNKSIZE;
 					/* See if RING trailer is expired */
 					if (!span->chans[x].ringtrailer && !span->chans[x].ringdebtimer) 
-						__qevent(&span->chans[x],ZT_EVENT_RINGOFFHOOK);
+						__qevent(&span->chans[x],DAHDI_EVENT_RINGOFFHOOK);
 				}
 			}
 			if (span->chans[x].pulsetimer)
@@ -7489,13 +7489,13 @@ int zt_receive(struct zt_span *span)
 						    span->chans[x].pulsecount,
 							span->chans[x].name);
 						} else if (span->chans[x].pulsecount > 11) {
-							__qevent(&span->chans[x], ZT_EVENT_PULSEDIGIT | '#');
+							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | '#');
 						} else if (span->chans[x].pulsecount > 10) {
-							__qevent(&span->chans[x], ZT_EVENT_PULSEDIGIT | '*');
+							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | '*');
 						} else if (span->chans[x].pulsecount > 9) {
-							__qevent(&span->chans[x], ZT_EVENT_PULSEDIGIT | '0');
+							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | '0');
 						} else {
-							__qevent(&span->chans[x], ZT_EVENT_PULSEDIGIT | ('0' + 
+							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | ('0' + 
 								span->chans[x].pulsecount));
 						}
 						span->chans[x].pulsecount = 0;
@@ -7514,14 +7514,14 @@ int zt_receive(struct zt_span *span)
 		process_timers();
 		/* If we have dynamic stuff, call the ioctl with 0,0 parameters to
 		   make it run */
-		if (zt_dynamic_ioctl)
-			zt_dynamic_ioctl(0,0);
+		if (dahdi_dynamic_ioctl)
+			dahdi_dynamic_ioctl(0,0);
 		for (x=1;x<maxchans;x++) {
-			if (chans[x] && chans[x]->confmode && !(chans[x]->flags & ZT_FLAG_PSEUDO)) {
+			if (chans[x] && chans[x]->confmode && !(chans[x]->flags & DAHDI_FLAG_PSEUDO)) {
 				u_char *data;
 				spin_lock_irqsave(&chans[x]->lock, flags);
 				data = __buf_peek(&chans[x]->confin);
-				__zt_receive_chunk(chans[x], data);
+				__dahdi_receive_chunk(chans[x], data);
 				if (data)
 					__buf_pull(&chans[x]->confin, NULL,chans[x], "confreceive");
 				spin_unlock_irqrestore(&chans[x]->lock, flags);
@@ -7531,15 +7531,15 @@ int zt_receive(struct zt_span *span)
 		rotate_sums();
 		/* do all the pseudo and/or conferenced channel receives (getbuf's) */
 		for (x=1;x<maxchans;x++) {
-			if (chans[x] && (chans[x]->flags & ZT_FLAG_PSEUDO)) {
+			if (chans[x] && (chans[x]->flags & DAHDI_FLAG_PSEUDO)) {
 				spin_lock_irqsave(&chans[x]->lock, flags);
-				__zt_transmit_chunk(chans[x], NULL);
+				__dahdi_transmit_chunk(chans[x], NULL);
 				spin_unlock_irqrestore(&chans[x]->lock, flags);
 			}
 		}
 		if (maxlinks) {
 #ifdef CONFIG_ZAPTEL_MMX
-			zt_kernel_fpu_begin();
+			dahdi_kernel_fpu_begin();
 #endif			
 			  /* process all the conf links */
 			for(x = 1; x <= maxlinks; x++) {
@@ -7555,20 +7555,20 @@ int zt_receive(struct zt_span *span)
 		}
 		/* do all the pseudo/conferenced channel transmits (putbuf's) */
 		for (x=1;x<maxchans;x++) {
-			if (chans[x] && (chans[x]->flags & ZT_FLAG_PSEUDO)) {
-				unsigned char tmp[ZT_CHUNKSIZE];
+			if (chans[x] && (chans[x]->flags & DAHDI_FLAG_PSEUDO)) {
+				unsigned char tmp[DAHDI_CHUNKSIZE];
 				spin_lock_irqsave(&chans[x]->lock, flags);
-				__zt_getempty(chans[x], tmp);
-				__zt_receive_chunk(chans[x], tmp);
+				__dahdi_getempty(chans[x], tmp);
+				__dahdi_receive_chunk(chans[x], tmp);
 				spin_unlock_irqrestore(&chans[x]->lock, flags);
 			}
 		}
 		for (x=1;x<maxchans;x++) {
-			if (chans[x] && chans[x]->confmode && !(chans[x]->flags & ZT_FLAG_PSEUDO)) {
+			if (chans[x] && chans[x]->confmode && !(chans[x]->flags & DAHDI_FLAG_PSEUDO)) {
 				u_char *data;
 				spin_lock_irqsave(&chans[x]->lock, flags);
 				data = __buf_pushpeek(&chans[x]->confout);
-				__zt_transmit_chunk(chans[x], data);
+				__dahdi_transmit_chunk(chans[x], data);
 				if (data)
 					__buf_push(&chans[x]->confout, NULL, "conftransmit");
 				spin_unlock_irqrestore(&chans[x]->lock, flags);
@@ -7576,7 +7576,7 @@ int zt_receive(struct zt_span *span)
 		}
 #ifdef	ZAPTEL_SYNC_TICK
 		for (x=0;x<maxspans;x++) {
-			struct zt_span	*s = spans[x];
+			struct dahdi_span	*s = spans[x];
 
 			if (s && s->sync_tick)
 				s->sync_tick(s, s == master);
@@ -7605,16 +7605,16 @@ MODULE_PARM(debug, "i");
 MODULE_PARM(deftaps, "i");
 #endif
 
-static struct file_operations zt_fops = {
+static struct file_operations dahdi_fops = {
 	owner: THIS_MODULE,
 	llseek: NULL,
-	open: zt_open,
-	release: zt_release,
-	ioctl: zt_ioctl,
-	read: zt_read,
-	write: zt_write,
-	poll: zt_poll,
-	mmap: zt_mmap,
+	open: dahdi_open,
+	release: dahdi_release,
+	ioctl: dahdi_ioctl,
+	read: dahdi_read,
+	write: dahdi_write,
+	poll: dahdi_poll,
+	mmap: dahdi_mmap,
 	flush: NULL,
 	fsync: NULL,
 	fasync: NULL,
@@ -7631,27 +7631,27 @@ static void watchdog_check(unsigned long ignored)
 	
 	local_irq_save(flags);
 	for (x=0;x<maxspans;x++) {
-		if (spans[x] && (spans[x]->flags & ZT_FLAG_RUNNING)) {
-			if (spans[x]->watchcounter == ZT_WATCHDOG_INIT) {
+		if (spans[x] && (spans[x]->flags & DAHDI_FLAG_RUNNING)) {
+			if (spans[x]->watchcounter == DAHDI_WATCHDOG_INIT) {
 				/* Whoops, dead card */
-				if ((spans[x]->watchstate == ZT_WATCHSTATE_OK) || 
-					(spans[x]->watchstate == ZT_WATCHSTATE_UNKNOWN)) {
-					spans[x]->watchstate = ZT_WATCHSTATE_RECOVERING;
+				if ((spans[x]->watchstate == DAHDI_WATCHSTATE_OK) || 
+					(spans[x]->watchstate == DAHDI_WATCHSTATE_UNKNOWN)) {
+					spans[x]->watchstate = DAHDI_WATCHSTATE_RECOVERING;
 					if (spans[x]->watchdog) {
 						printk("Kicking span %s\n", spans[x]->name);
-						spans[x]->watchdog(spans[x], ZT_WATCHDOG_NOINTS);
+						spans[x]->watchdog(spans[x], DAHDI_WATCHDOG_NOINTS);
 					} else {
 						printk("Span %s is dead with no revival\n", spans[x]->name);
-						spans[x]->watchstate = ZT_WATCHSTATE_FAILED;
+						spans[x]->watchstate = DAHDI_WATCHSTATE_FAILED;
 					}
 				}
 			} else {
-				if ((spans[x]->watchstate != ZT_WATCHSTATE_OK) &&
-					(spans[x]->watchstate != ZT_WATCHSTATE_UNKNOWN))
+				if ((spans[x]->watchstate != DAHDI_WATCHSTATE_OK) &&
+					(spans[x]->watchstate != DAHDI_WATCHSTATE_UNKNOWN))
 						printk("Span %s is alive!\n", spans[x]->name);
-				spans[x]->watchstate = ZT_WATCHSTATE_OK;
+				spans[x]->watchstate = DAHDI_WATCHSTATE_OK;
 			}
-			spans[x]->watchcounter = ZT_WATCHDOG_INIT;
+			spans[x]->watchcounter = DAHDI_WATCHDOG_INIT;
 		}
 	}
 	local_irq_restore(flags);
@@ -7680,7 +7680,7 @@ static void __exit watchdog_cleanup(void)
 
 #endif
 
-int zt_register_chardev(struct zt_chardev *dev)
+int dahdi_register_chardev(struct dahdi_chardev *dev)
 {
 #ifdef CONFIG_DEVFS_FS
 	umode_t mode = S_IFCHR|S_IRUGO|S_IWUGO;
@@ -7691,20 +7691,20 @@ int zt_register_chardev(struct zt_chardev *dev)
 
 	strcpy(udevname, "zap");
 	strcat(udevname, dev->name);
-	CLASS_DEV_CREATE(zap_class, MKDEV(ZT_MAJOR, dev->minor), NULL, udevname);
+	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, dev->minor), NULL, udevname);
 #endif /* CONFIG_ZAP_UDEV */
 	
 #ifdef CONFIG_DEVFS_FS
-	dev->devfs_handle = devfs_register(zaptel_devfs_dir, dev->name, DEVFS_FL_DEFAULT, ZT_MAJOR, dev->minor, mode, &zt_fops, NULL);
+	dev->devfs_handle = devfs_register(zaptel_devfs_dir, dev->name, DEVFS_FL_DEFAULT, DAHDI_MAJOR, dev->minor, mode, &dahdi_fops, NULL);
 #endif /* CONFIG_DEVFS_FS */
 
 	return 0;
 }
 
-int zt_unregister_chardev(struct zt_chardev *dev)
+int dahdi_unregister_chardev(struct dahdi_chardev *dev)
 {
 #ifdef CONFIG_ZAP_UDEV
-	class_device_destroy(zap_class, MKDEV(ZT_MAJOR, dev->minor));
+	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, dev->minor));
 #endif /* CONFIG_ZAP_UDEV */
 
 #ifdef CONFIG_DEVFS_FS
@@ -7714,7 +7714,7 @@ int zt_unregister_chardev(struct zt_chardev *dev)
 	return 0;
 }
 
-static int __init zt_init(void) {
+static int __init dahdi_init(void) {
 	int res = 0;
 
 #ifdef CONFIG_PROC_FS
@@ -7723,35 +7723,35 @@ static int __init zt_init(void) {
 
 #ifdef CONFIG_ZAP_UDEV /* udev support functions */
 	zap_class = class_create(THIS_MODULE, "zaptel");
-	CLASS_DEV_CREATE(zap_class, MKDEV(ZT_MAJOR, 253), NULL, "zaptimer");
-	CLASS_DEV_CREATE(zap_class, MKDEV(ZT_MAJOR, 254), NULL, "zapchannel");
-	CLASS_DEV_CREATE(zap_class, MKDEV(ZT_MAJOR, 255), NULL, "zappseudo");
-	CLASS_DEV_CREATE(zap_class, MKDEV(ZT_MAJOR, 0), NULL, "zapctl");
+	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 253), NULL, "zaptimer");
+	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 254), NULL, "zapchannel");
+	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 255), NULL, "zappseudo");
+	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 0), NULL, "zapctl");
 #endif /* CONFIG_ZAP_UDEV */
 
 #ifdef CONFIG_DEVFS_FS
 	{
 		umode_t mode = S_IFCHR|S_IRUGO|S_IWUGO;
 
-		devfs_register_chrdev(ZT_MAJOR, "zaptel", &zt_fops);
+		devfs_register_chrdev(DAHDI_MAJOR, "zaptel", &dahdi_fops);
 		if (!(zaptel_devfs_dir = devfs_mk_dir(NULL, "zap", NULL)))
 			return -EBUSY; /* This would be bad */
-		timer = devfs_register(zaptel_devfs_dir, "timer", DEVFS_FL_DEFAULT, ZT_MAJOR, 253, mode, &zt_fops, NULL);
-		channel = devfs_register(zaptel_devfs_dir, "channel", DEVFS_FL_DEFAULT, ZT_MAJOR, 254, mode, &zt_fops, NULL);
-		pseudo = devfs_register(zaptel_devfs_dir, "pseudo", DEVFS_FL_DEFAULT, ZT_MAJOR, 255, mode, &zt_fops, NULL);
-		ctl = devfs_register(zaptel_devfs_dir, "ctl", DEVFS_FL_DEFAULT, ZT_MAJOR, 0, mode, &zt_fops, NULL);
+		timer = devfs_register(zaptel_devfs_dir, "timer", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 253, mode, &dahdi_fops, NULL);
+		channel = devfs_register(zaptel_devfs_dir, "channel", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 254, mode, &dahdi_fops, NULL);
+		pseudo = devfs_register(zaptel_devfs_dir, "pseudo", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 255, mode, &dahdi_fops, NULL);
+		ctl = devfs_register(zaptel_devfs_dir, "ctl", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 0, mode, &dahdi_fops, NULL);
 	}
 #else
-	if ((res = register_chrdev(ZT_MAJOR, "zaptel", &zt_fops))) {
-		printk(KERN_ERR "Unable to register Zaptel character device handler on %d\n", ZT_MAJOR);
+	if ((res = register_chrdev(DAHDI_MAJOR, "zaptel", &dahdi_fops))) {
+		printk(KERN_ERR "Unable to register Zaptel character device handler on %d\n", DAHDI_MAJOR);
 		return res;
 	}
 #endif /* CONFIG_DEVFS_FS */
 
-	printk(KERN_INFO "Zapata Telephony Interface Registered on major %d\n", ZT_MAJOR);
+	printk(KERN_INFO "Zapata Telephony Interface Registered on major %d\n", DAHDI_MAJOR);
 	printk(KERN_INFO "Zaptel Version: %s\n", ZAPTEL_VERSION);
 	echo_can_init();
-	zt_conv_init();
+	dahdi_conv_init();
 	fasthdlc_precalc();
 	rotate_sums();
 	rwlock_init(&chan_lock);
@@ -7761,7 +7761,7 @@ static int __init zt_init(void) {
 	return res;
 }
 
-static void __exit zt_cleanup(void) {
+static void __exit dahdi_cleanup(void) {
 	int x;
 
 #ifdef CONFIG_PROC_FS
@@ -7769,7 +7769,7 @@ static void __exit zt_cleanup(void) {
 #endif
 
 	printk(KERN_INFO "Zapata Telephony Interface Unloaded\n");
-	for (x = 0; x < ZT_TONE_ZONE_MAX; x++) {
+	for (x = 0; x < DAHDI_TONE_ZONE_MAX; x++) {
 		if (tone_zones[x])
 			kfree(tone_zones[x]);
 	}
@@ -7780,16 +7780,16 @@ static void __exit zt_cleanup(void) {
 	devfs_unregister(pseudo);
 	devfs_unregister(ctl);
 	devfs_unregister(zaptel_devfs_dir);
-	devfs_unregister_chrdev(ZT_MAJOR, "zaptel");
+	devfs_unregister_chrdev(DAHDI_MAJOR, "zaptel");
 #else
 #ifdef CONFIG_ZAP_UDEV
-	class_device_destroy(zap_class, MKDEV(ZT_MAJOR, 253)); /* timer */
-	class_device_destroy(zap_class, MKDEV(ZT_MAJOR, 254)); /* channel */
-	class_device_destroy(zap_class, MKDEV(ZT_MAJOR, 255)); /* pseudo */
-	class_device_destroy(zap_class, MKDEV(ZT_MAJOR, 0)); /* ctl */
+	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
+	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
+	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 255)); /* pseudo */
+	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
 	class_destroy(zap_class);
 #endif /* CONFIG_ZAP_UDEV */
-	unregister_chrdev(ZT_MAJOR, "zaptel");
+	unregister_chrdev(DAHDI_MAJOR, "zaptel");
 #endif
 #ifdef CONFIG_ZAPTEL_WATCHDOG
 	watchdog_cleanup();
@@ -7798,5 +7798,5 @@ static void __exit zt_cleanup(void) {
 	echo_can_shutdown();
 }
 
-module_init(zt_init);
-module_exit(zt_cleanup);
+module_init(dahdi_init);
+module_exit(dahdi_cleanup);

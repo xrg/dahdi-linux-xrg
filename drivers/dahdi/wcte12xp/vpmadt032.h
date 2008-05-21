@@ -105,7 +105,7 @@ struct vpm150m {
 struct vpm150m_workentry {
 	struct list_head list;
 	struct t1 *wc; /* what card are we dealing with? */
-	struct zt_chan *chan; /* what channels are we going to deal with? */
+	struct dahdi_chan *chan; /* what channels are we going to deal with? */
 	struct adt_lec_params params; /* how should we behave? */
 };
 

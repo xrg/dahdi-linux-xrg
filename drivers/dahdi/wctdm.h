@@ -60,10 +60,10 @@ struct wctdm_echo_coefs {
 	unsigned char coef8;
 };
 
-#define WCTDM_GET_STATS	_IOR (ZT_CODE, 60, struct wctdm_stats)
-#define WCTDM_GET_REGS	_IOR (ZT_CODE, 61, struct wctdm_regs)
-#define WCTDM_SET_REG	_IOW (ZT_CODE, 62, struct wctdm_regop)
-#define WCTDM_SET_ECHOTUNE _IOW (ZT_CODE, 63, struct wctdm_echo_coefs)
+#define WCTDM_GET_STATS	_IOR (DAHDI_CODE, 60, struct wctdm_stats)
+#define WCTDM_GET_REGS	_IOR (DAHDI_CODE, 61, struct wctdm_regs)
+#define WCTDM_SET_REG	_IOW (DAHDI_CODE, 62, struct wctdm_regop)
+#define WCTDM_SET_ECHOTUNE _IOW (DAHDI_CODE, 63, struct wctdm_echo_coefs)
 
 
 #endif /* _WCTDM_H */

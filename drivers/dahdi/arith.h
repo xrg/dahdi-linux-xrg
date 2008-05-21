@@ -7,7 +7,7 @@
  */
 
 #ifdef CONFIG_ZAPTEL_MMX
-#ifdef ZT_CHUNKSIZE
+#ifdef DAHDI_CHUNKSIZE
 static inline void __ACSS(volatile short *dst, const short *src)
 {
 	__asm__ __volatile__ (
@@ -49,24 +49,24 @@ static inline void __SCSS(volatile short *dst, const short *src)
 
 }
 
-#if (ZT_CHUNKSIZE == 8)
+#if (DAHDI_CHUNKSIZE == 8)
 #define ACSS(a,b) __ACSS(a,b)
 #define SCSS(a,b) __SCSS(a,b)
-#elif (ZT_CHUNKSIZE > 8)
+#elif (DAHDI_CHUNKSIZE > 8)
 static inline void ACSS(volatile short *dst, const short *src)
 {
 	int x;
-	for (x=0;x<ZT_CHUNKSIZE;x+=8)
+	for (x=0;x<DAHDI_CHUNKSIZE;x+=8)
 		__ACSS(dst + x, src + x);
 }
 static inline void SCSS(volatile short *dst, const short *src)
 {
 	int x;
-	for (x=0;x<ZT_CHUNKSIZE;x+=8)
+	for (x=0;x<DAHDI_CHUNKSIZE;x+=8)
 		__SCSS(dst + x, src + x);
 }
 #else
-#error No MMX for ZT_CHUNKSIZE < 8
+#error No MMX for DAHDI_CHUNKSIZE < 8
 #endif
 #endif
 static inline int CONVOLVE(const int *coeffs, const short *hist, int len)
@@ -258,7 +258,7 @@ static inline short MAX16(const short *y, int len, int *pos)
 
 #else
 
-#ifdef ZT_CHUNKSIZE
+#ifdef DAHDI_CHUNKSIZE
 static inline void ACSS(short *dst, short *src)
 {
 	int x;
@@ -266,12 +266,12 @@ static inline void ACSS(short *dst, short *src)
 	/* Add src to dst with saturation, storing in dst */
 
 #ifdef BFIN
-	for (x = 0; x < ZT_CHUNKSIZE; x++)
+	for (x = 0; x < DAHDI_CHUNKSIZE; x++)
 		dst[x] = __builtin_bfin_add_fr1x16(dst[x], src[x]);
 #else
 	int sum;
 
-	for (x = 0; x < ZT_CHUNKSIZE; x++) {
+	for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
 		sum = dst[x] + src[x];
 		if (sum > 32767)
 			sum = 32767;
@@ -288,12 +288,12 @@ static inline void SCSS(short *dst, short *src)
 
 	/* Subtract src from dst with saturation, storing in dst */
 #ifdef BFIN
-	for (x = 0; x < ZT_CHUNKSIZE; x++)
+	for (x = 0; x < DAHDI_CHUNKSIZE; x++)
 		dst[x] = __builtin_bfin_sub_fr1x16(dst[x], src[x]);
 #else
 	int sum;
 
-	for (x = 0; x < ZT_CHUNKSIZE; x++) {
+	for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
 		sum = dst[x] - src[x];
 		if (sum > 32767)
 			sum = 32767;
@@ -304,7 +304,7 @@ static inline void SCSS(short *dst, short *src)
 #endif
 }
 
-#endif	/* ZT_CHUNKSIZE */
+#endif	/* DAHDI_CHUNKSIZE */
 
 static inline int CONVOLVE(const int *coeffs, const short *hist, int len)
 {

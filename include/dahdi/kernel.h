@@ -97,96 +97,96 @@
 #endif
 
 /* Per-span configuration values */
-#define	ZT_CONFIG_TXLEVEL	7	/* bits 0-2 are tx level */
+#define	DAHDI_CONFIG_TXLEVEL	7	/* bits 0-2 are tx level */
 
 /* Line configuration */
 /* These apply to T1 */
-#define ZT_CONFIG_D4	 (1 << 4)	
-#define ZT_CONFIG_ESF	 (1 << 5)
-#define ZT_CONFIG_AMI	 (1 << 6)
-#define ZT_CONFIG_B8ZS 	 (1 << 7)
+#define DAHDI_CONFIG_D4	 (1 << 4)	
+#define DAHDI_CONFIG_ESF	 (1 << 5)
+#define DAHDI_CONFIG_AMI	 (1 << 6)
+#define DAHDI_CONFIG_B8ZS 	 (1 << 7)
 /* These apply to E1 */
-#define	ZT_CONFIG_CCS	 (1 << 8)	/* CCS (ISDN) instead of CAS (Robbed Bit) */
-#define	ZT_CONFIG_HDB3	 (1 << 9)	/* HDB3 instead of AMI (line coding) */
-#define	ZT_CONFIG_CRC4   (1 << 10)	/* CRC4 framing */
-#define ZT_CONFIG_NOTOPEN (1 << 16)
+#define	DAHDI_CONFIG_CCS	 (1 << 8)	/* CCS (ISDN) instead of CAS (Robbed Bit) */
+#define	DAHDI_CONFIG_HDB3	 (1 << 9)	/* HDB3 instead of AMI (line coding) */
+#define	DAHDI_CONFIG_CRC4   (1 << 10)	/* CRC4 framing */
+#define DAHDI_CONFIG_NOTOPEN (1 << 16)
 
 /* Signalling types */
-#define ZT_SIG_BROKEN	(1 << 31)	/* The port is broken and/or failed initialization */
+#define DAHDI_SIG_BROKEN	(1 << 31)	/* The port is broken and/or failed initialization */
 
-#define __ZT_SIG_FXO	(1 << 12)	/* Never use directly */
-#define __ZT_SIG_FXS	(1 << 13)	/* Never use directly */
+#define __DAHDI_SIG_FXO	(1 << 12)	/* Never use directly */
+#define __DAHDI_SIG_FXS	(1 << 13)	/* Never use directly */
 
-#define ZT_SIG_NONE		(0)			/* Channel not configured */
-#define ZT_SIG_FXSLS	((1 << 0) | __ZT_SIG_FXS)	/* FXS, Loopstart */
-#define ZT_SIG_FXSGS	((1 << 1) | __ZT_SIG_FXS)	/* FXS, Groundstart */
-#define ZT_SIG_FXSKS	((1 << 2) | __ZT_SIG_FXS)	/* FXS, Kewlstart */
+#define DAHDI_SIG_NONE		(0)			/* Channel not configured */
+#define DAHDI_SIG_FXSLS	((1 << 0) | __DAHDI_SIG_FXS)	/* FXS, Loopstart */
+#define DAHDI_SIG_FXSGS	((1 << 1) | __DAHDI_SIG_FXS)	/* FXS, Groundstart */
+#define DAHDI_SIG_FXSKS	((1 << 2) | __DAHDI_SIG_FXS)	/* FXS, Kewlstart */
 
-#define ZT_SIG_FXOLS	((1 << 3) | __ZT_SIG_FXO)	/* FXO, Loopstart */
-#define ZT_SIG_FXOGS	((1 << 4) | __ZT_SIG_FXO)	/* FXO, Groupstart */
-#define ZT_SIG_FXOKS	((1 << 5) | __ZT_SIG_FXO)	/* FXO, Kewlstart */
+#define DAHDI_SIG_FXOLS	((1 << 3) | __DAHDI_SIG_FXO)	/* FXO, Loopstart */
+#define DAHDI_SIG_FXOGS	((1 << 4) | __DAHDI_SIG_FXO)	/* FXO, Groupstart */
+#define DAHDI_SIG_FXOKS	((1 << 5) | __DAHDI_SIG_FXO)	/* FXO, Kewlstart */
 
-#define ZT_SIG_EM	(1 << 6)		/* Ear & Mouth (E&M) */
+#define DAHDI_SIG_EM	(1 << 6)		/* Ear & Mouth (E&M) */
 
 /* The following are all variations on clear channel */
 
-#define __ZT_SIG_DACS	(1 << 16)
+#define __DAHDI_SIG_DACS	(1 << 16)
 
-#define ZT_SIG_CLEAR	(1 << 7)					/* Clear channel */
-#define ZT_SIG_HDLCRAW	((1 << 8)  | ZT_SIG_CLEAR)	/* Raw unchecked HDLC */
-#define ZT_SIG_HDLCFCS	((1 << 9)  | ZT_SIG_HDLCRAW)	/* HDLC with FCS calculation */
-#define ZT_SIG_HDLCNET	((1 << 10) | ZT_SIG_HDLCFCS)	/* HDLC Network */
-#define ZT_SIG_SLAVE	(1 << 11) 					/* Slave to another channel */
-#define	ZT_SIG_SF	(1 << 14)			/* Single Freq. tone only, no sig bits */
-#define ZT_SIG_CAS	(1 << 15)			/* Just get bits */
-#define ZT_SIG_DACS	(__ZT_SIG_DACS | ZT_SIG_CLEAR)	/* Cross connect */
-#define ZT_SIG_EM_E1	(1 << 17)			/* E1 E&M Variation */
-#define ZT_SIG_DACS_RBS	((1 << 18) | __ZT_SIG_DACS)	/* Cross connect w/ RBS */
-#define ZT_SIG_HARDHDLC	((1 << 19) | ZT_SIG_CLEAR)
-#define ZT_SIG_MTP2	((1 << 20) | ZT_SIG_HDLCFCS)	/* MTP2 support  Need HDLC bitstuff and FCS calcuation too */
+#define DAHDI_SIG_CLEAR	(1 << 7)					/* Clear channel */
+#define DAHDI_SIG_HDLCRAW	((1 << 8)  | DAHDI_SIG_CLEAR)	/* Raw unchecked HDLC */
+#define DAHDI_SIG_HDLCFCS	((1 << 9)  | DAHDI_SIG_HDLCRAW)	/* HDLC with FCS calculation */
+#define DAHDI_SIG_HDLCNET	((1 << 10) | DAHDI_SIG_HDLCFCS)	/* HDLC Network */
+#define DAHDI_SIG_SLAVE	(1 << 11) 					/* Slave to another channel */
+#define	DAHDI_SIG_SF	(1 << 14)			/* Single Freq. tone only, no sig bits */
+#define DAHDI_SIG_CAS	(1 << 15)			/* Just get bits */
+#define DAHDI_SIG_DACS	(__DAHDI_SIG_DACS | DAHDI_SIG_CLEAR)	/* Cross connect */
+#define DAHDI_SIG_EM_E1	(1 << 17)			/* E1 E&M Variation */
+#define DAHDI_SIG_DACS_RBS	((1 << 18) | __DAHDI_SIG_DACS)	/* Cross connect w/ RBS */
+#define DAHDI_SIG_HARDHDLC	((1 << 19) | DAHDI_SIG_CLEAR)
+#define DAHDI_SIG_MTP2	((1 << 20) | DAHDI_SIG_HDLCFCS)	/* MTP2 support  Need HDLC bitstuff and FCS calcuation too */
 
 /* tone flag values */
-#define	ZT_REVERSE_RXTONE 1  /* reverse polarity rx tone logic */
-#define	ZT_REVERSE_TXTONE 2  /* reverse polarity tx tone logic */
+#define	DAHDI_REVERSE_RXTONE 1  /* reverse polarity rx tone logic */
+#define	DAHDI_REVERSE_TXTONE 2  /* reverse polarity tx tone logic */
 
-#define ZT_ABIT			8
-#define ZT_BBIT			4
-#define	ZT_CBIT			2
-#define	ZT_DBIT			1
+#define DAHDI_ABIT			8
+#define DAHDI_BBIT			4
+#define	DAHDI_CBIT			2
+#define	DAHDI_DBIT			1
 
-#define ZT_MAJOR	196
+#define DAHDI_MAJOR	196
 
-#define ZT_CODE	'J'
+#define DAHDI_CODE	'J'
 
 /* Default chunk size for conferences and such -- static right now, might make
    variable sometime.  8 samples = 1 ms = most frequent service interval possible
    for a USB device */
-#define ZT_CHUNKSIZE		 8
-#define ZT_MIN_CHUNKSIZE	 ZT_CHUNKSIZE
-#define ZT_DEFAULT_CHUNKSIZE	 ZT_CHUNKSIZE
-#define ZT_MAX_CHUNKSIZE 	 ZT_CHUNKSIZE
-#define ZT_CB_SIZE		 2
+#define DAHDI_CHUNKSIZE		 8
+#define DAHDI_MIN_CHUNKSIZE	 DAHDI_CHUNKSIZE
+#define DAHDI_DEFAULT_CHUNKSIZE	 DAHDI_CHUNKSIZE
+#define DAHDI_MAX_CHUNKSIZE 	 DAHDI_CHUNKSIZE
+#define DAHDI_CB_SIZE		 2
 
-#define ZT_MAX_BLOCKSIZE 	 8192
-#define ZT_DEFAULT_NUM_BUFS	 2
-#define ZT_MAX_NUM_BUFS		 32
-#define ZT_MAX_BUF_SPACE         32768
+#define DAHDI_MAX_BLOCKSIZE 	 8192
+#define DAHDI_DEFAULT_NUM_BUFS	 2
+#define DAHDI_MAX_NUM_BUFS		 32
+#define DAHDI_MAX_BUF_SPACE         32768
 
-#define ZT_DEFAULT_BLOCKSIZE 1024
-#define ZT_DEFAULT_MTR_MRU	 2048
+#define DAHDI_DEFAULT_BLOCKSIZE 1024
+#define DAHDI_DEFAULT_MTR_MRU	 2048
 
-#define ZT_POLICY_IMMEDIATE	 0		/* Start play/record immediately */
-#define ZT_POLICY_WHEN_FULL  1		/* Start play/record when buffer is full */
+#define DAHDI_POLICY_IMMEDIATE	 0		/* Start play/record immediately */
+#define DAHDI_POLICY_WHEN_FULL  1		/* Start play/record when buffer is full */
 
 #define	RING_DEBOUNCE_TIME	2000	/* 2000 ms ring debounce time */
 
-#define ZT_GET_PARAMS_RETURN_MASTER 0x40000000
+#define DAHDI_GET_PARAMS_RETURN_MASTER 0x40000000
 
 /* Extended attributes in lineconfig structure */
-#define ZT_SPANINFO_HAS_LINECONFIG
-#define ZT_SPANINFO_HAS_LBONAME
+#define DAHDI_SPANINFO_HAS_LINECONFIG
+#define DAHDI_SPANINFO_HAS_LBONAME
 
-struct zt_params_v1
+struct dahdi_params_v1
 {
 	int channo;		/* Channel number */
 	int spanno;		/* Span itself */
@@ -198,7 +198,7 @@ struct zt_params_v1
 	int txbits;		/* read-only */
 	int txhooksig;		/* read-only */
 	int rxhooksig;		/* read-only */
-	int curlaw;		/* read-only  -- one of ZT_LAW_MULAW or ZT_LAW_ALAW */
+	int curlaw;		/* read-only  -- one of DAHDI_LAW_MULAW or DAHDI_LAW_ALAW */
 	int idlebits;		/* read-only  -- What is considered the idle state */
 	char name[40];		/* Name of channel */
 	int prewinktime;
@@ -214,7 +214,7 @@ struct zt_params_v1
 	int pulseaftertime;
 };
 
-typedef struct zt_params
+typedef struct dahdi_params
 {
 	int channo;		/* Channel number */
 	int spanno;		/* Span itself */
@@ -226,7 +226,7 @@ typedef struct zt_params
 	int txbits;		/* read-only */
 	int txhooksig;		/* read-only */
 	int rxhooksig;		/* read-only */
-	int curlaw;		/* read-only  -- one of ZT_LAW_MULAW or ZT_LAW_ALAW */
+	int curlaw;		/* read-only  -- one of DAHDI_LAW_MULAW or DAHDI_LAW_ALAW */
 	int idlebits;		/* read-only  -- What is considered the idle state */
 	char name[40];		/* Name of channel */
 	int prewinktime;
@@ -241,9 +241,9 @@ typedef struct zt_params
 	int pulsemaketime;
 	int pulseaftertime;
 	__u32 chan_alarms;	/* alarms on this channel */
-} ZT_PARAMS;
+} DAHDI_PARAMS;
 
-struct zt_spaninfo_v1 {
+struct dahdi_spaninfo_v1 {
 	int	spanno;		/* span number */
 	char	name[20];	/* Name */
 	char	desc[40];	/* Description */
@@ -261,7 +261,7 @@ struct zt_spaninfo_v1 {
 	int	totaflspans;	/* total number of spans in entire system */
 };
 
-struct zt_spaninfo_v2 {
+struct dahdi_spaninfo_v2 {
 	int	spanno;		/* span number */
 	char	name[20];	/* Name */
 	char	desc[40];	/* Description */
@@ -281,7 +281,7 @@ struct zt_spaninfo_v2 {
 	int	lineconfig;	 /* framing/coding */
 };
 
-typedef struct zt_spaninfo {
+typedef struct dahdi_spaninfo {
 	int	spanno;		/* span number */
 	char	name[20];	/* Name */
 	char	desc[40];	/* Description */
@@ -306,50 +306,50 @@ typedef struct zt_spaninfo {
 	int	irq;		/* span's device IRQ */
 	int	linecompat;	/* signaling modes possible on this span */
 	char	spantype[6];	/* type of span in text form */
-} ZT_SPANINFO;
+} DAHDI_SPANINFO;
 
-typedef struct zt_maintinfo
+typedef struct dahdi_maintinfo
 {
 int	spanno;		/* span number 1-2 */
 int	command;	/* command */
-} ZT_MAINTINFO;
+} DAHDI_MAINTINFO;
 
-typedef struct zt_confinfo
+typedef struct dahdi_confinfo
 {
 int	chan;		/* channel number, 0 for current */
 int	confno;		/* conference number */
 int	confmode;	/* conferencing mode */
-} ZT_CONFINFO;
+} DAHDI_CONFINFO;
 
-typedef struct zt_gains
+typedef struct dahdi_gains
 {
 int	chan;		/* channel number, 0 for current */
 unsigned char rxgain[256];	/* Receive gain table */
 unsigned char txgain[256];	/* Transmit gain table */
-} ZT_GAINS;
+} DAHDI_GAINS;
 
-typedef struct zt_lineconfig
+typedef struct dahdi_lineconfig
 {
 int span;		/* Which span number (0 to use name) */
 char name[20];	/* Name of span to use */
 int	lbo;		/* line build-outs */
 int	lineconfig;	/* line config parameters (framing, coding) */
 int	sync;		/* what level of sync source we are */
-} ZT_LINECONFIG;
+} DAHDI_LINECONFIG;
 
-typedef struct zt_chanconfig
+typedef struct dahdi_chanconfig
 {
 int	chan;		/* Channel we're applying this to (0 to use name) */
 char name[40];		/* Name of channel to use */
 int	sigtype;	/* Signal type */
-int	deflaw;		/* Default law (ZT_LAW_DEFAULT, ZT_LAW_MULAW, or ZT_LAW_ALAW */
-int	master;		/* Master channel if sigtype is ZT_SLAVE */
+int	deflaw;		/* Default law (DAHDI_LAW_DEFAULT, DAHDI_LAW_MULAW, or DAHDI_LAW_ALAW */
+int	master;		/* Master channel if sigtype is DAHDI_SLAVE */
 int	idlebits;	/* Idle bits (if this is a CAS channel) or
 			   channel to monitor (if this is DACS channel) */
 char netdev_name[16]; /*name for the hdlc network device*/
-} ZT_CHANCONFIG;
+} DAHDI_CHANCONFIG;
 
-typedef struct zt_sfconfig
+typedef struct dahdi_sfconfig
 {
 int	chan;		/* Channel we're applying this to (0 to use name) */
 char	name[40];	/* Name of channel to use */
@@ -360,9 +360,9 @@ int	txtone;		/* Tx tone factor */
 int	tx_v2;		/* initial v2 value */
 int	tx_v3;		/* initial v3 value */
 int	toneflag;	/* Tone flags */
-} ZT_SFCONFIG;
+} DAHDI_SFCONFIG;
 
-typedef struct zt_bufferinfo
+typedef struct dahdi_bufferinfo
 {
 int txbufpolicy;	/* Policy for handling receive buffers */
 int rxbufpolicy;	/* Policy for handling receive buffers */
@@ -370,225 +370,225 @@ int numbufs;		/* How many buffers to use */
 int bufsize;		/* How big each buffer is */
 int readbufs;		/* How many read buffers are full (read-only) */
 int writebufs;		/* How many write buffers are full (read-only) */
-} ZT_BUFFERINFO;
+} DAHDI_BUFFERINFO;
 
-typedef struct zt_dialparams {
+typedef struct dahdi_dialparams {
 	int mfv1_tonelen;	/* MF R1 tone length for digits */
 	int dtmf_tonelen;	/* DTMF tone length */
 	int mfr2_tonelen;	/* MF R2 tone length */
 	int reserved[3];	/* Reserved for future expansion -- always set to 0 */
-} ZT_DIAL_PARAMS;
+} DAHDI_DIAL_PARAMS;
 
-typedef struct zt_dynamic_span {
+typedef struct dahdi_dynamic_span {
 	char driver[20];	/* Which low-level driver to use */
 	char addr[40];		/* Destination address */
 	int numchans;		/* Number of channels */
 	int timing;		/* Timing source preference */
 	int spanno;		/* Span number (filled in by zaptel) */
-} ZT_DYNAMIC_SPAN;
+} DAHDI_DYNAMIC_SPAN;
 
 /* Define the max # of outgoing DTMF, MFR1 or MFR2 digits to queue in-kernel */
-#define ZT_MAX_DTMF_BUF 256
+#define DAHDI_MAX_DTMF_BUF 256
 
-#define ZT_DIAL_OP_APPEND	1
-#define ZT_DIAL_OP_REPLACE	2
-#define ZT_DIAL_OP_CANCEL	3
+#define DAHDI_DIAL_OP_APPEND	1
+#define DAHDI_DIAL_OP_REPLACE	2
+#define DAHDI_DIAL_OP_CANCEL	3
 
-#define ZT_LAW_DEFAULT	0	/* Default law for span */
-#define ZT_LAW_MULAW	1	/* Mu-law */
-#define ZT_LAW_ALAW	2	/* A-law */
+#define DAHDI_LAW_DEFAULT	0	/* Default law for span */
+#define DAHDI_LAW_MULAW	1	/* Mu-law */
+#define DAHDI_LAW_ALAW	2	/* A-law */
 
-typedef struct zt_dialoperation {
+typedef struct dahdi_dialoperation {
 	int op;
-	char dialstr[ZT_MAX_DTMF_BUF];
-} ZT_DIAL_OPERATION;
+	char dialstr[DAHDI_MAX_DTMF_BUF];
+} DAHDI_DIAL_OPERATION;
 
 
-typedef struct zt_indirect_data
+typedef struct dahdi_indirect_data
 {
 int	chan;
 int	op;
 void	*data;
-} ZT_INDIRECT_DATA;	
+} DAHDI_INDIRECT_DATA;	
 
-struct zt_versioninfo {
+struct dahdi_versioninfo {
 	char version[80];
 	char echo_canceller[80];
 };
 
-struct zt_hwgain{
+struct dahdi_hwgain{
 	__s32 newgain;	/* desired gain in dB but x10.  -3.5dB would be -35 */
 	__u32 tx:1;	/* 0=rx; 1=tx */
 };
 
 
 /* ioctl definitions */
-#define ZT_CODE	'J'
+#define DAHDI_CODE	'J'
 
 /*
  * Get Transfer Block Size.
  */
-#define ZT_GET_BLOCKSIZE	_IOR (ZT_CODE, 1, int)
+#define DAHDI_GET_BLOCKSIZE	_IOR (DAHDI_CODE, 1, int)
 
 /*
  * Set Transfer Block Size.
  */
-#define ZT_SET_BLOCKSIZE	_IOW (ZT_CODE, 2, int)
+#define DAHDI_SET_BLOCKSIZE	_IOW (DAHDI_CODE, 2, int)
 
 /*
  * Flush Buffer(s) and stop I/O
  */
-#define	ZT_FLUSH		_IOW (ZT_CODE, 3, int)
+#define	DAHDI_FLUSH		_IOW (DAHDI_CODE, 3, int)
 
 /*
  * Wait for Write to Finish
  */
-#define	ZT_SYNC		_IOW (ZT_CODE, 4, int)
+#define	DAHDI_SYNC		_IOW (DAHDI_CODE, 4, int)
 
 /*
  * Get channel parameters
  */
-#define ZT_GET_PARAMS_V1	_IOR (ZT_CODE, 5, struct zt_params_v1)
-#define ZT_GET_PARAMS		_IOR (ZT_CODE, 5, struct zt_params)
+#define DAHDI_GET_PARAMS_V1	_IOR (DAHDI_CODE, 5, struct dahdi_params_v1)
+#define DAHDI_GET_PARAMS		_IOR (DAHDI_CODE, 5, struct dahdi_params)
 
 /*
  * Get channel parameters
  */
-#define ZT_SET_PARAMS_V1	_IOW (ZT_CODE, 6, struct zt_params_v1)
-#define ZT_SET_PARAMS		_IOW (ZT_CODE, 6, struct zt_params)
+#define DAHDI_SET_PARAMS_V1	_IOW (DAHDI_CODE, 6, struct dahdi_params_v1)
+#define DAHDI_SET_PARAMS		_IOW (DAHDI_CODE, 6, struct dahdi_params)
 
 /*
  * Set Hookswitch Status
  */
-#define ZT_HOOK		_IOW (ZT_CODE, 7, int)
+#define DAHDI_HOOK		_IOW (DAHDI_CODE, 7, int)
 
 /*
  * Get Signalling Event
  */
-#define ZT_GETEVENT		_IOR (ZT_CODE, 8, int)
+#define DAHDI_GETEVENT		_IOR (DAHDI_CODE, 8, int)
 
 /*
  * Wait for something to happen (IO Mux)
  */
-#define ZT_IOMUX		_IOWR (ZT_CODE, 9, int)
+#define DAHDI_IOMUX		_IOWR (DAHDI_CODE, 9, int)
 
 /*
  * Get Span Status
  */
-#define ZT_SPANSTAT_V1		_IOWR (ZT_CODE, 10, struct zt_spaninfo_v1)
-#define ZT_SPANSTAT_V2		_IOWR (ZT_CODE, 10, struct zt_spaninfo_v2)
-#define ZT_SPANSTAT		_IOWR (ZT_CODE, 10, struct zt_spaninfo)
+#define DAHDI_SPANSTAT_V1		_IOWR (DAHDI_CODE, 10, struct dahdi_spaninfo_v1)
+#define DAHDI_SPANSTAT_V2		_IOWR (DAHDI_CODE, 10, struct dahdi_spaninfo_v2)
+#define DAHDI_SPANSTAT		_IOWR (DAHDI_CODE, 10, struct dahdi_spaninfo)
 
 /*
  * Set Maintenance Mode
  */
-#define ZT_MAINT		_IOW (ZT_CODE, 11, struct zt_maintinfo)
+#define DAHDI_MAINT		_IOW (DAHDI_CODE, 11, struct dahdi_maintinfo)
 
 /*
  * Get Conference Mode
  */
-#define ZT_GETCONF		_IOWR (ZT_CODE, 12, struct zt_confinfo)
+#define DAHDI_GETCONF		_IOWR (DAHDI_CODE, 12, struct dahdi_confinfo)
 
 /*
  * Set Conference Mode
  */
-#define ZT_SETCONF		_IOWR (ZT_CODE, 13, struct zt_confinfo)
+#define DAHDI_SETCONF		_IOWR (DAHDI_CODE, 13, struct dahdi_confinfo)
 
 /*
  * Setup or Remove Conference Link
  */
-#define ZT_CONFLINK		_IOW (ZT_CODE, 14, struct zt_confinfo)
+#define DAHDI_CONFLINK		_IOW (DAHDI_CODE, 14, struct dahdi_confinfo)
 
 /*
  * Display Conference Diagnostic Information on Console
  */
-#define ZT_CONFDIAG		_IOR (ZT_CODE, 15, int)
+#define DAHDI_CONFDIAG		_IOR (DAHDI_CODE, 15, int)
 
 /*
  * Get Channel audio gains
  */
-#define ZT_GETGAINS		_IOWR (ZT_CODE, 16, struct zt_gains)
+#define DAHDI_GETGAINS		_IOWR (DAHDI_CODE, 16, struct dahdi_gains)
 
 /*
  * Set Channel audio gains
  */
-#define ZT_SETGAINS		_IOWR (ZT_CODE, 17, struct zt_gains)
+#define DAHDI_SETGAINS		_IOWR (DAHDI_CODE, 17, struct dahdi_gains)
 
 /*
  * Set Line (T1) Configurations and start system
  */
-#define	ZT_SPANCONFIG		_IOW (ZT_CODE, 18, struct zt_lineconfig)
+#define	DAHDI_SPANCONFIG		_IOW (DAHDI_CODE, 18, struct dahdi_lineconfig)
 
 /*
  * Set Channel Configuration
  */
-#define	ZT_CHANCONFIG		_IOW (ZT_CODE, 19, struct zt_chanconfig)
+#define	DAHDI_CHANCONFIG		_IOW (DAHDI_CODE, 19, struct dahdi_chanconfig)
 
 /*
  * Set Conference to mute mode
  */
-#define	ZT_CONFMUTE		_IOW (ZT_CODE, 20, int)
+#define	DAHDI_CONFMUTE		_IOW (DAHDI_CODE, 20, int)
 
 /*
- * Send a particular tone (see ZT_TONE_*)
+ * Send a particular tone (see DAHDI_TONE_*)
  */
-#define	ZT_SENDTONE		_IOW (ZT_CODE, 21, int)
+#define	DAHDI_SENDTONE		_IOW (DAHDI_CODE, 21, int)
 
 /*
- * Set your region for tones (see ZT_TONE_ZONE_*)
+ * Set your region for tones (see DAHDI_TONE_ZONE_*)
  */
-#define	ZT_SETTONEZONE		_IOW (ZT_CODE, 22, int)
+#define	DAHDI_SETTONEZONE		_IOW (DAHDI_CODE, 22, int)
 
 /*
- * Retrieve current region for tones (see ZT_TONE_ZONE_*)
+ * Retrieve current region for tones (see DAHDI_TONE_ZONE_*)
  */
-#define	ZT_GETTONEZONE		_IOR (ZT_CODE, 23, int)
+#define	DAHDI_GETTONEZONE		_IOR (DAHDI_CODE, 23, int)
 
 /*
- * Master unit only -- set default zone (see ZT_TONE_ZONE_*)
+ * Master unit only -- set default zone (see DAHDI_TONE_ZONE_*)
  */
-#define	ZT_DEFAULTZONE		_IOW (ZT_CODE, 24, int)
+#define	DAHDI_DEFAULTZONE		_IOW (DAHDI_CODE, 24, int)
 
 /*
- * Load a tone zone from a zt_tone_def_header, see
+ * Load a tone zone from a dahdi_tone_def_header, see
  * below...
  */
-#define ZT_LOADZONE		_IOW (ZT_CODE, 25, struct zt_tone_def_header)
+#define DAHDI_LOADZONE		_IOW (DAHDI_CODE, 25, struct dahdi_tone_def_header)
 
 /*
  * Free a tone zone 
  */
-#define ZT_FREEZONE		_IOW (ZT_CODE, 26, int)
+#define DAHDI_FREEZONE		_IOW (DAHDI_CODE, 26, int)
 
 /*
  * Set buffer policy 
  */
-#define ZT_SET_BUFINFO		_IOW (ZT_CODE, 27, struct zt_bufferinfo)
+#define DAHDI_SET_BUFINFO		_IOW (DAHDI_CODE, 27, struct dahdi_bufferinfo)
 
 /*
  * Get current buffer info
  */
-#define ZT_GET_BUFINFO		_IOR (ZT_CODE, 28, struct zt_bufferinfo)
+#define DAHDI_GET_BUFINFO		_IOR (DAHDI_CODE, 28, struct dahdi_bufferinfo)
 
 /*
  * Get dialing parameters
  */
-#define ZT_GET_DIALPARAMS	_IOR (ZT_CODE, 29, struct zt_dialparams)
+#define DAHDI_GET_DIALPARAMS	_IOR (DAHDI_CODE, 29, struct dahdi_dialparams)
 
 /*
  * Set dialing parameters
  */
-#define ZT_SET_DIALPARAMS	_IOW (ZT_CODE, 30, struct zt_dialparams)
+#define DAHDI_SET_DIALPARAMS	_IOW (DAHDI_CODE, 30, struct dahdi_dialparams)
 
 /*
  * Append, replace, or cancel a dial string
  */
-#define ZT_DIAL			_IOW (ZT_CODE, 31, struct zt_dialoperation)
+#define DAHDI_DIAL			_IOW (DAHDI_CODE, 31, struct dahdi_dialoperation)
 
 /*
  * Set a clear channel into audio mode
  */
-#define ZT_AUDIOMODE		_IOW (ZT_CODE, 32, int)
+#define DAHDI_AUDIOMODE		_IOW (DAHDI_CODE, 32, int)
 
 /*
  * Enable or disable echo cancellation on a channel 
@@ -602,18 +602,18 @@ struct zt_hwgain{
  * The structure contains parameters that should be passed to the
  * echo canceler instance for the selected channel.
  */
-#define ZT_ECHOCANCEL		_IOW (ZT_CODE, 33, int)
-#define ZT_ECHOCANCEL_PARAMS	_IOW (ZT_CODE, 33, struct zt_echocanparams)
+#define DAHDI_ECHOCANCEL		_IOW (DAHDI_CODE, 33, int)
+#define DAHDI_ECHOCANCEL_PARAMS	_IOW (DAHDI_CODE, 33, struct dahdi_echocanparams)
 
 /*
  * Return a channel's channel number (useful for the /dev/zap/pseudo type interfaces 
  */
-#define ZT_CHANNO		_IOR (ZT_CODE, 34, int)
+#define DAHDI_CHANNO		_IOR (DAHDI_CODE, 34, int)
 
 /*
  * Return a flag indicating whether channel is currently dialing
  */
-#define ZT_DIALING		_IOR (ZT_CODE, 35, int)
+#define DAHDI_DIALING		_IOR (DAHDI_CODE, 35, int)
 
 /* Numbers 60 to 90 are reserved for private use of low level hardware
    drivers */
@@ -621,120 +621,120 @@ struct zt_hwgain{
 /*
  * Set a clear channel into HDLC w/out FCS checking/calculation mode
  */
-#define ZT_HDLCRAWMODE		_IOW (ZT_CODE, 36, int)
+#define DAHDI_HDLCRAWMODE		_IOW (DAHDI_CODE, 36, int)
 
 /*
  * Set a clear channel into HDLC w/ FCS mode
  */
-#define ZT_HDLCFCSMODE		_IOW (ZT_CODE, 37, int)
+#define DAHDI_HDLCFCSMODE		_IOW (DAHDI_CODE, 37, int)
 
 /* 
  * Specify a channel on /dev/zap/chan -- must be done before any other ioctl's and is only
  * valid on /dev/zap/chan
  */
-#define ZT_SPECIFY		_IOW (ZT_CODE, 38, int)
+#define DAHDI_SPECIFY		_IOW (DAHDI_CODE, 38, int)
 
 /*
  * Temporarily set the law on a channel to 
- * ZT_LAW_DEFAULT, ZT_LAW_ALAW, or ZT_LAW_MULAW.  Is reset on close.  
+ * DAHDI_LAW_DEFAULT, DAHDI_LAW_ALAW, or DAHDI_LAW_MULAW.  Is reset on close.  
  */
-#define ZT_SETLAW		_IOW (ZT_CODE, 39, int)
+#define DAHDI_SETLAW		_IOW (DAHDI_CODE, 39, int)
 
 /*
  * Temporarily set the channel to operate in linear mode when non-zero
  * or default law if 0
  */
-#define ZT_SETLINEAR		_IOW (ZT_CODE, 40, int)
+#define DAHDI_SETLINEAR		_IOW (DAHDI_CODE, 40, int)
 
 /*
  * Set a clear channel into HDLC w/ PPP interface mode
  */
-#define ZT_HDLCPPP		_IOW (ZT_CODE, 41, int)
+#define DAHDI_HDLCPPP		_IOW (DAHDI_CODE, 41, int)
 
 /*
  * Set the ring cadence for FXS interfaces
  */
-#define ZT_SETCADENCE		_IOW (ZT_CODE, 42, struct zt_ring_cadence)
+#define DAHDI_SETCADENCE		_IOW (DAHDI_CODE, 42, struct dahdi_ring_cadence)
 
 /*
  * Set the bits going out for CAS interface
  */
-#define ZT_SETTXBITS			_IOW (ZT_CODE, 43, int)
+#define DAHDI_SETTXBITS			_IOW (DAHDI_CODE, 43, int)
 
 
 /*
  * Display Channel Diagnostic Information on Console
  */
-#define ZT_CHANDIAG		_IOR (ZT_CODE, 44, int) 
+#define DAHDI_CHANDIAG		_IOR (DAHDI_CODE, 44, int) 
 
 /* 
  * Obtain received signalling
  */
-#define ZT_GETRXBITS _IOR (ZT_CODE, 45, int)
+#define DAHDI_GETRXBITS _IOR (DAHDI_CODE, 45, int)
 
 /*
  * Set Channel's SF Tone Configuration
  */
-#define	ZT_SFCONFIG		_IOW (ZT_CODE, 46, struct zt_sfconfig)
+#define	DAHDI_SFCONFIG		_IOW (DAHDI_CODE, 46, struct dahdi_sfconfig)
 
 /*
  * Set timer expiration (in samples)
  */
-#define ZT_TIMERCONFIG	_IOW (ZT_CODE, 47, int)
+#define DAHDI_TIMERCONFIG	_IOW (DAHDI_CODE, 47, int)
 
 /*
  * Acknowledge timer expiration (number to acknowledge, or -1 for all)
  */
-#define ZT_TIMERACK _IOW (ZT_CODE, 48, int)
+#define DAHDI_TIMERACK _IOW (DAHDI_CODE, 48, int)
 
 /*
  * Get Conference to mute mode
  */
-#define	ZT_GETCONFMUTE		_IOR (ZT_CODE, 49, int)
+#define	DAHDI_GETCONFMUTE		_IOR (DAHDI_CODE, 49, int)
 
 /*
  * Request echo training in some number of ms (with muting in the mean time)
  */
-#define	ZT_ECHOTRAIN		_IOW (ZT_CODE, 50, int)
+#define	DAHDI_ECHOTRAIN		_IOW (DAHDI_CODE, 50, int)
 
 /*
  * Set on hook transfer for n number of ms -- implemnted by low level driver
  */
-#define	ZT_ONHOOKTRANSFER		_IOW (ZT_CODE, 51, int)
+#define	DAHDI_ONHOOKTRANSFER		_IOW (DAHDI_CODE, 51, int)
 
 /*
  * Queue Ping
  */
-#define ZT_TIMERPING _IOW (ZT_CODE, 42, int) /* Should be 52, but works */
+#define DAHDI_TIMERPING _IOW (DAHDI_CODE, 42, int) /* Should be 52, but works */
 
 /*
  * Acknowledge ping
  */
-#define ZT_TIMERPONG _IOW (ZT_CODE, 53, int)
+#define DAHDI_TIMERPONG _IOW (DAHDI_CODE, 53, int)
 
 /*
  * Set/get signalling freeze
  */
-#define ZT_SIGFREEZE _IOW (ZT_CODE, 54, int)
-#define ZT_GETSIGFREEZE _IOR (ZT_CODE, 55, int)
+#define DAHDI_SIGFREEZE _IOW (DAHDI_CODE, 54, int)
+#define DAHDI_GETSIGFREEZE _IOR (DAHDI_CODE, 55, int)
 
 /*
  * Do a channel IOCTL from the /dev/zap/ctl interface
  */
-#define ZT_INDIRECT _IOWR (ZT_CODE, 56, struct zt_indirect_data)
+#define DAHDI_INDIRECT _IOWR (DAHDI_CODE, 56, struct dahdi_indirect_data)
 
 
 /*
  * Get the version of Zaptel that is running, and a description
  * of the compiled-in echo canceller (if any)
  */
-#define ZT_GETVERSION _IOR(ZT_CODE, 57, struct zt_versioninfo)
+#define DAHDI_GETVERSION _IOR(DAHDI_CODE, 57, struct dahdi_versioninfo)
 
 /*
  * Put the channel in loopback mode (receive from the channel is
  * transmitted back on the interface)
  */
-#define ZT_LOOPBACK _IOW(ZT_CODE, 58, int)
+#define DAHDI_LOOPBACK _IOW(DAHDI_CODE, 58, int)
 
 
 /*
@@ -745,233 +745,233 @@ struct zt_hwgain{
 /*
  * Create a dynamic span
  */
-#define ZT_DYNAMIC_CREATE	_IOWR (ZT_CODE, 80, struct zt_dynamic_span)
+#define DAHDI_DYNAMIC_CREATE	_IOWR (DAHDI_CODE, 80, struct dahdi_dynamic_span)
 
 /* 
  * Destroy a dynamic span 
  */
-#define ZT_DYNAMIC_DESTROY	_IOW (ZT_CODE, 81, struct zt_dynamic_span)
+#define DAHDI_DYNAMIC_DESTROY	_IOW (DAHDI_CODE, 81, struct dahdi_dynamic_span)
 
 /*
  * Set the HW gain for a device
  */
-#define ZT_SET_HWGAIN		_IOW (ZT_CODE, 86, struct zt_hwgain)
+#define DAHDI_SET_HWGAIN		_IOW (DAHDI_CODE, 86, struct dahdi_hwgain)
 
 /*
  * Enable tone detection -- implemented by low level driver
  */
-#define ZT_TONEDETECT		_IOW (ZT_CODE, 91, int)
+#define DAHDI_TONEDETECT		_IOW (DAHDI_CODE, 91, int)
 
 /*
  * Set polarity -- implemented by individual driver.  0 = forward, 1 = reverse
  */
-#define	ZT_SETPOLARITY		_IOW (ZT_CODE, 92, int)
+#define	DAHDI_SETPOLARITY		_IOW (DAHDI_CODE, 92, int)
 
 /*
  * Transcoder operations
  */
-#define ZT_TRANSCODE_OP		_IOWR(ZT_CODE, 93, int)
+#define DAHDI_TRANSCODE_OP		_IOWR(DAHDI_CODE, 93, int)
 
 /*
  * VoiceMail Waiting Indication (WMWI) -- implemented by low-level driver.
  * Value: number of waiting messages (hence 0: switch messages off).
  */
-#define ZT_VMWI			_IOWR(ZT_CODE, 94, int)
+#define DAHDI_VMWI			_IOWR(DAHDI_CODE, 94, int)
 
 /* 
  * Startup or Shutdown a span
  */
-#define ZT_STARTUP		_IOW (ZT_CODE, 99, int)
-#define ZT_SHUTDOWN		_IOW (ZT_CODE, 100, int)
+#define DAHDI_STARTUP		_IOW (DAHDI_CODE, 99, int)
+#define DAHDI_SHUTDOWN		_IOW (DAHDI_CODE, 100, int)
 
-#define ZT_TONE_ZONE_MAX		128
+#define DAHDI_TONE_ZONE_MAX		128
 
-#define ZT_TONE_ZONE_DEFAULT 	-1	/* To restore default */
+#define DAHDI_TONE_ZONE_DEFAULT 	-1	/* To restore default */
 
-#define ZT_TONE_STOP		-1
-#define ZT_TONE_DIALTONE	0
-#define ZT_TONE_BUSY		1
-#define ZT_TONE_RINGTONE	2
-#define ZT_TONE_CONGESTION	3
-#define ZT_TONE_CALLWAIT	4
-#define ZT_TONE_DIALRECALL	5
-#define ZT_TONE_RECORDTONE	6
-#define ZT_TONE_INFO		7
-#define ZT_TONE_CUST1		8
-#define ZT_TONE_CUST2		9
-#define ZT_TONE_STUTTER		10
-#define ZT_TONE_MAX		16
+#define DAHDI_TONE_STOP		-1
+#define DAHDI_TONE_DIALTONE	0
+#define DAHDI_TONE_BUSY		1
+#define DAHDI_TONE_RINGTONE	2
+#define DAHDI_TONE_CONGESTION	3
+#define DAHDI_TONE_CALLWAIT	4
+#define DAHDI_TONE_DIALRECALL	5
+#define DAHDI_TONE_RECORDTONE	6
+#define DAHDI_TONE_INFO		7
+#define DAHDI_TONE_CUST1		8
+#define DAHDI_TONE_CUST2		9
+#define DAHDI_TONE_STUTTER		10
+#define DAHDI_TONE_MAX		16
 
-#define ZT_TONE_DTMF_BASE	64
-#define ZT_TONE_MFR1_BASE	80
-#define ZT_TONE_MFR2_FWD_BASE	96
-#define ZT_TONE_MFR2_REV_BASE	112
-
-enum {
-	ZT_TONE_DTMF_0 = ZT_TONE_DTMF_BASE,
-	ZT_TONE_DTMF_1,
-	ZT_TONE_DTMF_2,
-	ZT_TONE_DTMF_3,
-	ZT_TONE_DTMF_4,
-	ZT_TONE_DTMF_5,
-	ZT_TONE_DTMF_6,
-	ZT_TONE_DTMF_7,
-	ZT_TONE_DTMF_8,
-	ZT_TONE_DTMF_9,
-	ZT_TONE_DTMF_s,
-	ZT_TONE_DTMF_p,
-	ZT_TONE_DTMF_A,
-	ZT_TONE_DTMF_B,
-	ZT_TONE_DTMF_C,
-	ZT_TONE_DTMF_D
-};
-
-#define ZT_TONE_DTMF_MAX ZT_TONE_DTMF_D
+#define DAHDI_TONE_DTMF_BASE	64
+#define DAHDI_TONE_MFR1_BASE	80
+#define DAHDI_TONE_MFR2_FWD_BASE	96
+#define DAHDI_TONE_MFR2_REV_BASE	112
 
 enum {
-	ZT_TONE_MFR1_0 = ZT_TONE_MFR1_BASE,
-	ZT_TONE_MFR1_1,
-	ZT_TONE_MFR1_2,
-	ZT_TONE_MFR1_3,
-	ZT_TONE_MFR1_4,
-	ZT_TONE_MFR1_5,
-	ZT_TONE_MFR1_6,
-	ZT_TONE_MFR1_7,
-	ZT_TONE_MFR1_8,
-	ZT_TONE_MFR1_9,
-	ZT_TONE_MFR1_KP,
-	ZT_TONE_MFR1_ST,
-	ZT_TONE_MFR1_STP,
-	ZT_TONE_MFR1_ST2P,
-	ZT_TONE_MFR1_ST3P,
+	DAHDI_TONE_DTMF_0 = DAHDI_TONE_DTMF_BASE,
+	DAHDI_TONE_DTMF_1,
+	DAHDI_TONE_DTMF_2,
+	DAHDI_TONE_DTMF_3,
+	DAHDI_TONE_DTMF_4,
+	DAHDI_TONE_DTMF_5,
+	DAHDI_TONE_DTMF_6,
+	DAHDI_TONE_DTMF_7,
+	DAHDI_TONE_DTMF_8,
+	DAHDI_TONE_DTMF_9,
+	DAHDI_TONE_DTMF_s,
+	DAHDI_TONE_DTMF_p,
+	DAHDI_TONE_DTMF_A,
+	DAHDI_TONE_DTMF_B,
+	DAHDI_TONE_DTMF_C,
+	DAHDI_TONE_DTMF_D
 };
 
-#define ZT_TONE_MFR1_MAX ZT_TONE_MFR1_ST3P
+#define DAHDI_TONE_DTMF_MAX DAHDI_TONE_DTMF_D
 
 enum {
-	ZT_TONE_MFR2_FWD_1 = ZT_TONE_MFR2_FWD_BASE,
-	ZT_TONE_MFR2_FWD_2,
-	ZT_TONE_MFR2_FWD_3,
-	ZT_TONE_MFR2_FWD_4,
-	ZT_TONE_MFR2_FWD_5,
-	ZT_TONE_MFR2_FWD_6,
-	ZT_TONE_MFR2_FWD_7,
-	ZT_TONE_MFR2_FWD_8,
-	ZT_TONE_MFR2_FWD_9,
-	ZT_TONE_MFR2_FWD_10,
-	ZT_TONE_MFR2_FWD_11,
-	ZT_TONE_MFR2_FWD_12,
-	ZT_TONE_MFR2_FWD_13,
-	ZT_TONE_MFR2_FWD_14,
-	ZT_TONE_MFR2_FWD_15,
+	DAHDI_TONE_MFR1_0 = DAHDI_TONE_MFR1_BASE,
+	DAHDI_TONE_MFR1_1,
+	DAHDI_TONE_MFR1_2,
+	DAHDI_TONE_MFR1_3,
+	DAHDI_TONE_MFR1_4,
+	DAHDI_TONE_MFR1_5,
+	DAHDI_TONE_MFR1_6,
+	DAHDI_TONE_MFR1_7,
+	DAHDI_TONE_MFR1_8,
+	DAHDI_TONE_MFR1_9,
+	DAHDI_TONE_MFR1_KP,
+	DAHDI_TONE_MFR1_ST,
+	DAHDI_TONE_MFR1_STP,
+	DAHDI_TONE_MFR1_ST2P,
+	DAHDI_TONE_MFR1_ST3P,
 };
 
-#define ZT_TONE_MFR2_FWD_MAX ZT_TONE_MFR2_FWD_15
+#define DAHDI_TONE_MFR1_MAX DAHDI_TONE_MFR1_ST3P
 
 enum {
-	ZT_TONE_MFR2_REV_1 = ZT_TONE_MFR2_REV_BASE,
-	ZT_TONE_MFR2_REV_2,
-	ZT_TONE_MFR2_REV_3,
-	ZT_TONE_MFR2_REV_4,
-	ZT_TONE_MFR2_REV_5,
-	ZT_TONE_MFR2_REV_6,
-	ZT_TONE_MFR2_REV_7,
-	ZT_TONE_MFR2_REV_8,
-	ZT_TONE_MFR2_REV_9,
-	ZT_TONE_MFR2_REV_10,
-	ZT_TONE_MFR2_REV_11,
-	ZT_TONE_MFR2_REV_12,
-	ZT_TONE_MFR2_REV_13,
-	ZT_TONE_MFR2_REV_14,
-	ZT_TONE_MFR2_REV_15,
+	DAHDI_TONE_MFR2_FWD_1 = DAHDI_TONE_MFR2_FWD_BASE,
+	DAHDI_TONE_MFR2_FWD_2,
+	DAHDI_TONE_MFR2_FWD_3,
+	DAHDI_TONE_MFR2_FWD_4,
+	DAHDI_TONE_MFR2_FWD_5,
+	DAHDI_TONE_MFR2_FWD_6,
+	DAHDI_TONE_MFR2_FWD_7,
+	DAHDI_TONE_MFR2_FWD_8,
+	DAHDI_TONE_MFR2_FWD_9,
+	DAHDI_TONE_MFR2_FWD_10,
+	DAHDI_TONE_MFR2_FWD_11,
+	DAHDI_TONE_MFR2_FWD_12,
+	DAHDI_TONE_MFR2_FWD_13,
+	DAHDI_TONE_MFR2_FWD_14,
+	DAHDI_TONE_MFR2_FWD_15,
 };
 
-#define ZT_TONE_MFR2_REV_MAX ZT_TONE_MFR2_REV_15
+#define DAHDI_TONE_MFR2_FWD_MAX DAHDI_TONE_MFR2_FWD_15
 
-#define ZT_MAX_CADENCE		16
+enum {
+	DAHDI_TONE_MFR2_REV_1 = DAHDI_TONE_MFR2_REV_BASE,
+	DAHDI_TONE_MFR2_REV_2,
+	DAHDI_TONE_MFR2_REV_3,
+	DAHDI_TONE_MFR2_REV_4,
+	DAHDI_TONE_MFR2_REV_5,
+	DAHDI_TONE_MFR2_REV_6,
+	DAHDI_TONE_MFR2_REV_7,
+	DAHDI_TONE_MFR2_REV_8,
+	DAHDI_TONE_MFR2_REV_9,
+	DAHDI_TONE_MFR2_REV_10,
+	DAHDI_TONE_MFR2_REV_11,
+	DAHDI_TONE_MFR2_REV_12,
+	DAHDI_TONE_MFR2_REV_13,
+	DAHDI_TONE_MFR2_REV_14,
+	DAHDI_TONE_MFR2_REV_15,
+};
 
-#define ZT_TONEDETECT_ON	(1 << 0)		/* Detect tones */
-#define ZT_TONEDETECT_MUTE	(1 << 1)		/* Mute audio in received channel */
+#define DAHDI_TONE_MFR2_REV_MAX DAHDI_TONE_MFR2_REV_15
 
-#define ZT_TRANSCODE_MAGIC 0x74a9c0de
+#define DAHDI_MAX_CADENCE		16
+
+#define DAHDI_TONEDETECT_ON	(1 << 0)		/* Detect tones */
+#define DAHDI_TONEDETECT_MUTE	(1 << 1)		/* Mute audio in received channel */
+
+#define DAHDI_TRANSCODE_MAGIC 0x74a9c0de
 
 /* Operations */
-#define ZT_TCOP_ALLOCATE	1			/* Allocate/reset DTE channel */
-#define ZT_TCOP_TRANSCODE	2			/* Begin transcoding a block */
-#define ZT_TCOP_GETINFO		3			/* Get information (use zt_transcode_info) */
-#define ZT_TCOP_RELEASE         4                       /* Release DTE channel */
-#define ZT_TCOP_TEST            5                       /* test DTE device */
-typedef struct zt_transcode_info {
+#define DAHDI_TCOP_ALLOCATE	1			/* Allocate/reset DTE channel */
+#define DAHDI_TCOP_TRANSCODE	2			/* Begin transcoding a block */
+#define DAHDI_TCOP_GETINFO		3			/* Get information (use dahdi_transcode_info) */
+#define DAHDI_TCOP_RELEASE         4                       /* Release DTE channel */
+#define DAHDI_TCOP_TEST            5                       /* test DTE device */
+typedef struct dahdi_transcode_info {
 	unsigned int op;
 	unsigned int tcnum;
 	char name[80];
 	int numchannels;
 	unsigned int srcfmts;
 	unsigned int dstfmts;
-} ZT_TRANSCODE_INFO;
+} DAHDI_TRANSCODE_INFO;
 
-#define ZT_TCCONF_USETS		(1 << 0)		/* Use/update timestamp field */
-#define ZT_TCCONF_USESEQ	(1 << 1)		/* Use/update seqno field */
+#define DAHDI_TCCONF_USETS		(1 << 0)		/* Use/update timestamp field */
+#define DAHDI_TCCONF_USESEQ	(1 << 1)		/* Use/update seqno field */
 
-#define ZT_TCSTAT_DSTRDY	(1 << 0)		/* Destination data is ready */
-#define ZT_TCSTAT_DSTBUSY	(1 << 1)		/* Destination data is outstanding */
+#define DAHDI_TCSTAT_DSTRDY	(1 << 0)		/* Destination data is ready */
+#define DAHDI_TCSTAT_DSTBUSY	(1 << 1)		/* Destination data is outstanding */
 
-#define __ZT_TRANSCODE_BUFSIZ	16384
-#define ZT_TRANSCODE_HDRLEN	256
-#define ZT_TRANSCODE_BUFSIZ	((__ZT_TRANSCODE_BUFSIZ) - (ZT_TRANSCODE_HDRLEN))
-#define ZT_TRANSCODE_DSTOFFSET	(((ZT_TRANSCODE_BUFSIZ) / 2) + ZT_TRANSCODE_HDRLEN)
-#define ZT_TRANSCODE_SRCOFFSET	(((ZT_TRANSCODE_BUFSIZ) / 2) + ZT_TRANSCODE_HDRLEN)
+#define __DAHDI_TRANSCODE_BUFSIZ	16384
+#define DAHDI_TRANSCODE_HDRLEN	256
+#define DAHDI_TRANSCODE_BUFSIZ	((__DAHDI_TRANSCODE_BUFSIZ) - (DAHDI_TRANSCODE_HDRLEN))
+#define DAHDI_TRANSCODE_DSTOFFSET	(((DAHDI_TRANSCODE_BUFSIZ) / 2) + DAHDI_TRANSCODE_HDRLEN)
+#define DAHDI_TRANSCODE_SRCOFFSET	(((DAHDI_TRANSCODE_BUFSIZ) / 2) + DAHDI_TRANSCODE_HDRLEN)
 
-typedef struct zt_transcode_header {
+typedef struct dahdi_transcode_header {
 	unsigned int srcfmt;		/* See formats.h -- use TCOP_RESET when you change */
 	unsigned int srcoffset; 	/* In bytes -- written by user */
 	unsigned int srclen;		/* In bytes -- written by user */
-	unsigned int srctimestamp;	/* In samples -- written by user (only used if ZT_TCCONF_USETS is set) */
-	unsigned int srcseqno;		/* In units -- written by user (only used if ZT_TCCONF_USESEQ is set) */
+	unsigned int srctimestamp;	/* In samples -- written by user (only used if DAHDI_TCCONF_USETS is set) */
+	unsigned int srcseqno;		/* In units -- written by user (only used if DAHDI_TCCONF_USESEQ is set) */
 
 	unsigned int dstfmt;		/* See formats.h -- use TCOP_RESET when you change */
 	unsigned int dstoffset;  	/* In bytes -- written by user */
 	unsigned int dsttimestamp;	/* In samples -- read by user */
-	unsigned int dstseqno;		/* In units -- read by user (only used if ZT_TCCONF_USESEQ is set) */
+	unsigned int dstseqno;		/* In units -- read by user (only used if DAHDI_TCCONF_USESEQ is set) */
 	unsigned int dstlen;  		/* In bytes -- read by user */
 	unsigned int dstsamples;	/* In timestamp units -- read by user */
 
-	unsigned int magic;		/* Magic value -- ZT_TRANSCODE_MAGIC, read by user */
+	unsigned int magic;		/* Magic value -- DAHDI_TRANSCODE_MAGIC, read by user */
 	unsigned int config;		/* Read/write by user */
 	unsigned int status;		/* Read/write by user */
-	unsigned char userhdr[ZT_TRANSCODE_HDRLEN - (sizeof(unsigned int) * 14)];	/* Storage for user parameters */
-	unsigned char srcdata[ZT_TRANSCODE_BUFSIZ / 2];	/* Storage of source data */
-	unsigned char dstdata[ZT_TRANSCODE_BUFSIZ / 2];	/* Storage of destination data */
-} ZT_TRANSCODE_HEADER;
+	unsigned char userhdr[DAHDI_TRANSCODE_HDRLEN - (sizeof(unsigned int) * 14)];	/* Storage for user parameters */
+	unsigned char srcdata[DAHDI_TRANSCODE_BUFSIZ / 2];	/* Storage of source data */
+	unsigned char dstdata[DAHDI_TRANSCODE_BUFSIZ / 2];	/* Storage of destination data */
+} DAHDI_TRANSCODE_HEADER;
 
-struct zt_ring_cadence {
-	int ringcadence[ZT_MAX_CADENCE];
+struct dahdi_ring_cadence {
+	int ringcadence[DAHDI_MAX_CADENCE];
 };
 
-#define ZT_MAX_ECHOCANPARAMS 8
+#define DAHDI_MAX_ECHOCANPARAMS 8
 
-struct zt_echocanparam {
+struct dahdi_echocanparam {
 	char name[16];
         __s32 value;
 };
 
-struct zt_echocanparams {
+struct dahdi_echocanparams {
 	__u32 tap_length;		/* 8 taps per millisecond */
 	__u32 param_count;		/* number of parameters supplied */
-	/* immediately follow this structure with zt_echocanparam structures */
-	struct zt_echocanparam params[0];
+	/* immediately follow this structure with dahdi_echocanparam structures */
+	struct dahdi_echocanparam params[0];
 };
 
-struct zt_tone_def_header {
+struct dahdi_tone_def_header {
 	int count;		/* How many samples follow */
 	int zone;		/* Which zone we are loading */
-	int ringcadence[ZT_MAX_CADENCE];	/* Ring cadence in ms (0=on, 1=off, ends with 0 value) */
+	int ringcadence[DAHDI_MAX_CADENCE];	/* Ring cadence in ms (0=on, 1=off, ends with 0 value) */
 	char name[40];		/* Informational name of zone */
-	/* Immediately follow the zt_tone_def_header by zt_tone_def's */
+	/* Immediately follow the dahdi_tone_def_header by dahdi_tone_def's */
 };
 
-struct zt_tone_def {		/* Structure for zone programming */
-	int tone;		/* See ZT_TONE_* */
+struct dahdi_tone_def {		/* Structure for zone programming */
+	int tone;		/* See DAHDI_TONE_* */
 	int next;		/* What the next position in the cadence is
 				   (They're numbered by the order the appear here) */
 	int samples;		/* How many samples to play for this cadence */
@@ -1009,234 +1009,234 @@ struct zt_tone_def {		/* Structure for zone programming */
 #endif /* KERNEL */
 
 /* Define the maximum block size */
-#define	ZT_MAX_BLOCKSIZE	8192
+#define	DAHDI_MAX_BLOCKSIZE	8192
 
 /* Define the default network block size */
-#define ZT_DEFAULT_MTU_MRU	2048
+#define DAHDI_DEFAULT_MTU_MRU	2048
 
 /* Flush and stop the read (input) process */
-#define	ZT_FLUSH_READ		1
+#define	DAHDI_FLUSH_READ		1
 
 /* Flush and stop the write (output) process */
-#define	ZT_FLUSH_WRITE		2
+#define	DAHDI_FLUSH_WRITE		2
 
 /* Flush and stop both (input and output) processes */
-#define	ZT_FLUSH_BOTH		(ZT_FLUSH_READ | ZT_FLUSH_WRITE)
+#define	DAHDI_FLUSH_BOTH		(DAHDI_FLUSH_READ | DAHDI_FLUSH_WRITE)
 
 /* Flush the event queue */
-#define	ZT_FLUSH_EVENT		4
+#define	DAHDI_FLUSH_EVENT		4
 
 /* Flush everything */
-#define	ZT_FLUSH_ALL		(ZT_FLUSH_READ | ZT_FLUSH_WRITE | ZT_FLUSH_EVENT)
+#define	DAHDI_FLUSH_ALL		(DAHDI_FLUSH_READ | DAHDI_FLUSH_WRITE | DAHDI_FLUSH_EVENT)
 
 
-/* Value for ZT_HOOK, set to ON hook */
-#define	ZT_ONHOOK	0
+/* Value for DAHDI_HOOK, set to ON hook */
+#define	DAHDI_ONHOOK	0
 
-/* Value for ZT_HOOK, set to OFF hook */
-#define	ZT_OFFHOOK	1
+/* Value for DAHDI_HOOK, set to OFF hook */
+#define	DAHDI_OFFHOOK	1
 
-/* Value for ZT_HOOK, wink (off hook momentarily) */
-#define	ZT_WINK		2
+/* Value for DAHDI_HOOK, wink (off hook momentarily) */
+#define	DAHDI_WINK		2
 
-/* Value for ZT_HOOK, flash (on hook momentarily) */
-#define	ZT_FLASH	3
+/* Value for DAHDI_HOOK, flash (on hook momentarily) */
+#define	DAHDI_FLASH	3
 
-/* Value for ZT_HOOK, start line */
-#define	ZT_START	4
+/* Value for DAHDI_HOOK, start line */
+#define	DAHDI_START	4
 
-/* Value for ZT_HOOK, ring line (same as start line) */
-#define	ZT_RING		5
+/* Value for DAHDI_HOOK, ring line (same as start line) */
+#define	DAHDI_RING		5
 
-/* Value for ZT_HOOK, turn ringer off */
-#define ZT_RINGOFF  6
+/* Value for DAHDI_HOOK, turn ringer off */
+#define DAHDI_RINGOFF  6
 
 /* Ret. Value for GET/WAIT Event, no event */
-#define	ZT_EVENT_NONE	0
+#define	DAHDI_EVENT_NONE	0
 
 /* Ret. Value for GET/WAIT Event, Went Onhook */
-#define	ZT_EVENT_ONHOOK 1
+#define	DAHDI_EVENT_ONHOOK 1
 
 /* Ret. Value for GET/WAIT Event, Went Offhook or got Ring */
-#define	ZT_EVENT_RINGOFFHOOK 2
+#define	DAHDI_EVENT_RINGOFFHOOK 2
 
 /* Ret. Value for GET/WAIT Event, Got Wink or Flash */
-#define	ZT_EVENT_WINKFLASH 3
+#define	DAHDI_EVENT_WINKFLASH 3
 
 /* Ret. Value for GET/WAIT Event, Got Alarm */
-#define	ZT_EVENT_ALARM	4
+#define	DAHDI_EVENT_ALARM	4
 
 /* Ret. Value for GET/WAIT Event, Got No Alarm (after alarm) */
-#define	ZT_EVENT_NOALARM 5
+#define	DAHDI_EVENT_NOALARM 5
 
 /* Ret. Value for GET/WAIT Event, HDLC Abort frame */
-#define ZT_EVENT_ABORT 6
+#define DAHDI_EVENT_ABORT 6
 
 /* Ret. Value for GET/WAIT Event, HDLC Frame overrun */
-#define ZT_EVENT_OVERRUN 7
+#define DAHDI_EVENT_OVERRUN 7
 
 /* Ret. Value for GET/WAIT Event, Bad FCS */
-#define ZT_EVENT_BADFCS 8
+#define DAHDI_EVENT_BADFCS 8
 
 /* Ret. Value for dial complete */
-#define ZT_EVENT_DIALCOMPLETE	9
+#define DAHDI_EVENT_DIALCOMPLETE	9
 
 /* Ret Value for ringer going on */
-#define ZT_EVENT_RINGERON 10
+#define DAHDI_EVENT_RINGERON 10
 
 /* Ret Value for ringer going off */
-#define ZT_EVENT_RINGEROFF 11
+#define DAHDI_EVENT_RINGEROFF 11
 
 /* Ret Value for hook change complete */
-#define ZT_EVENT_HOOKCOMPLETE 12
+#define DAHDI_EVENT_HOOKCOMPLETE 12
 
 /* Ret Value for bits changing on a CAS / User channel */
-#define ZT_EVENT_BITSCHANGED 13
+#define DAHDI_EVENT_BITSCHANGED 13
 
 /* Ret value for the beginning of a pulse coming on its way */
-#define ZT_EVENT_PULSE_START 14
+#define DAHDI_EVENT_PULSE_START 14
 
 /* Timer event -- timer expired */
-#define ZT_EVENT_TIMER_EXPIRED	15
+#define DAHDI_EVENT_TIMER_EXPIRED	15
 
 /* Timer event -- ping ready */
-#define ZT_EVENT_TIMER_PING		16
+#define DAHDI_EVENT_TIMER_PING		16
 
 /* Polarity reversal event */
-#define ZT_EVENT_POLARITY  17
+#define DAHDI_EVENT_POLARITY  17
 
 /* Ring Begin event */
-#define ZT_EVENT_RINGBEGIN  18
+#define DAHDI_EVENT_RINGBEGIN  18
 
 /* Echo can disabled event */
-#define ZT_EVENT_EC_DISABLED 19
+#define DAHDI_EVENT_EC_DISABLED 19
 
 /* Channel was disconnected. Hint user to close channel */
-#define ZT_EVENT_REMOVED   20
+#define DAHDI_EVENT_REMOVED   20
 
 /* A neon MWI pulse was detected */
-#define ZT_EVENT_NEONMWI_ACTIVE   21
+#define DAHDI_EVENT_NEONMWI_ACTIVE   21
 
 /* No neon MWI pulses were detected over some period of time */
-#define ZT_EVENT_NEONMWI_INACTIVE   22
+#define DAHDI_EVENT_NEONMWI_INACTIVE   22
 
-#define ZT_EVENT_PULSEDIGIT (1 << 16)	/* This is OR'd with the digit received */
-#define ZT_EVENT_DTMFDOWN  (1 << 17)	/* Ditto for DTMF key down event */
-#define ZT_EVENT_DTMFUP (1 << 18)	/* Ditto for DTMF key up event */
+#define DAHDI_EVENT_PULSEDIGIT (1 << 16)	/* This is OR'd with the digit received */
+#define DAHDI_EVENT_DTMFDOWN  (1 << 17)	/* Ditto for DTMF key down event */
+#define DAHDI_EVENT_DTMFUP (1 << 18)	/* Ditto for DTMF key up event */
 
 /* Flag Value for IOMUX, read avail */
-#define	ZT_IOMUX_READ	1
+#define	DAHDI_IOMUX_READ	1
 
 /* Flag Value for IOMUX, write avail */
-#define	ZT_IOMUX_WRITE	2
+#define	DAHDI_IOMUX_WRITE	2
 
 /* Flag Value for IOMUX, write done */
-#define	ZT_IOMUX_WRITEEMPTY	4
+#define	DAHDI_IOMUX_WRITEEMPTY	4
 
 /* Flag Value for IOMUX, signalling event avail */
-#define	ZT_IOMUX_SIGEVENT	8
+#define	DAHDI_IOMUX_SIGEVENT	8
 
 /* Flag Value for IOMUX, Do Not Wait if nothing to report */
-#define	ZT_IOMUX_NOWAIT	0x100
+#define	DAHDI_IOMUX_NOWAIT	0x100
 
 /* Alarm Condition bits */
-#define	ZT_ALARM_NONE		0	/* No alarms */
-#define	ZT_ALARM_RECOVER	1	/* Recovering from alarm */
-#define	ZT_ALARM_LOOPBACK	2	/* In loopback */
-#define	ZT_ALARM_YELLOW		4	/* Yellow Alarm */
-#define	ZT_ALARM_RED		8	/* Red Alarm */
-#define	ZT_ALARM_BLUE		16	/* Blue Alarm */
-#define ZT_ALARM_NOTOPEN	32
+#define	DAHDI_ALARM_NONE		0	/* No alarms */
+#define	DAHDI_ALARM_RECOVER	1	/* Recovering from alarm */
+#define	DAHDI_ALARM_LOOPBACK	2	/* In loopback */
+#define	DAHDI_ALARM_YELLOW		4	/* Yellow Alarm */
+#define	DAHDI_ALARM_RED		8	/* Red Alarm */
+#define	DAHDI_ALARM_BLUE		16	/* Blue Alarm */
+#define DAHDI_ALARM_NOTOPEN	32
 /* Maintenance modes */
-#define	ZT_MAINT_NONE		0	/* Normal Mode */
-#define	ZT_MAINT_LOCALLOOP	1	/* Local Loopback */
-#define	ZT_MAINT_REMOTELOOP	2	/* Remote Loopback */
-#define	ZT_MAINT_LOOPUP	3	/* send loopup code */
-#define	ZT_MAINT_LOOPDOWN	4	/* send loopdown code */
-#define	ZT_MAINT_LOOPSTOP	5	/* stop sending loop codes */
+#define	DAHDI_MAINT_NONE		0	/* Normal Mode */
+#define	DAHDI_MAINT_LOCALLOOP	1	/* Local Loopback */
+#define	DAHDI_MAINT_REMOTELOOP	2	/* Remote Loopback */
+#define	DAHDI_MAINT_LOOPUP	3	/* send loopup code */
+#define	DAHDI_MAINT_LOOPDOWN	4	/* send loopdown code */
+#define	DAHDI_MAINT_LOOPSTOP	5	/* stop sending loop codes */
 
 
 /* Conference modes */
-#define	ZT_CONF_MODE_MASK 0xff		/* mask for modes */
-#define	ZT_CONF_NORMAL	0		/* normal mode */
-#define	ZT_CONF_MONITOR 1		/* monitor mode (rx of other chan) */
-#define	ZT_CONF_MONITORTX 2		/* monitor mode (tx of other chan) */
-#define	ZT_CONF_MONITORBOTH 3		/* monitor mode (rx & tx of other chan) */
-#define	ZT_CONF_CONF 4			/* conference mode */
-#define	ZT_CONF_CONFANN 5		/* conference announce mode */
-#define	ZT_CONF_CONFMON 6		/* conference monitor mode */
-#define	ZT_CONF_CONFANNMON 7		/* conference announce/monitor mode */
-#define	ZT_CONF_REALANDPSEUDO 8	/* real and pseudo port both on conf */
-#define ZT_CONF_DIGITALMON 9	/* Do not decode or interpret */
-#define	ZT_CONF_MONITOR_RX_PREECHO 10	/* monitor mode (rx of other chan) - before echo can is done */
-#define	ZT_CONF_MONITOR_TX_PREECHO 11	/* monitor mode (tx of other chan) - before echo can is done */
-#define	ZT_CONF_MONITORBOTH_PREECHO 12	/* monitor mode (rx & tx of other chan) - before echo can is done */
-#define	ZT_CONF_FLAG_MASK 0xff00	/* mask for flags */
-#define	ZT_CONF_LISTENER 0x100		/* is a listener on the conference */
-#define	ZT_CONF_TALKER 0x200		/* is a talker on the conference */
-#define	ZT_CONF_PSEUDO_LISTENER 0x400	/* pseudo is a listener on the conference */
-#define	ZT_CONF_PSEUDO_TALKER 0x800	/* pseudo is a talker on the conference */
+#define	DAHDI_CONF_MODE_MASK 0xff		/* mask for modes */
+#define	DAHDI_CONF_NORMAL	0		/* normal mode */
+#define	DAHDI_CONF_MONITOR 1		/* monitor mode (rx of other chan) */
+#define	DAHDI_CONF_MONITORTX 2		/* monitor mode (tx of other chan) */
+#define	DAHDI_CONF_MONITORBOTH 3		/* monitor mode (rx & tx of other chan) */
+#define	DAHDI_CONF_CONF 4			/* conference mode */
+#define	DAHDI_CONF_CONFANN 5		/* conference announce mode */
+#define	DAHDI_CONF_CONFMON 6		/* conference monitor mode */
+#define	DAHDI_CONF_CONFANNMON 7		/* conference announce/monitor mode */
+#define	DAHDI_CONF_REALANDPSEUDO 8	/* real and pseudo port both on conf */
+#define DAHDI_CONF_DIGITALMON 9	/* Do not decode or interpret */
+#define	DAHDI_CONF_MONITOR_RX_PREECHO 10	/* monitor mode (rx of other chan) - before echo can is done */
+#define	DAHDI_CONF_MONITOR_TX_PREECHO 11	/* monitor mode (tx of other chan) - before echo can is done */
+#define	DAHDI_CONF_MONITORBOTH_PREECHO 12	/* monitor mode (rx & tx of other chan) - before echo can is done */
+#define	DAHDI_CONF_FLAG_MASK 0xff00	/* mask for flags */
+#define	DAHDI_CONF_LISTENER 0x100		/* is a listener on the conference */
+#define	DAHDI_CONF_TALKER 0x200		/* is a talker on the conference */
+#define	DAHDI_CONF_PSEUDO_LISTENER 0x400	/* pseudo is a listener on the conference */
+#define	DAHDI_CONF_PSEUDO_TALKER 0x800	/* pseudo is a talker on the conference */
 
 
-#define	ZT_DEFAULT_WINKTIME	150	/* 150 ms default wink time */
-#define	ZT_DEFAULT_FLASHTIME	750	/* 750 ms default flash time */
+#define	DAHDI_DEFAULT_WINKTIME	150	/* 150 ms default wink time */
+#define	DAHDI_DEFAULT_FLASHTIME	750	/* 750 ms default flash time */
 
-#define	ZT_DEFAULT_PREWINKTIME	50	/* 50 ms before wink */
-#define	ZT_DEFAULT_PREFLASHTIME 50	/* 50 ms before flash */
-#define	ZT_DEFAULT_STARTTIME 1500	/* 1500 ms of start */
-#define	ZT_DEFAULT_RINGTIME 2000	/* 2000 ms of ring on (start, FXO) */
+#define	DAHDI_DEFAULT_PREWINKTIME	50	/* 50 ms before wink */
+#define	DAHDI_DEFAULT_PREFLASHTIME 50	/* 50 ms before flash */
+#define	DAHDI_DEFAULT_STARTTIME 1500	/* 1500 ms of start */
+#define	DAHDI_DEFAULT_RINGTIME 2000	/* 2000 ms of ring on (start, FXO) */
 #if 0
-#define	ZT_DEFAULT_RXWINKTIME 250	/* 250ms longest rx wink */
+#define	DAHDI_DEFAULT_RXWINKTIME 250	/* 250ms longest rx wink */
 #endif
-#define	ZT_DEFAULT_RXWINKTIME 300	/* 300ms longest rx wink (to work with the Atlas) */
-#define	ZT_DEFAULT_RXFLASHTIME 1250	/* 1250ms longest rx flash */
-#define	ZT_DEFAULT_DEBOUNCETIME 600	/* 600ms of FXS GS signalling debounce */
-#define	ZT_DEFAULT_PULSEMAKETIME 50	/* 50 ms of line closed when dial pulsing */
-#define	ZT_DEFAULT_PULSEBREAKTIME 50	/* 50 ms of line open when dial pulsing */
-#define	ZT_DEFAULT_PULSEAFTERTIME 750	/* 750ms between dial pulse digits */
+#define	DAHDI_DEFAULT_RXWINKTIME 300	/* 300ms longest rx wink (to work with the Atlas) */
+#define	DAHDI_DEFAULT_RXFLASHTIME 1250	/* 1250ms longest rx flash */
+#define	DAHDI_DEFAULT_DEBOUNCETIME 600	/* 600ms of FXS GS signalling debounce */
+#define	DAHDI_DEFAULT_PULSEMAKETIME 50	/* 50 ms of line closed when dial pulsing */
+#define	DAHDI_DEFAULT_PULSEBREAKTIME 50	/* 50 ms of line open when dial pulsing */
+#define	DAHDI_DEFAULT_PULSEAFTERTIME 750	/* 750ms between dial pulse digits */
 
-#define	ZT_MINPULSETIME (15 * 8)	/* 15 ms minimum */
+#define	DAHDI_MINPULSETIME (15 * 8)	/* 15 ms minimum */
 
 #ifdef SHORT_FLASH_TIME
-#define	ZT_MAXPULSETIME (80 * 8)	/* we need 80 ms, not 200ms, as we have a short flash */
+#define	DAHDI_MAXPULSETIME (80 * 8)	/* we need 80 ms, not 200ms, as we have a short flash */
 #else
-#define	ZT_MAXPULSETIME (200 * 8)	/* 200 ms maximum */
+#define	DAHDI_MAXPULSETIME (200 * 8)	/* 200 ms maximum */
 #endif
 
-#define	ZT_PULSETIMEOUT ((ZT_MAXPULSETIME / 8) + 50)
+#define	DAHDI_PULSETIMEOUT ((DAHDI_MAXPULSETIME / 8) + 50)
 
-#define ZT_RINGTRAILER (50 * 8)	/* Don't consider a ring "over" until it's been gone at least this
+#define DAHDI_RINGTRAILER (50 * 8)	/* Don't consider a ring "over" until it's been gone at least this
 									   much time */
 
-#define	ZT_LOOPCODE_TIME 10000		/* send loop codes for 10 secs */
-#define	ZT_ALARMSETTLE_TIME	5000	/* allow alarms to settle for 5 secs */
-#define	ZT_AFTERSTART_TIME 500		/* 500ms after start */
+#define	DAHDI_LOOPCODE_TIME 10000		/* send loop codes for 10 secs */
+#define	DAHDI_ALARMSETTLE_TIME	5000	/* allow alarms to settle for 5 secs */
+#define	DAHDI_AFTERSTART_TIME 500		/* 500ms after start */
 
-#define ZT_RINGOFFTIME 4000		/* Turn off ringer for 4000 ms */
-#define	ZT_KEWLTIME 500		/* 500ms for kewl pulse */
-#define	ZT_AFTERKEWLTIME 300    /* 300ms after kewl pulse */
+#define DAHDI_RINGOFFTIME 4000		/* Turn off ringer for 4000 ms */
+#define	DAHDI_KEWLTIME 500		/* 500ms for kewl pulse */
+#define	DAHDI_AFTERKEWLTIME 300    /* 300ms after kewl pulse */
 
-#define ZT_MAX_PRETRAINING   1000	/* 1000ms max pretraining time */
+#define DAHDI_MAX_PRETRAINING   1000	/* 1000ms max pretraining time */
 
-#define ZT_MAX_SPANS		128		/* Max, 128 spans */
-#define ZT_MAX_CHANNELS		1024	/* Max, 1024 channels */
-#define ZT_MAX_CONF			1024	/* Max, 1024 conferences */
+#define DAHDI_MAX_SPANS		128		/* Max, 128 spans */
+#define DAHDI_MAX_CHANNELS		1024	/* Max, 1024 channels */
+#define DAHDI_MAX_CONF			1024	/* Max, 1024 conferences */
 
 #ifdef	FXSFLASH
-#define ZT_FXSFLASHMINTIME	450	/* min 450ms */
-#define ZT_FXSFLASHMAXTIME	550	/* max 550ms */
+#define DAHDI_FXSFLASHMINTIME	450	/* min 450ms */
+#define DAHDI_FXSFLASHMAXTIME	550	/* max 550ms */
 #endif
 
 #ifdef __KERNEL__
 
 #include <linux/poll.h>
 
-#define	ZT_MAX_EVENTSIZE	64	/* 64 events max in buffer */
+#define	DAHDI_MAX_EVENTSIZE	64	/* 64 events max in buffer */
 
-struct zt_span;
-struct zt_chan;
+struct dahdi_span;
+struct dahdi_chan;
 
-struct zt_tone_state {
+struct dahdi_tone_state {
 	int v1_1;
 	int v2_1;
 	int v3_1;
@@ -1246,7 +1246,7 @@ struct zt_tone_state {
 	int modulate;
 };
 
-struct zt_chardev {
+struct dahdi_chardev {
 	const char *name;
 	__u8 minor;
 #ifdef CONFIG_DEVFS_FS
@@ -1254,17 +1254,17 @@ struct zt_chardev {
 #endif
 };
 
-int zt_register_chardev(struct zt_chardev *dev);
-int zt_unregister_chardev(struct zt_chardev *dev);
+int dahdi_register_chardev(struct dahdi_chardev *dev);
+int dahdi_unregister_chardev(struct dahdi_chardev *dev);
 
 #ifdef CONFIG_ZAPATA_NET
-struct zt_hdlc {
+struct dahdi_hdlc {
 #ifdef LINUX26	
 	struct net_device *netdev;
 #else
 	hdlc_device netdev;
 #endif
-	struct zt_chan *chan;
+	struct dahdi_chan *chan;
 };
 #endif
 
@@ -1275,7 +1275,7 @@ struct echo_can_state;
 void echo_can_init(void);
 void echo_chan_shutdown(void);
 void echo_can_identify(char *buf, size_t len);
-int echo_can_create(struct zt_echocanparams *ecp, struct zt_echocanparam *p, struct echo_can_state **ec);
+int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p, struct echo_can_state **ec);
 void echo_can_free(struct echo_can_state *ec);
 short echo_can_update(struct echo_can_state *ec, short iref, short isig);
 void echo_can_array_update(struct echo_can_state *ec, short *iref, short *isig);
@@ -1284,8 +1284,8 @@ int echo_can_traintap(struct echo_can_state *ec, int pos, short val);
 
 /* Conference queue stucture */
 struct confq {
-	u_char buffer[ZT_CHUNKSIZE * ZT_CB_SIZE];
-	u_char *buf[ZT_CB_SIZE];
+	u_char buffer[DAHDI_CHUNKSIZE * DAHDI_CB_SIZE];
+	u_char *buf[DAHDI_CB_SIZE];
 	int inbuf;
 	int outbuf;
 };
@@ -1302,10 +1302,10 @@ typedef struct
 	int	lastdetect;
 } sf_detect_state_t;
 
-struct zt_chan {
+struct dahdi_chan {
 #ifdef CONFIG_ZAPATA_NET
 	/* Must be first */
-	struct zt_hdlc *hdlcnetdev;
+	struct dahdi_hdlc *hdlcnetdev;
 #endif
 #ifdef CONFIG_ZAPATA_PPP
 	struct ppp_channel *ppp;
@@ -1332,14 +1332,14 @@ struct zt_chan {
 	int toneflags;
 	sf_detect_state_t rd;
 
-	struct zt_chan *master;	/* Our Master channel (could be us) */
+	struct dahdi_chan *master;	/* Our Master channel (could be us) */
 	/* Next slave (if appropriate) */
 	int nextslave;
 
 	u_char *writechunk;						/* Actual place to write to */
-	u_char swritechunk[ZT_MAX_CHUNKSIZE];	/* Buffer to be written */
+	u_char swritechunk[DAHDI_MAX_CHUNKSIZE];	/* Buffer to be written */
 	u_char *readchunk;						/* Actual place to read from */
-	u_char sreadchunk[ZT_MAX_CHUNKSIZE];	/* Preallocated static area */
+	u_char sreadchunk[DAHDI_MAX_CHUNKSIZE];	/* Preallocated static area */
 	short *readchunkpreec;
 
 	/* Pointer to tx and rx gain tables */
@@ -1354,19 +1354,19 @@ struct zt_chan {
 	struct file *file;	/* File structure */
 	
 	
-	struct zt_span	*span;			/* Span we're a member of */
+	struct dahdi_span	*span;			/* Span we're a member of */
 	int		sig;			/* Signalling */
 	int		sigcap;			/* Capability for signalling */
 	__u32		chan_alarms;		/* alarms status */
 
 	/* Used only by zaptel -- NO DRIVER SERVICEABLE PARTS BELOW */
 	/* Buffer declarations */
-	u_char		*readbuf[ZT_MAX_NUM_BUFS];	/* read buffer */
+	u_char		*readbuf[DAHDI_MAX_NUM_BUFS];	/* read buffer */
 	int		inreadbuf;
 	int		outreadbuf;
 	wait_queue_head_t readbufq; /* read wait queue */
 
-	u_char		*writebuf[ZT_MAX_NUM_BUFS]; /* write buffers */
+	u_char		*writebuf[DAHDI_MAX_NUM_BUFS]; /* write buffers */
 	int		inwritebuf;
 	int		outwritebuf;
 	wait_queue_head_t writebufq; /* write wait queue */
@@ -1375,15 +1375,15 @@ struct zt_chan {
 
 	int		eventinidx;  /* out index in event buf (circular) */
 	int		eventoutidx;  /* in index in event buf (circular) */
-	unsigned int	eventbuf[ZT_MAX_EVENTSIZE];  /* event circ. buffer */
+	unsigned int	eventbuf[DAHDI_MAX_EVENTSIZE];  /* event circ. buffer */
 	wait_queue_head_t eventbufq; /* event wait queue */
 	
 	wait_queue_head_t txstateq;	/* waiting on the tx state to change */
 	
-	int		readn[ZT_MAX_NUM_BUFS];  /* # of bytes ready in read buf */
-	int		readidx[ZT_MAX_NUM_BUFS];  /* current read pointer */
-	int		writen[ZT_MAX_NUM_BUFS];  /* # of bytes ready in write buf */
-	int		writeidx[ZT_MAX_NUM_BUFS];  /* current write pointer */
+	int		readn[DAHDI_MAX_NUM_BUFS];  /* # of bytes ready in read buf */
+	int		readidx[DAHDI_MAX_NUM_BUFS];  /* current read pointer */
+	int		writen[DAHDI_MAX_NUM_BUFS];  /* # of bytes ready in write buf */
+	int		writeidx[DAHDI_MAX_NUM_BUFS];  /* current write pointer */
 	
 	int		numbufs;			/* How many buffers in channel */
 	int		txbufpolicy;			/* Buffer policy */
@@ -1393,22 +1393,22 @@ struct zt_chan {
 	
 	
 	/* Tone zone stuff */
-	struct zt_zone *curzone;		/* Zone for selecting tones */
+	struct dahdi_zone *curzone;		/* Zone for selecting tones */
 	int 	tonezone;				/* Tone zone for this channel */
-	struct zt_tone *curtone;		/* Current tone we're playing (if any) */
+	struct dahdi_tone *curtone;		/* Current tone we're playing (if any) */
 	int		tonep;					/* Current position in tone */
-	struct zt_tone_state ts;		/* Tone state */
+	struct dahdi_tone_state ts;		/* Tone state */
 
 	/* Pulse dial stuff */
 	int	pdialcount;			/* pulse dial count */
 
 	/* Ring cadence */
-	int ringcadence[ZT_MAX_CADENCE];
+	int ringcadence[DAHDI_MAX_CADENCE];
 	int firstcadencepos;				/* Where to restart ring cadence */
 
 	/* Digit string dialing stuff */
 	int		digitmode;			/* What kind of tones are we sending? */
-	char	txdialbuf[ZT_MAX_DTMF_BUF];
+	char	txdialbuf[DAHDI_MAX_DTMF_BUF];
 	int 	dialing;
 	int	afterdialingtimer;
 	int		cadencepos;				/* Where in the cadence we are */
@@ -1434,14 +1434,14 @@ struct zt_chan {
 	struct confq confin;
 	struct confq confout;
 
-	short	getlin[ZT_MAX_CHUNKSIZE];			/* Last transmitted samples */
-	unsigned char getraw[ZT_MAX_CHUNKSIZE];		/* Last received raw data */
-	short	getlin_lastchunk[ZT_MAX_CHUNKSIZE];	/* Last transmitted samples from last chunk */
-	short	putlin[ZT_MAX_CHUNKSIZE];			/* Last received samples */
-	unsigned char putraw[ZT_MAX_CHUNKSIZE];		/* Last received raw data */
-	short	conflast[ZT_MAX_CHUNKSIZE];			/* Last conference sample -- base part of channel */
-	short	conflast1[ZT_MAX_CHUNKSIZE];		/* Last conference sample  -- pseudo part of channel */
-	short	conflast2[ZT_MAX_CHUNKSIZE];		/* Previous last conference sample -- pseudo part of channel */
+	short	getlin[DAHDI_MAX_CHUNKSIZE];			/* Last transmitted samples */
+	unsigned char getraw[DAHDI_MAX_CHUNKSIZE];		/* Last received raw data */
+	short	getlin_lastchunk[DAHDI_MAX_CHUNKSIZE];	/* Last transmitted samples from last chunk */
+	short	putlin[DAHDI_MAX_CHUNKSIZE];			/* Last received samples */
+	unsigned char putraw[DAHDI_MAX_CHUNKSIZE];		/* Last received raw data */
+	short	conflast[DAHDI_MAX_CHUNKSIZE];			/* Last conference sample -- base part of channel */
+	short	conflast1[DAHDI_MAX_CHUNKSIZE];		/* Last conference sample  -- pseudo part of channel */
+	short	conflast2[DAHDI_MAX_CHUNKSIZE];		/* Previous last conference sample -- pseudo part of channel */
 	
 
 	/* Is echo cancellation enabled or disabled */
@@ -1516,73 +1516,73 @@ struct zt_chan {
 
 /* defines for transmit signalling */
 typedef enum {
-	ZT_TXSIG_ONHOOK,			/* On hook */
-	ZT_TXSIG_OFFHOOK,			/* Off hook */
-	ZT_TXSIG_START,				/* Start / Ring */
-	ZT_TXSIG_KEWL				/* Drop battery if possible */
-} zt_txsig_t;
+	DAHDI_TXSIG_ONHOOK,			/* On hook */
+	DAHDI_TXSIG_OFFHOOK,			/* Off hook */
+	DAHDI_TXSIG_START,				/* Start / Ring */
+	DAHDI_TXSIG_KEWL				/* Drop battery if possible */
+} dahdi_txsig_t;
 
 typedef enum {
-	ZT_RXSIG_ONHOOK,
-	ZT_RXSIG_OFFHOOK,
-	ZT_RXSIG_START,
-	ZT_RXSIG_RING,
-	ZT_RXSIG_INITIAL
-} zt_rxsig_t;
+	DAHDI_RXSIG_ONHOOK,
+	DAHDI_RXSIG_OFFHOOK,
+	DAHDI_RXSIG_START,
+	DAHDI_RXSIG_RING,
+	DAHDI_RXSIG_INITIAL
+} dahdi_rxsig_t;
 	
 /* Span flags */
-#define ZT_FLAG_REGISTERED		(1 << 0)
-#define ZT_FLAG_RUNNING			(1 << 1)
-#define ZT_FLAG_RBS			(1 << 12)	/* Span uses RBS signalling */
+#define DAHDI_FLAG_REGISTERED		(1 << 0)
+#define DAHDI_FLAG_RUNNING			(1 << 1)
+#define DAHDI_FLAG_RBS			(1 << 12)	/* Span uses RBS signalling */
 
 /* Channel flags */
-#define ZT_FLAG_DTMFDECODE		(1 << 2)	/* Channel supports native DTMF decode */
-#define ZT_FLAG_MFDECODE		(1 << 3)	/* Channel supports native MFr2 decode */
-#define ZT_FLAG_ECHOCANCEL		(1 << 4)	/* Channel supports native echo cancellation */
+#define DAHDI_FLAG_DTMFDECODE		(1 << 2)	/* Channel supports native DTMF decode */
+#define DAHDI_FLAG_MFDECODE		(1 << 3)	/* Channel supports native MFr2 decode */
+#define DAHDI_FLAG_ECHOCANCEL		(1 << 4)	/* Channel supports native echo cancellation */
 
-#define ZT_FLAG_HDLC			(1 << 5)	/* Perform HDLC */
-#define ZT_FLAG_NETDEV			(1 << 6)	/* Send to network */
-#define ZT_FLAG_PSEUDO			(1 << 7)	/* Pseudo channel */
-#define ZT_FLAG_CLEAR			(1 << 8)	/* Clear channel */
-#define ZT_FLAG_AUDIO			(1 << 9)	/* Audio mode channel */
+#define DAHDI_FLAG_HDLC			(1 << 5)	/* Perform HDLC */
+#define DAHDI_FLAG_NETDEV			(1 << 6)	/* Send to network */
+#define DAHDI_FLAG_PSEUDO			(1 << 7)	/* Pseudo channel */
+#define DAHDI_FLAG_CLEAR			(1 << 8)	/* Clear channel */
+#define DAHDI_FLAG_AUDIO			(1 << 9)	/* Audio mode channel */
 
-#define ZT_FLAG_OPEN			(1 << 10)	/* Channel is open */
-#define ZT_FLAG_FCS			(1 << 11)	/* Calculate FCS */
+#define DAHDI_FLAG_OPEN			(1 << 10)	/* Channel is open */
+#define DAHDI_FLAG_FCS			(1 << 11)	/* Calculate FCS */
 /* Reserve 12 for uniqueness with span flags */
-#define ZT_FLAG_LINEAR			(1 << 13)	/* Talk to user space in linear */
-#define ZT_FLAG_PPP			(1 << 14)	/* PPP is available */
-#define ZT_FLAG_T1PPP			(1 << 15)
-#define ZT_FLAG_SIGFREEZE		(1 << 16)	/* Freeze signalling */
-#define ZT_FLAG_NOSTDTXRX		(1 << 17)	/* Do NOT do standard transmit and receive on every interrupt */
-#define ZT_FLAG_LOOPED			(1 << 18)	/* Loopback the receive data from the channel to the transmit */
-#define ZT_FLAG_MTP2			(1 << 19)	/* Repeats last message in buffer and also discards repeating messages sent to us */
+#define DAHDI_FLAG_LINEAR			(1 << 13)	/* Talk to user space in linear */
+#define DAHDI_FLAG_PPP			(1 << 14)	/* PPP is available */
+#define DAHDI_FLAG_T1PPP			(1 << 15)
+#define DAHDI_FLAG_SIGFREEZE		(1 << 16)	/* Freeze signalling */
+#define DAHDI_FLAG_NOSTDTXRX		(1 << 17)	/* Do NOT do standard transmit and receive on every interrupt */
+#define DAHDI_FLAG_LOOPED			(1 << 18)	/* Loopback the receive data from the channel to the transmit */
+#define DAHDI_FLAG_MTP2			(1 << 19)	/* Repeats last message in buffer and also discards repeating messages sent to us */
 
 /* This is a redefinition of the flags from above to allow use of the kernel atomic bit testing and changing routines.
- * See the above descriptions for ZT_FLAG_....  for documentation about function. */
+ * See the above descriptions for DAHDI_FLAG_....  for documentation about function. */
 enum {
-	ZT_FLAGBIT_REGISTERED = 0,
-	ZT_FLAGBIT_RUNNING    = 1,
-	ZT_FLAGBIT_RBS	      = 12,
-	ZT_FLAGBIT_DTMFDECODE = 2,
-	ZT_FLAGBIT_MFDECODE   = 3,
-	ZT_FLAGBIT_ECHOCANCEL = 4,
-	ZT_FLAGBIT_HDLC	      = 5,
-	ZT_FLAGBIT_NETDEV     = 6,
-	ZT_FLAGBIT_PSEUDO     = 7,
-	ZT_FLAGBIT_CLEAR      = 8,
-	ZT_FLAGBIT_AUDIO      = 9,
-	ZT_FLAGBIT_OPEN	      = 10,
-	ZT_FLAGBIT_FCS	      = 11,
-	ZT_FLAGBIT_LINEAR     = 13,
-	ZT_FLAGBIT_PPP	      = 14,
-	ZT_FLAGBIT_T1PPP      = 15,
-	ZT_FLAGBIT_SIGFREEZE  = 16,
-	ZT_FLAGBIT_NOSTDTXRX  = 17,
-	ZT_FLAGBIT_LOOPED     = 18,
-	ZT_FLAGBIT_MTP2       = 19,
+	DAHDI_FLAGBIT_REGISTERED = 0,
+	DAHDI_FLAGBIT_RUNNING    = 1,
+	DAHDI_FLAGBIT_RBS	      = 12,
+	DAHDI_FLAGBIT_DTMFDECODE = 2,
+	DAHDI_FLAGBIT_MFDECODE   = 3,
+	DAHDI_FLAGBIT_ECHOCANCEL = 4,
+	DAHDI_FLAGBIT_HDLC	      = 5,
+	DAHDI_FLAGBIT_NETDEV     = 6,
+	DAHDI_FLAGBIT_PSEUDO     = 7,
+	DAHDI_FLAGBIT_CLEAR      = 8,
+	DAHDI_FLAGBIT_AUDIO      = 9,
+	DAHDI_FLAGBIT_OPEN	      = 10,
+	DAHDI_FLAGBIT_FCS	      = 11,
+	DAHDI_FLAGBIT_LINEAR     = 13,
+	DAHDI_FLAGBIT_PPP	      = 14,
+	DAHDI_FLAGBIT_T1PPP      = 15,
+	DAHDI_FLAGBIT_SIGFREEZE  = 16,
+	DAHDI_FLAGBIT_NOSTDTXRX  = 17,
+	DAHDI_FLAGBIT_LOOPED     = 18,
+	DAHDI_FLAGBIT_MTP2       = 19,
 };
 
-struct zt_span {
+struct dahdi_span {
 	spinlock_t lock;
 	void *pvt;			/* Private stuff */
 	char name[40];			/* Span name */
@@ -1591,7 +1591,7 @@ struct zt_span {
 	const char *manufacturer;	/* span's device manufacturer */
 	char devicetype[80];		/* span's device type */
 	char location[40];		/* span device's location in system */
-	int deflaw;			/* Default law (ZT_MULAW or ZT_ALAW) */
+	int deflaw;			/* Default law (DAHDI_MULAW or DAHDI_ALAW) */
 	int alarms;			/* Pending alarms on span */
 	int flags;
 	int irq;			/* IRQ for this span's hardware */
@@ -1615,73 +1615,73 @@ struct zt_span {
 
 	int timingslips;			/* Clock slips */
 
-	struct zt_chan *chans;		/* Member channel structures */
+	struct dahdi_chan *chans;		/* Member channel structures */
 
 	/*   ==== Span Callback Operations ====   */
 	/* Req: Set the requested chunk size.  This is the unit in which you must
 	   report results for conferencing, etc */
-	int (*setchunksize)(struct zt_span *span, int chunksize);
+	int (*setchunksize)(struct dahdi_span *span, int chunksize);
 
 	/* Opt: Configure the span (if appropriate) */
-	int (*spanconfig)(struct zt_span *span, struct zt_lineconfig *lc);
+	int (*spanconfig)(struct dahdi_span *span, struct dahdi_lineconfig *lc);
 	
 	/* Opt: Start the span */
-	int (*startup)(struct zt_span *span);
+	int (*startup)(struct dahdi_span *span);
 	
 	/* Opt: Shutdown the span */
-	int (*shutdown)(struct zt_span *span);
+	int (*shutdown)(struct dahdi_span *span);
 	
 	/* Opt: Enable maintenance modes */
-	int (*maint)(struct zt_span *span, int mode);
+	int (*maint)(struct dahdi_span *span, int mode);
 
 #ifdef	ZAPTEL_SYNC_TICK
 	/* Opt: send sync to spans */
-	int (*sync_tick)(struct zt_span *span, int is_master);
+	int (*sync_tick)(struct dahdi_span *span, int is_master);
 #endif
 
 	/* ====  Channel Callback Operations ==== */
 	/* Opt: Set signalling type (if appropriate) */
-	int (*chanconfig)(struct zt_chan *chan, int sigtype);
+	int (*chanconfig)(struct dahdi_chan *chan, int sigtype);
 
 	/* Opt: Prepare a channel for I/O */
-	int (*open)(struct zt_chan *chan);
+	int (*open)(struct dahdi_chan *chan);
 
 	/* Opt: Close channel for I/O */
-	int (*close)(struct zt_chan *chan);
+	int (*close)(struct dahdi_chan *chan);
 	
 	/* Opt: IOCTL */
-	int (*ioctl)(struct zt_chan *chan, unsigned int cmd, unsigned long data);
+	int (*ioctl)(struct dahdi_chan *chan, unsigned int cmd, unsigned long data);
 	
 	/* Opt: Native echo cancellation (simple) */
-	int (*echocan)(struct zt_chan *chan, int ecval);
+	int (*echocan)(struct dahdi_chan *chan, int ecval);
 
-	int (*echocan_with_params)(struct zt_chan *chan, struct zt_echocanparams *ecp, struct zt_echocanparam *p);
+	int (*echocan_with_params)(struct dahdi_chan *chan, struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p);
 
 	/* Okay, now we get to the signalling.  You have several options: */
 
 	/* Option 1: If you're a T1 like interface, you can just provide a
 	   rbsbits function and we'll assert robbed bits for you.  Be sure to 
-	   set the ZT_FLAG_RBS in this case.  */
+	   set the DAHDI_FLAG_RBS in this case.  */
 
 	/* Opt: If the span uses A/B bits, set them here */
-	int (*rbsbits)(struct zt_chan *chan, int bits);
+	int (*rbsbits)(struct dahdi_chan *chan, int bits);
 	
 	/* Option 2: If you don't know about sig bits, but do have their
 	   equivalents (i.e. you can disconnect battery, detect off hook,
 	   generate ring, etc directly) then you can just specify a
 	   sethook function, and we'll call you with appropriate hook states
-	   to set.  Still set the ZT_FLAG_RBS in this case as well */
-	int (*hooksig)(struct zt_chan *chan, zt_txsig_t hookstate);
+	   to set.  Still set the DAHDI_FLAG_RBS in this case as well */
+	int (*hooksig)(struct dahdi_chan *chan, dahdi_txsig_t hookstate);
 	
 	/* Option 3: If you can't use sig bits, you can write a function
 	   which handles the individual hook states  */
-	int (*sethook)(struct zt_chan *chan, int hookstate);
+	int (*sethook)(struct dahdi_chan *chan, int hookstate);
 	
 	/* Opt: Dacs the contents of chan2 into chan1 if possible */
-	int (*dacs)(struct zt_chan *chan1, struct zt_chan *chan2);
+	int (*dacs)(struct dahdi_chan *chan1, struct dahdi_chan *chan2);
 
 	/* Opt: Used to tell an onboard HDLC controller that there is data ready to transmit */
-	void (*hdlc_hard_xmit)(struct zt_chan *chan);
+	void (*hdlc_hard_xmit)(struct dahdi_chan *chan);
 
 	/* Used by zaptel only -- no user servicable parts inside */
 	int spanno;			/* Span number for zaptel */
@@ -1693,16 +1693,16 @@ struct zt_span {
 #endif	
 	/* If the watchdog detects no received data, it will call the
 	   watchdog routine */
-	int (*watchdog)(struct zt_span *span, int cause);
+	int (*watchdog)(struct dahdi_span *span, int cause);
 #ifdef CONFIG_ZAPTEL_WATCHDOG
 	int watchcounter;
 	int watchstate;
 #endif	
 };
 
-struct zt_transcoder_channel {
+struct dahdi_transcoder_channel {
 	void *pvt;
-	struct zt_transcoder *parent;
+	struct dahdi_transcoder *parent;
 	wait_queue_head_t ready;
 	int errorstatus;
 	int offset;
@@ -1711,35 +1711,35 @@ struct zt_transcoder_channel {
 	unsigned int flags;
 	unsigned int srcfmt;
 	unsigned int dstfmt;
-	struct zt_transcode_header *tch;
+	struct dahdi_transcode_header *tch;
 };
 
-#define ZT_TC_FLAG_BUSY       (1 << 0)
-#define ZT_TC_FLAG_TRANSIENT  (1 << 1)
+#define DAHDI_TC_FLAG_BUSY       (1 << 0)
+#define DAHDI_TC_FLAG_TRANSIENT  (1 << 1)
 
 
-struct zt_transcoder {
-	struct zt_transcoder *next;
+struct dahdi_transcoder {
+	struct dahdi_transcoder *next;
 	char name[80];
 	int numchannels;
 	unsigned int srcfmts;
 	unsigned int dstfmts;
-	int (*operation)(struct zt_transcoder_channel *channel, int op);
+	int (*operation)(struct dahdi_transcoder_channel *channel, int op);
 	/* Transcoder channels */
-	struct zt_transcoder_channel channels[0];
+	struct dahdi_transcoder_channel channels[0];
 };
 
-#define ZT_WATCHDOG_NOINTS		(1 << 0)
+#define DAHDI_WATCHDOG_NOINTS		(1 << 0)
 
-#define ZT_WATCHDOG_INIT			1000
+#define DAHDI_WATCHDOG_INIT			1000
 
-#define ZT_WATCHSTATE_UNKNOWN		0
-#define ZT_WATCHSTATE_OK			1
-#define ZT_WATCHSTATE_RECOVERING	2
-#define ZT_WATCHSTATE_FAILED		3
+#define DAHDI_WATCHSTATE_UNKNOWN		0
+#define DAHDI_WATCHSTATE_OK			1
+#define DAHDI_WATCHSTATE_RECOVERING	2
+#define DAHDI_WATCHSTATE_FAILED		3
 
 
-struct zt_dynamic_driver {
+struct dahdi_dynamic_driver {
 	/* Driver name (e.g. Eth) */
 	char name[20];
 
@@ -1747,7 +1747,7 @@ struct zt_dynamic_driver {
 	char desc[80];
 
 	/* Create a new transmission pipe */
-	void *(*create)(struct zt_span *span, char *address);
+	void *(*create)(struct dahdi_span *span, char *address);
 
 	/* Destroy a created transmission pipe */
 	void (*destroy)(void *tpipe);
@@ -1758,115 +1758,115 @@ struct zt_dynamic_driver {
 	/* Flush any pending messages */
 	int (*flush)(void);
 
-	struct zt_dynamic_driver *next;
+	struct dahdi_dynamic_driver *next;
 };
 
 /* Receive a dynamic span message */
-void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen);
+void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msglen);
 
 /* Register a dynamic driver */
-int zt_dynamic_register(struct zt_dynamic_driver *driver);
+int dahdi_dynamic_register(struct dahdi_dynamic_driver *driver);
 
 /* Unregister a dynamic driver */
-void zt_dynamic_unregister(struct zt_dynamic_driver *driver);
+void dahdi_dynamic_unregister(struct dahdi_dynamic_driver *driver);
 
 /* Receive on a span.  The zaptel interface will handle all the calculations for
    all member channels of the span, pulling the data from the readchunk buffer */
-int zt_receive(struct zt_span *span);
+int dahdi_receive(struct dahdi_span *span);
 
 /* Prepare writechunk buffers on all channels for this span */
-int zt_transmit(struct zt_span *span);
+int dahdi_transmit(struct dahdi_span *span);
 
 /* Abort the buffer currently being receive with event "event" */
-void zt_hdlc_abort(struct zt_chan *ss, int event);
+void dahdi_hdlc_abort(struct dahdi_chan *ss, int event);
 
 /* Indicate to zaptel that the end of frame was received and rotate buffers */
-void zt_hdlc_finish(struct zt_chan *ss);
+void dahdi_hdlc_finish(struct dahdi_chan *ss);
 
 /* Put a chunk of data into the current receive buffer */
-void zt_hdlc_putbuf(struct zt_chan *ss, unsigned char *rxb, int bytes);
+void dahdi_hdlc_putbuf(struct dahdi_chan *ss, unsigned char *rxb, int bytes);
 
 /* Get a chunk of data from the current transmit buffer.  Returns -1 if no data
  * is left to send, 0 if there is data remaining in the current message to be sent
  * and 1 if the currently transmitted message is now done */
-int zt_hdlc_getbuf(struct zt_chan *ss, unsigned char *bufptr, unsigned int *size);
+int dahdi_hdlc_getbuf(struct dahdi_chan *ss, unsigned char *bufptr, unsigned int *size);
 
 
 /* Register a span.  Returns 0 on success, -1 on failure.  Pref-master is non-zero if
    we should have preference in being the master device */
-int zt_register(struct zt_span *span, int prefmaster);
+int dahdi_register(struct dahdi_span *span, int prefmaster);
 
 /* Allocate / free memory for a transcoder */
-struct zt_transcoder *zt_transcoder_alloc(int numchans);
-void zt_transcoder_free(struct zt_transcoder *ztc);
+struct dahdi_transcoder *dahdi_transcoder_alloc(int numchans);
+void dahdi_transcoder_free(struct dahdi_transcoder *ztc);
 
 /* Register a transcoder */
-int zt_transcoder_register(struct zt_transcoder *tc);
+int dahdi_transcoder_register(struct dahdi_transcoder *tc);
 
 /* Unregister a transcoder */
-int zt_transcoder_unregister(struct zt_transcoder *tc);
+int dahdi_transcoder_unregister(struct dahdi_transcoder *tc);
 
 /* Alert a transcoder */
-int zt_transcoder_alert(struct zt_transcoder_channel *ztc);
+int dahdi_transcoder_alert(struct dahdi_transcoder_channel *ztc);
 
 /* Unregister a span */
-int zt_unregister(struct zt_span *span);
+int dahdi_unregister(struct dahdi_span *span);
 
 /* Gives a name to an LBO */
-char *zt_lboname(int lbo);
+char *dahdi_lboname(int lbo);
 
 /* Tell Zaptel about changes in received rbs bits */
-void zt_rbsbits(struct zt_chan *chan, int bits);
+void dahdi_rbsbits(struct dahdi_chan *chan, int bits);
 
 /* Tell Zaptel abou changes in received signalling */
-void zt_hooksig(struct zt_chan *chan, zt_rxsig_t rxsig);
+void dahdi_hooksig(struct dahdi_chan *chan, dahdi_rxsig_t rxsig);
 
 /* Queue an event on a channel */
-void zt_qevent_nolock(struct zt_chan *chan, int event);
+void dahdi_qevent_nolock(struct dahdi_chan *chan, int event);
 
 /* Queue an event on a channel, locking it first */
-void zt_qevent_lock(struct zt_chan *chan, int event);
+void dahdi_qevent_lock(struct dahdi_chan *chan, int event);
 
 /* Notify a change possible change in alarm status on a channel */
-void zt_alarm_channel(struct zt_chan *chan, int alarms);
+void dahdi_alarm_channel(struct dahdi_chan *chan, int alarms);
 
 /* Notify a change possible change in alarm status on a span */
-void zt_alarm_notify(struct zt_span *span);
+void dahdi_alarm_notify(struct dahdi_span *span);
 
 /* Initialize a tone state */
-void zt_init_tone_state(struct zt_tone_state *ts, struct zt_tone *zt);
+void dahdi_init_tone_state(struct dahdi_tone_state *ts, struct dahdi_tone *zt);
 
-/* Get a given MF tone struct, suitable for zt_tone_nextsample. */
-struct zt_tone *zt_mf_tone(const struct zt_chan *chan, char digit, int digitmode);
+/* Get a given MF tone struct, suitable for dahdi_tone_nextsample. */
+struct dahdi_tone *dahdi_mf_tone(const struct dahdi_chan *chan, char digit, int digitmode);
 
 /* Echo cancel a receive and transmit chunk for a given channel.  This
    should be called by the low-level driver as close to the interface
    as possible.  ECHO CANCELLATION IS NO LONGER AUTOMATICALLY DONE
-   AT THE ZAPTEL LEVEL.  zt_ec_chunk will not echo cancel if it should
+   AT THE ZAPTEL LEVEL.  dahdi_ec_chunk will not echo cancel if it should
    not be doing so.  rxchunk is modified in-place */
 
-void zt_ec_chunk(struct zt_chan *chan, unsigned char *rxchunk, const unsigned char *txchunk);
-void zt_ec_span(struct zt_span *span);
+void dahdi_ec_chunk(struct dahdi_chan *chan, unsigned char *rxchunk, const unsigned char *txchunk);
+void dahdi_ec_span(struct dahdi_span *span);
 
-extern struct file_operations *zt_transcode_fops;
+extern struct file_operations *dahdi_transcode_fops;
 
 /* Don't use these directly -- they're not guaranteed to
    be there. */
-extern short __zt_mulaw[256];
-extern short __zt_alaw[256];
+extern short __dahdi_mulaw[256];
+extern short __dahdi_alaw[256];
 #ifdef CONFIG_CALC_XLAW
-u_char __zt_lineartoulaw(short a);
-u_char __zt_lineartoalaw(short a);
+u_char __dahdi_lineartoulaw(short a);
+u_char __dahdi_lineartoalaw(short a);
 #else
-extern u_char __zt_lin2mu[16384];
-extern u_char __zt_lin2a[16384];
+extern u_char __dahdi_lin2mu[16384];
+extern u_char __dahdi_lin2a[16384];
 #endif
 
 /* Used by dynamic zaptel -- don't use directly */
-void zt_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data));
+void dahdi_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data));
 
 /* Used privately by zaptel.  Avoid touching directly */
-struct zt_tone {
+struct dahdi_tone {
 	int fac1;
 	int init_v2_1;
 	int init_v3_1;
@@ -1877,12 +1877,12 @@ struct zt_tone {
 
 	int tonesamples;		/* How long to play this tone before 
 					   going to the next (in samples) */
-	struct zt_tone *next;		/* Next tone in this sequence */
+	struct dahdi_tone *next;		/* Next tone in this sequence */
 
 	int modulate;
 };
 
-static inline short zt_tone_nextsample(struct zt_tone_state *ts, struct zt_tone *zt)
+static inline short dahdi_tone_nextsample(struct dahdi_tone_state *ts, struct dahdi_tone *zt)
 {
 	/* follow the curves, return the sum */
 
@@ -1906,7 +1906,7 @@ static inline short zt_tone_nextsample(struct zt_tone_state *ts, struct zt_tone 
 
 }
 
-static inline short zt_txtone_nextsample(struct zt_chan *ss)
+static inline short dahdi_txtone_nextsample(struct dahdi_chan *ss)
 {
 	/* follow the curves, return the sum */
 
@@ -1918,23 +1918,23 @@ static inline short zt_txtone_nextsample(struct zt_chan *ss)
 
 /* These are the right functions to use.  */
 
-#define ZT_MULAW(a) (__zt_mulaw[(a)])
-#define ZT_ALAW(a) (__zt_alaw[(a)])
-#define ZT_XLAW(a,c) (c->xlaw[(a)])
+#define DAHDI_MULAW(a) (__dahdi_mulaw[(a)])
+#define DAHDI_ALAW(a) (__dahdi_alaw[(a)])
+#define DAHDI_XLAW(a,c) (c->xlaw[(a)])
 
 #ifdef CONFIG_CALC_XLAW
-#define ZT_LIN2MU(a) (__zt_lineartoulaw((a)))
-#define ZT_LIN2A(a) (__zt_lineartoalaw((a)))
+#define DAHDI_LIN2MU(a) (__dahdi_lineartoulaw((a)))
+#define DAHDI_LIN2A(a) (__dahdi_lineartoalaw((a)))
 
-#define ZT_LIN2X(a,c) ((c)->lineartoxlaw((a)))
+#define DAHDI_LIN2X(a,c) ((c)->lineartoxlaw((a)))
 
 #else
 /* Use tables */
-#define ZT_LIN2MU(a) (__zt_lin2mu[((unsigned short)(a)) >> 2])
-#define ZT_LIN2A(a) (__zt_lin2a[((unsigned short)(a)) >> 2])
+#define DAHDI_LIN2MU(a) (__dahdi_lin2mu[((unsigned short)(a)) >> 2])
+#define DAHDI_LIN2A(a) (__dahdi_lin2a[((unsigned short)(a)) >> 2])
 
 /* Manipulate as appropriate for x-law */
-#define ZT_LIN2X(a,c) ((c)->lin2x[((unsigned short)(a)) >> 2])
+#define DAHDI_LIN2X(a,c) ((c)->lin2x[((unsigned short)(a)) >> 2])
 
 #endif /* CONFIG_CALC_XLAW */
 
@@ -1945,7 +1945,7 @@ this file because external processes need to interact with the device.
 Some devices have private functions used for test/diagnostic only, but
 this is not the case here. */
 
-struct zt_radio_stat {
+struct dahdi_radio_stat {
 	unsigned short ctcode_rx;	/* code of currently received CTCSS 
 					   or DCS, 0 for none */
 	unsigned short ctclass;		/* class of currently received CTCSS or
@@ -1957,7 +1957,7 @@ struct zt_radio_stat {
 
 #define	RAD_SERIAL_BUFLEN 128
 
-struct zt_radio_param {
+struct dahdi_radio_param {
 	unsigned short radpar;	/* param identifier */
 	unsigned short index;	/* tone number */
 	int data;		/* param */
@@ -1967,103 +1967,103 @@ struct zt_radio_param {
 
 
 /* Get current status IOCTL */
-#define	ZT_RADIO_GETSTAT	_IOR (ZT_CODE, 57, struct zt_radio_stat)
+#define	DAHDI_RADIO_GETSTAT	_IOR (DAHDI_CODE, 57, struct dahdi_radio_stat)
 /* Set a channel parameter IOCTL */
-#define	ZT_RADIO_SETPARAM	_IOW (ZT_CODE, 58, struct zt_radio_param)
+#define	DAHDI_RADIO_SETPARAM	_IOW (DAHDI_CODE, 58, struct dahdi_radio_param)
 /* Get a channel parameter IOCTL */
-#define	ZT_RADIO_GETPARAM	_IOR (ZT_CODE, 59, struct zt_radio_param)
+#define	DAHDI_RADIO_GETPARAM	_IOR (DAHDI_CODE, 59, struct dahdi_radio_param)
 
 
-/* Defines for Radio Status (zt_radio_stat.radstat) bits */
+/* Defines for Radio Status (dahdi_radio_stat.radstat) bits */
 
-#define	ZT_RADSTAT_RX	1	/* currently "receiving " */
-#define	ZT_RADSTAT_TX	2	/* currently "transmitting" */
-#define	ZT_RADSTAT_RXCT	4	/* currently receiving continuous tone with 
+#define	DAHDI_RADSTAT_RX	1	/* currently "receiving " */
+#define	DAHDI_RADSTAT_TX	2	/* currently "transmitting" */
+#define	DAHDI_RADSTAT_RXCT	4	/* currently receiving continuous tone with 
 				   current settings */
-#define	ZT_RADSTAT_RXCOR	8	/* currently receiving COR (irrelevant of COR
+#define	DAHDI_RADSTAT_RXCOR	8	/* currently receiving COR (irrelevant of COR
 				   ignore) */
-#define	ZT_RADSTAT_IGNCOR	16	/* currently ignoring COR */
-#define	ZT_RADSTAT_IGNCT	32	/* currently ignoring CTCSS/DCS decode */
-#define	ZT_RADSTAT_NOENCODE 64	/* currently blocking CTCSS/DCS encode */
+#define	DAHDI_RADSTAT_IGNCOR	16	/* currently ignoring COR */
+#define	DAHDI_RADSTAT_IGNCT	32	/* currently ignoring CTCSS/DCS decode */
+#define	DAHDI_RADSTAT_NOENCODE 64	/* currently blocking CTCSS/DCS encode */
 
-/* Defines for Radio Parameters (zt_radio_param.radpar) */
+/* Defines for Radio Parameters (dahdi_radio_param.radpar) */
 
-#define	ZT_RADPAR_INVERTCOR 1	/* invert the COR signal (0/1) */
-#define	ZT_RADPAR_IGNORECOR 2	/* ignore the COR signal (0/1) */
-#define	ZT_RADPAR_IGNORECT 3	/* ignore the CTCSS/DCS decode (0/1) */
-#define	ZT_RADPAR_NOENCODE 4	/* block the CTCSS/DCS encode (0/1) */
-#define	ZT_RADPAR_CORTHRESH 5	/* COR trigger threshold (0-7) */
+#define	DAHDI_RADPAR_INVERTCOR 1	/* invert the COR signal (0/1) */
+#define	DAHDI_RADPAR_IGNORECOR 2	/* ignore the COR signal (0/1) */
+#define	DAHDI_RADPAR_IGNORECT 3	/* ignore the CTCSS/DCS decode (0/1) */
+#define	DAHDI_RADPAR_NOENCODE 4	/* block the CTCSS/DCS encode (0/1) */
+#define	DAHDI_RADPAR_CORTHRESH 5	/* COR trigger threshold (0-7) */
 
-#define	ZT_RADPAR_EXTRXTONE 6	/* 0 means use internal decoder, 1 means UIOA
+#define	DAHDI_RADPAR_EXTRXTONE 6	/* 0 means use internal decoder, 1 means UIOA
 				   logic true is CT decode, 2 means UIOA logic
 				   false is CT decode */
-#define	ZT_RADPAR_NUMTONES	7	/* returns maximum tone index (curently 15) */
-#define	ZT_RADPAR_INITTONE	8	/* init all tone indexes to 0 (no tones) */
-#define	ZT_RADPAR_RXTONE	9	/* CTCSS tone, (1-32) or DCS tone (1-777),
+#define	DAHDI_RADPAR_NUMTONES	7	/* returns maximum tone index (curently 15) */
+#define	DAHDI_RADPAR_INITTONE	8	/* init all tone indexes to 0 (no tones) */
+#define	DAHDI_RADPAR_RXTONE	9	/* CTCSS tone, (1-32) or DCS tone (1-777),
 				   or 0 meaning no tone, set index also (1-15) */
-#define	ZT_RADPAR_RXTONECLASS 10	/* Tone class (0-65535), set index also (1-15) */
-#define	ZT_RADPAR_TXTONE 11	/* CTCSS tone (1-32) or DCS tone (1-777) or 0
+#define	DAHDI_RADPAR_RXTONECLASS 10	/* Tone class (0-65535), set index also (1-15) */
+#define	DAHDI_RADPAR_TXTONE 11	/* CTCSS tone (1-32) or DCS tone (1-777) or 0
 				   to indicate no tone, to transmit 
 				   for this tone index (0-32, 0 disables
 				   transmit CTCSS), set index also (0-15) */
-#define	ZT_RADPAR_DEBOUNCETIME 12	/* receive indication debounce time, 
+#define	DAHDI_RADPAR_DEBOUNCETIME 12	/* receive indication debounce time, 
 				   milliseconds (1-999) */
-#define	ZT_RADPAR_BURSTTIME 13	/* end of transmit with no CT tone in
+#define	DAHDI_RADPAR_BURSTTIME 13	/* end of transmit with no CT tone in
 				   milliseconds (0-999) */
 
 
-#define	ZT_RADPAR_UIODATA 14	/* read/write UIOA and UIOB data. Bit 0 is
+#define	DAHDI_RADPAR_UIODATA 14	/* read/write UIOA and UIOB data. Bit 0 is
 				   UIOA, bit 1 is UIOB */
-#define	ZT_RADPAR_UIOMODE 15	/* 0 means UIOA and UIOB are both outputs, 1
+#define	DAHDI_RADPAR_UIOMODE 15	/* 0 means UIOA and UIOB are both outputs, 1
 				   means UIOA is input, UIOB is output, 2 
 				   means UIOB is input and UIOA is output,
 				   3 means both UIOA and UIOB are inputs. Note
 				   mode for UIOA is overridden when in
 				   EXTRXTONE mode. */
 
-#define	ZT_RADPAR_REMMODE 16	/* Remote control data mode */
-	#define	ZT_RADPAR_REM_NONE 0 	/* no remote control data mode */
-	#define	ZT_RADPAR_REM_RBI1 1	/* Doug Hall RBI-1 data mode */
-	#define	ZT_RADPAR_REM_SERIAL 2	/* Serial Data, 9600 BPS */
-	#define	ZT_RADPAR_REM_SERIAL_ASCII 3	/* Serial Ascii Data, 9600 BPS */
+#define	DAHDI_RADPAR_REMMODE 16	/* Remote control data mode */
+	#define	DAHDI_RADPAR_REM_NONE 0 	/* no remote control data mode */
+	#define	DAHDI_RADPAR_REM_RBI1 1	/* Doug Hall RBI-1 data mode */
+	#define	DAHDI_RADPAR_REM_SERIAL 2	/* Serial Data, 9600 BPS */
+	#define	DAHDI_RADPAR_REM_SERIAL_ASCII 3	/* Serial Ascii Data, 9600 BPS */
 
-#define	ZT_RADPAR_REMCOMMAND 17	/* Remote conrtol write data block & do cmd */
+#define	DAHDI_RADPAR_REMCOMMAND 17	/* Remote conrtol write data block & do cmd */
 
 /* Data formats for capabilities and frames alike (from Asterisk) */
 /*! G.723.1 compression */
-#define ZT_FORMAT_G723_1	(1 << 0)
+#define DAHDI_FORMAT_G723_1	(1 << 0)
 /*! GSM compression */
-#define ZT_FORMAT_GSM		(1 << 1)
+#define DAHDI_FORMAT_GSM		(1 << 1)
 /*! Raw mu-law data (G.711) */
-#define ZT_FORMAT_ULAW		(1 << 2)
+#define DAHDI_FORMAT_ULAW		(1 << 2)
 /*! Raw A-law data (G.711) */
-#define ZT_FORMAT_ALAW		(1 << 3)
+#define DAHDI_FORMAT_ALAW		(1 << 3)
 /*! ADPCM (G.726, 32kbps) */
-#define ZT_FORMAT_G726		(1 << 4)
+#define DAHDI_FORMAT_G726		(1 << 4)
 /*! ADPCM (IMA) */
-#define ZT_FORMAT_ADPCM		(1 << 5)
+#define DAHDI_FORMAT_ADPCM		(1 << 5)
 /*! Raw 16-bit Signed Linear (8000 Hz) PCM */
-#define ZT_FORMAT_SLINEAR	(1 << 6)
+#define DAHDI_FORMAT_SLINEAR	(1 << 6)
 /*! LPC10, 180 samples/frame */
-#define ZT_FORMAT_LPC10		(1 << 7)
+#define DAHDI_FORMAT_LPC10		(1 << 7)
 /*! G.729A audio */
-#define ZT_FORMAT_G729A		(1 << 8)
+#define DAHDI_FORMAT_G729A		(1 << 8)
 /*! SpeeX Free Compression */
-#define ZT_FORMAT_SPEEX		(1 << 9)
+#define DAHDI_FORMAT_SPEEX		(1 << 9)
 /*! iLBC Free Compression */
-#define ZT_FORMAT_ILBC		(1 << 10)
+#define DAHDI_FORMAT_ILBC		(1 << 10)
 /*! Maximum audio format */
-#define ZT_FORMAT_MAX_AUDIO	(1 << 15)
+#define DAHDI_FORMAT_MAX_AUDIO	(1 << 15)
 /*! Maximum audio mask */
-#define ZT_FORMAT_AUDIO_MASK	((1 << 16) - 1)
+#define DAHDI_FORMAT_AUDIO_MASK	((1 << 16) - 1)
 
-#define	ZT_RADPAR_DEEMP 18 /* Audio De-empahsis (on or off) */ 
+#define	DAHDI_RADPAR_DEEMP 18 /* Audio De-empahsis (on or off) */ 
 
-#define	ZT_RADPAR_PREEMP 19 /* Audio Pre-empahsis (on or off) */ 
+#define	DAHDI_RADPAR_PREEMP 19 /* Audio Pre-empahsis (on or off) */ 
 
-#define	ZT_RADPAR_RXGAIN 20 /* Audio (In to system) Rx Gain */ 
+#define	DAHDI_RADPAR_RXGAIN 20 /* Audio (In to system) Rx Gain */ 
 
-#define	ZT_RADPAR_TXGAIN 21 /* Audio (Out from system) Tx Gain */ 
+#define	DAHDI_RADPAR_TXGAIN 21 /* Audio (Out from system) Tx Gain */ 
 
 struct torisa_debug {
 	unsigned int txerrors;
@@ -2076,7 +2076,7 @@ struct torisa_debug {
 };
 
 /* Special torisa ioctl */
-#define TORISA_GETDEBUG		_IOW (ZT_CODE, 60, struct torisa_debug)
+#define TORISA_GETDEBUG		_IOW (DAHDI_CODE, 60, struct torisa_debug)
 
 /*!
 	\brief Size-limited null-terminating string copy.

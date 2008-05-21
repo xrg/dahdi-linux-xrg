@@ -666,10 +666,10 @@ static inline void wctdm_transmitprep(struct wctdm *wc, unsigned char *writechun
 
 	/* Calculate Transmission */
 	if (likely(wc->initialized)) {
-		zt_transmit(&wc->span);
+		dahdi_transmit(&wc->span);
 	}
 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		/* Send a sample, as a 32-bit word */
 		for (y=0;y < wc->cards;y++) {
 			if (!x) {
@@ -702,7 +702,7 @@ static inline void wctdm_transmitprep(struct wctdm *wc, unsigned char *writechun
 			cmd_dequeue_vpm150m(wc, writechunk, x);
 		}
 #endif		
-		if (x < ZT_CHUNKSIZE - 1) {
+		if (x < DAHDI_CHUNKSIZE - 1) {
 			writechunk[EFRAME_SIZE] = wc->ctlreg;
 			writechunk[EFRAME_SIZE + 1] = wc->txident++;
 #if 1
@@ -850,8 +850,8 @@ static inline void wctdm_receiveprep(struct wctdm *wc, unsigned char *readchunk)
 
 	BUG_ON(NULL == readchunk);
 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
-		if (x < ZT_CHUNKSIZE - 1) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
+		if (x < DAHDI_CHUNKSIZE - 1) {
 			expected = wc->rxident+1;
 			wc->rxident = readchunk[EFRAME_SIZE + 1];
 			if (wc->rxident != expected) {
@@ -881,9 +881,9 @@ static inline void wctdm_receiveprep(struct wctdm *wc, unsigned char *readchunk)
 	if (likely(wc->initialized)) {
 		for (x=0;x<wc->type;x++) {
 			if (wc->cardflag & (1 << x))
-				zt_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, wc->chans[x].writechunk);
+				dahdi_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, wc->chans[x].writechunk);
 		}
-		zt_receive(&wc->span);
+		dahdi_receive(&wc->span);
 	}
 	/* Wake up anyone sleeping to read/write a new register */
 	wake_up_interruptible(&wc->regq);
@@ -1104,8 +1104,8 @@ static inline void wctdm_qrvdri_check_hook(struct wctdm *wc, int card)
 	{
 		b1 = wc->qrvhook[qrvcard + 2];
 if (debug) printk("QRV channel %d rx state changed to %d\n",qrvcard,wc->qrvhook[qrvcard + 2]);
-		zt_hooksig(&wc->chans[qrvcard], 
-			(b1) ? ZT_RXSIG_OFFHOOK : ZT_RXSIG_ONHOOK);
+		dahdi_hooksig(&wc->chans[qrvcard], 
+			(b1) ? DAHDI_RXSIG_OFFHOOK : DAHDI_RXSIG_ONHOOK);
 		wc->qrvdebtime[card] = 0;
 	}
 	/* check for change in chan 1 */
@@ -1118,8 +1118,8 @@ if (debug) printk("QRV channel %d rx state changed to %d\n",qrvcard,wc->qrvhook[
 	{
 		b1 = wc->qrvhook[qrvcard + 3];
 if (debug) printk("QRV channel %d rx state changed to %d\n",qrvcard + 1,wc->qrvhook[qrvcard + 3]);
-		zt_hooksig(&wc->chans[qrvcard + 1], 
-			(b1) ? ZT_RXSIG_OFFHOOK : ZT_RXSIG_ONHOOK);
+		dahdi_hooksig(&wc->chans[qrvcard + 1], 
+			(b1) ? DAHDI_RXSIG_OFFHOOK : DAHDI_RXSIG_ONHOOK);
 		wc->qrvdebtime[card] = 0;
 	}
 	return;
@@ -1152,7 +1152,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 1;
 						if (debug)
 							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_RING);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_RING);
 					}
 					fxo->lastrdtx = res;
 					fxo->ringdebounce = 10;
@@ -1161,7 +1161,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 0;
 						if (debug)
 							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 					}
 				}
 			} else if (res && (fxo->battery == BATTERY_PRESENT)) {
@@ -1171,22 +1171,22 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		} else {
 			res =  wc->cmdq[card].isrshadow[0];
 			if ((res & 0x60) && (fxo->battery == BATTERY_PRESENT)) {
-				fxo->ringdebounce += (ZT_CHUNKSIZE * 16);
-				if (fxo->ringdebounce >= ZT_CHUNKSIZE * ringdebounce) {
+				fxo->ringdebounce += (DAHDI_CHUNKSIZE * 16);
+				if (fxo->ringdebounce >= DAHDI_CHUNKSIZE * ringdebounce) {
 					if (!fxo->wasringing) {
 						fxo->wasringing = 1;
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_RING);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_RING);
 						if (debug)
 							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
-					fxo->ringdebounce = ZT_CHUNKSIZE * ringdebounce;
+					fxo->ringdebounce = DAHDI_CHUNKSIZE * ringdebounce;
 				}
 			} else {
-				fxo->ringdebounce -= ZT_CHUNKSIZE * 4;
+				fxo->ringdebounce -= DAHDI_CHUNKSIZE * 4;
 				if (fxo->ringdebounce <= 0) {
 					if (fxo->wasringing) {
 						fxo->wasringing = 0;
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 						if (debug)
 							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
@@ -1229,7 +1229,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						printk("NO BATTERY on %d/%d!\n", wc->span.spanno, card + 1);
 #ifdef	JAPAN
 					if (!wc->ohdebounce && wc->offhook) {
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_ONHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
 						if (debug)
 							printk("Signalled On Hook\n");
 #ifdef	ZERO_BATT_RING
@@ -1237,7 +1237,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 #endif
 					}
 #else
-					zt_hooksig(&wc->chans[card], ZT_RXSIG_ONHOOK);
+					dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
 					/* set the alarm timer, taking into account that part of its time
 					   period has already passed while debouncing occurred */
 					fxo->battalarm = (battalarm - battdebounce) / MS_PER_CHECK_HOOK;
@@ -1273,12 +1273,12 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 #ifdef	ZERO_BATT_RING
 					if (wc->onhook) {
 						wc->onhook = 0;
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 						if (debug)
 							printk("Signalled Off Hook\n");
 					}
 #else
-					zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+					dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 #endif
 					/* set the alarm timer, taking into account that part of its time
 					   period has already passed while debouncing occurred */
@@ -1308,7 +1308,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		if (--fxo->battalarm == 0) {
 			/* the alarm timer has expired, so update the battery alarm state
 			   for this channel */
-			zt_alarm_channel(&wc->chans[card], fxo->battery ? ZT_ALARM_NONE : ZT_ALARM_RED);
+			dahdi_alarm_channel(&wc->chans[card], fxo->battery ? DAHDI_ALARM_NONE : DAHDI_ALARM_RED);
 		}
 	}
 
@@ -1321,7 +1321,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				       fxo->polarity, 
 				       fxo->lastpol);
 			if (fxo->polarity)
-				zt_qevent_lock(&wc->chans[card], ZT_EVENT_POLARITY);
+				dahdi_qevent_lock(&wc->chans[card], DAHDI_EVENT_POLARITY);
 			fxo->polarity = fxo->lastpol;
 		    }
 		}
@@ -1348,7 +1348,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 #endif
 	} else {
 		if (wc->mods[card].fxs.debounce > 0) {
-			wc->mods[card].fxs.debounce-= 4 * ZT_CHUNKSIZE;
+			wc->mods[card].fxs.debounce-= 4 * DAHDI_CHUNKSIZE;
 #if 0
 			printk("Sustaining hook %d, %d\n", hook, wc->mods[card].fxs.debounce);
 #endif
@@ -1362,7 +1362,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 				/* Off hook */
 				if (debug & DEBUG_CARD)
 					printk("wctdm: Card %d Going off hook\n", card);
-				zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+				dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 				if (robust)
 					wctdm_init_proslic(wc, card, 1, 0, 1);
 				wc->mods[card].fxs.oldrxhook = 1;
@@ -1371,7 +1371,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 				/* On hook */
 				if (debug & DEBUG_CARD)
 					printk("wctdm: Card %d Going on hook\n", card);
-				zt_hooksig(&wc->chans[card], ZT_RXSIG_ONHOOK);
+				dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
 				wc->mods[card].fxs.oldrxhook = 0;
 			}
 		}
@@ -1402,7 +1402,7 @@ static inline void wctdm_vpm_check(struct wctdm *wc, int x)
 
 #include "adt_lec.c"
 
-static int wctdm_echocan_with_params(struct zt_chan *chan, struct zt_echocanparams *ecp, struct zt_echocanparam *p)
+static int wctdm_echocan_with_params(struct dahdi_chan *chan, struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p)
 {
 	struct wctdm *wc = chan->pvt;
 
@@ -1471,7 +1471,7 @@ static inline void wctdm_isr_misc(struct wctdm *wc)
 					wc->mods[x].fxs.idletxhookstate = 0x2;	/* OHT mode when idle */
 				} else {
 					if (wc->mods[x].fxs.ohttimer) {
-						wc->mods[x].fxs.ohttimer-= ZT_CHUNKSIZE;
+						wc->mods[x].fxs.ohttimer-= DAHDI_CHUNKSIZE;
 						if (!wc->mods[x].fxs.ohttimer) {
 							wc->mods[x].fxs.idletxhookstate = 0x1;	/* Switch to active */
 							if (wc->mods[x].fxs.lasttxhook == 0x2) {
@@ -2256,7 +2256,7 @@ static int wctdm_init_qrvdri(struct wctdm *wc, int card)
 	return 0;
 }
 
-static void qrv_dosetup(struct zt_chan *chan,struct wctdm *wc)
+static void qrv_dosetup(struct dahdi_chan *chan,struct wctdm *wc)
 {
 int qrvcard;
 unsigned char r;
@@ -2315,22 +2315,22 @@ long l;
 	return;
 }
 
-static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data)
+static int wctdm_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data)
 {
 	struct wctdm_stats stats;
 	struct wctdm_regs regs;
 	struct wctdm_regop regop;
 	struct wctdm_echo_coefs echoregs;
-	struct zt_hwgain hwgain;
+	struct dahdi_hwgain hwgain;
 	struct wctdm *wc = chan->pvt;
 	int x;
 	union {
-		struct zt_radio_stat s;
-		struct zt_radio_param p;
+		struct dahdi_radio_stat s;
+		struct dahdi_radio_param p;
 	} stack;
 
 	switch (cmd) {
-	case ZT_ONHOOKTRANSFER:
+	case DAHDI_ONHOOKTRANSFER:
 		if (wc->modtype[chan->chanpos - 1] != MOD_TYPE_FXS)
 			return -EINVAL;
 		if (get_user(x, (int *)data))
@@ -2420,8 +2420,8 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 
 		}
 		break;
-	case ZT_SET_HWGAIN:
-		if (copy_from_user(&hwgain, (struct zt_hwgain*) data, sizeof(hwgain)))
+	case DAHDI_SET_HWGAIN:
+		if (copy_from_user(&hwgain, (struct dahdi_hwgain*) data, sizeof(hwgain)))
 			return -EFAULT;
 
 		wctdm_set_hwgain(wc, chan->chanpos-1, hwgain.newgain, hwgain.tx);
@@ -2431,19 +2431,19 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 				chan->chanpos-1, hwgain.newgain, hwgain.tx ? "tx" : "rx");
 		break;
 #ifdef VPM_SUPPORT
-	case ZT_TONEDETECT:
+	case DAHDI_TONEDETECT:
 		if (get_user(x, (int *) data))
 			return -EFAULT;
 		if (!wc->vpm && !wc->vpm150m)
 			return -ENOSYS;
 		if ((wc->vpm || wc->vpm150m) && (x && !vpmdtmfsupport))
 			return -ENOSYS;
-		if (x & ZT_TONEDETECT_ON) {
+		if (x & DAHDI_TONEDETECT_ON) {
 			set_bit(chan->chanpos - 1, &wc->dtmfmask);
 		} else {
 			clear_bit(chan->chanpos - 1, &wc->dtmfmask);
 		}
-		if (x & ZT_TONEDETECT_MUTE) {
+		if (x & DAHDI_TONEDETECT_MUTE) {
 			if (wc->vpm150m) {
 				set_bit(chan->chanpos - 1, &wc->vpm150m->desireddtmfmutestate);
 			}
@@ -2454,25 +2454,25 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 		}
 		return 0;
 #endif
-	case ZT_RADIO_GETPARAM:
+	case DAHDI_RADIO_GETPARAM:
 		if (wc->modtype[chan->chanpos - 1] != MOD_TYPE_QRV) 
 			return -ENOTTY;
-		if (copy_from_user(&stack.p,(struct zt_radio_param *)data,sizeof(struct zt_radio_param))) return -EFAULT;
+		if (copy_from_user(&stack.p,(struct dahdi_radio_param *)data,sizeof(struct dahdi_radio_param))) return -EFAULT;
 		stack.p.data = 0; /* start with 0 value in output */
 		switch(stack.p.radpar) {
-		case ZT_RADPAR_INVERTCOR:
+		case DAHDI_RADPAR_INVERTCOR:
 			if (wc->radmode[chan->chanpos - 1] & RADMODE_INVERTCOR)
 				stack.p.data = 1;
 			break;
-		case ZT_RADPAR_IGNORECOR:
+		case DAHDI_RADPAR_IGNORECOR:
 			if (wc->radmode[chan->chanpos - 1] & RADMODE_IGNORECOR)
 				stack.p.data = 1;
 			break;
-		case ZT_RADPAR_IGNORECT:
+		case DAHDI_RADPAR_IGNORECT:
 			if (wc->radmode[chan->chanpos - 1] & RADMODE_IGNORECT)
 				stack.p.data = 1;
 			break;
-		case ZT_RADPAR_EXTRXTONE:
+		case DAHDI_RADPAR_EXTRXTONE:
 			stack.p.data = 0;
 			if (wc->radmode[chan->chanpos - 1] & RADMODE_EXTTONE)
 			{
@@ -2483,23 +2483,23 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 				}
 			}
 			break;
-		case ZT_RADPAR_DEBOUNCETIME:
+		case DAHDI_RADPAR_DEBOUNCETIME:
 			stack.p.data = wc->debouncetime[chan->chanpos - 1];
 			break;
-		case ZT_RADPAR_RXGAIN:
+		case DAHDI_RADPAR_RXGAIN:
 			stack.p.data = wc->rxgain[chan->chanpos - 1] - 1199;
 			break;
-		case ZT_RADPAR_TXGAIN:
+		case DAHDI_RADPAR_TXGAIN:
 			stack.p.data = wc->txgain[chan->chanpos - 1] - 3599;
 			break;
-		case ZT_RADPAR_DEEMP:
+		case DAHDI_RADPAR_DEEMP:
 			stack.p.data = 0;
 			if (wc->radmode[chan->chanpos - 1] & RADMODE_DEEMP)
 			{
 				stack.p.data = 1;
 			}
 			break;
-		case ZT_RADPAR_PREEMP:
+		case DAHDI_RADPAR_PREEMP:
 			stack.p.data = 0;
 			if (wc->radmode[chan->chanpos - 1] & RADMODE_PREEMP)
 			{
@@ -2509,32 +2509,32 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 		default:
 			return -EINVAL;
 		}
-		if (copy_to_user((struct zt_radio_param *)data,&stack.p,sizeof(struct zt_radio_param))) return -EFAULT;
+		if (copy_to_user((struct dahdi_radio_param *)data,&stack.p,sizeof(struct dahdi_radio_param))) return -EFAULT;
 		break;
-	case ZT_RADIO_SETPARAM:
+	case DAHDI_RADIO_SETPARAM:
 		if (wc->modtype[chan->chanpos - 1] != MOD_TYPE_QRV) 
 			return -ENOTTY;
-		if (copy_from_user(&stack.p,(struct zt_radio_param *)data,sizeof(struct zt_radio_param))) return -EFAULT;
+		if (copy_from_user(&stack.p,(struct dahdi_radio_param *)data,sizeof(struct dahdi_radio_param))) return -EFAULT;
 		switch(stack.p.radpar) {
-		case ZT_RADPAR_INVERTCOR:
+		case DAHDI_RADPAR_INVERTCOR:
 			if (stack.p.data)
 				wc->radmode[chan->chanpos - 1] |= RADMODE_INVERTCOR;
 			else
 				wc->radmode[chan->chanpos - 1] &= ~RADMODE_INVERTCOR;
 			return 0;
-		case ZT_RADPAR_IGNORECOR:
+		case DAHDI_RADPAR_IGNORECOR:
 			if (stack.p.data)
 				wc->radmode[chan->chanpos - 1] |= RADMODE_IGNORECOR;
 			else
 				wc->radmode[chan->chanpos - 1] &= ~RADMODE_IGNORECOR;
 			return 0;
-		case ZT_RADPAR_IGNORECT:
+		case DAHDI_RADPAR_IGNORECT:
 			if (stack.p.data)
 				wc->radmode[chan->chanpos - 1] |= RADMODE_IGNORECT;
 			else
 				wc->radmode[chan->chanpos - 1] &= ~RADMODE_IGNORECT;
 			return 0;
-		case ZT_RADPAR_EXTRXTONE:
+		case DAHDI_RADPAR_EXTRXTONE:
 			if (stack.p.data)
 				wc->radmode[chan->chanpos - 1] |= RADMODE_EXTTONE;
 			else
@@ -2544,10 +2544,10 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 			else
 				wc->radmode[chan->chanpos - 1] &= ~RADMODE_EXTINVERT;
 			return 0;
-		case ZT_RADPAR_DEBOUNCETIME:
+		case DAHDI_RADPAR_DEBOUNCETIME:
 			wc->debouncetime[chan->chanpos - 1] = stack.p.data;
 			return 0;
-		case ZT_RADPAR_RXGAIN:
+		case DAHDI_RADPAR_RXGAIN:
 			/* if out of range */
 			if ((stack.p.data <= -1200) || (stack.p.data > 1552))
 			{
@@ -2555,7 +2555,7 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 			}
 			wc->rxgain[chan->chanpos - 1] = stack.p.data + 1199;
 			break;
-		case ZT_RADPAR_TXGAIN:
+		case DAHDI_RADPAR_TXGAIN:
 			/* if out of range */
 			if (wc->radmode[chan->chanpos -1] & RADMODE_PREEMP)
 			{
@@ -2573,14 +2573,14 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 			}
 			wc->txgain[chan->chanpos - 1] = stack.p.data + 3599;
 			break;
-		case ZT_RADPAR_DEEMP:
+		case DAHDI_RADPAR_DEEMP:
 			if (stack.p.data)
 				wc->radmode[chan->chanpos - 1] |= RADMODE_DEEMP;
 			else
 				wc->radmode[chan->chanpos - 1] &= ~RADMODE_DEEMP;
 			wc->rxgain[chan->chanpos - 1] = 1199;
 			break;
-		case ZT_RADPAR_PREEMP:
+		case DAHDI_RADPAR_PREEMP:
 			if (stack.p.data)
 				wc->radmode[chan->chanpos - 1] |= RADMODE_PREEMP;
 			else
@@ -2598,7 +2598,7 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 	return 0;
 }
 
-static int wctdm_open(struct zt_chan *chan)
+static int wctdm_open(struct dahdi_chan *chan)
 {
 	struct wctdm *wc = chan->pvt;
 	if (!(wc->cardflag & (1 << (chan->chanpos - 1))))
@@ -2614,13 +2614,13 @@ static int wctdm_open(struct zt_chan *chan)
 	return 0;
 }
 
-static int wctdm_watchdog(struct zt_span *span, int event)
+static int wctdm_watchdog(struct dahdi_span *span, int event)
 {
 	printk("TDM: Called watchdog\n");
 	return 0;
 }
 
-static int wctdm_close(struct zt_chan *chan)
+static int wctdm_close(struct dahdi_chan *chan)
 {
 	struct wctdm *wc = chan->pvt;
 	int x;
@@ -2658,18 +2658,18 @@ static int wctdm_close(struct zt_chan *chan)
 	return 0;
 }
 
-static int wctdm_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
+static int wctdm_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
 {
 	struct wctdm *wc = chan->pvt;
 	int reg=0,qrvcard;
 	if (wc->modtype[chan->chanpos - 1] == MOD_TYPE_QRV) {
 		qrvcard = (chan->chanpos - 1) & 0xfc;
 		switch(txsig) {
-		case ZT_TXSIG_START:
-		case ZT_TXSIG_OFFHOOK:
+		case DAHDI_TXSIG_START:
+		case DAHDI_TXSIG_OFFHOOK:
 			wc->qrvhook[chan->chanpos - 1] = 1;
 			break;
-		case ZT_TXSIG_ONHOOK:
+		case DAHDI_TXSIG_ONHOOK:
 			wc->qrvhook[chan->chanpos - 1] = 0;
 			break;
 		default:
@@ -2682,13 +2682,13 @@ static int wctdm_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 		/* wctdm_setreg(wc, qrvcard, 3, reg); */
 	} else if (wc->modtype[chan->chanpos - 1] == MOD_TYPE_FXO) {
 		switch(txsig) {
-		case ZT_TXSIG_START:
-		case ZT_TXSIG_OFFHOOK:
+		case DAHDI_TXSIG_START:
+		case DAHDI_TXSIG_OFFHOOK:
 			wc->mods[chan->chanpos - 1].fxo.offhook = 1;
 			wc->sethook[chan->chanpos - 1] = CMD_WR(5, 0x9);
 			/* wctdm_setreg(wc, chan->chanpos - 1, 5, 0x9); */
 			break;
-		case ZT_TXSIG_ONHOOK:
+		case DAHDI_TXSIG_ONHOOK:
 			wc->mods[chan->chanpos - 1].fxo.offhook = 0;
 			wc->sethook[chan->chanpos - 1] = CMD_WR(5, 0x8);
 			/* wctdm_setreg(wc, chan->chanpos - 1, 5, 0x8); */
@@ -2698,22 +2698,22 @@ static int wctdm_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 		}
 	} else {
 		switch(txsig) {
-		case ZT_TXSIG_ONHOOK:
+		case DAHDI_TXSIG_ONHOOK:
 			switch(chan->sig) {
-			case ZT_SIG_EM:
-			case ZT_SIG_FXOKS:
-			case ZT_SIG_FXOLS:
+			case DAHDI_SIG_EM:
+			case DAHDI_SIG_FXOKS:
+			case DAHDI_SIG_FXOLS:
 				wc->mods[chan->chanpos - 1].fxs.lasttxhook = 0x10 |
 					wc->mods[chan->chanpos - 1].fxs.idletxhookstate;
 				break;
-			case ZT_SIG_FXOGS:
+			case DAHDI_SIG_FXOGS:
 				wc->mods[chan->chanpos - 1].fxs.lasttxhook = 0x13;
 				break;
 			}
 			break;
-		case ZT_TXSIG_OFFHOOK:
+		case DAHDI_TXSIG_OFFHOOK:
 			switch(chan->sig) {
-			case ZT_SIG_EM:
+			case DAHDI_SIG_EM:
 				wc->mods[chan->chanpos - 1].fxs.lasttxhook = 0x15;
 				break;
 			default:
@@ -2722,10 +2722,10 @@ static int wctdm_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 				break;
 			}
 			break;
-		case ZT_TXSIG_START:
+		case DAHDI_TXSIG_START:
 			wc->mods[chan->chanpos - 1].fxs.lasttxhook = 0x14;
 			break;
-		case ZT_TXSIG_KEWL:
+		case DAHDI_TXSIG_KEWL:
 			wc->mods[chan->chanpos - 1].fxs.lasttxhook = 0x10;
 			break;
 		default:
@@ -2816,7 +2816,7 @@ static void wctdm_dacs_disconnect(struct wctdm *wc, int card)
 	}
 }
 
-static int wctdm_dacs(struct zt_chan *dst, struct zt_chan *src)
+static int wctdm_dacs(struct dahdi_chan *dst, struct dahdi_chan *src)
 {
 	struct wctdm *wc;
 
@@ -2852,13 +2852,13 @@ static int wctdm_initialize(struct wctdm *wc)
 	strncpy(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype) - 1);
 	if (alawoverride) {
 		printk("ALAW override parameter detected.  Device will be operating in ALAW\n");
-		wc->span.deflaw = ZT_LAW_ALAW;
+		wc->span.deflaw = DAHDI_LAW_ALAW;
 	} else
-		wc->span.deflaw = ZT_LAW_MULAW;
+		wc->span.deflaw = DAHDI_LAW_MULAW;
 	for (x=0;x<wc->cards;x++) {
 		sprintf(wc->chans[x].name, "WCTDM/%d/%d", wc->pos, x);
-		wc->chans[x].sigcap = ZT_SIG_FXOKS | ZT_SIG_FXOLS | ZT_SIG_FXOGS | ZT_SIG_SF | ZT_SIG_EM | ZT_SIG_CLEAR;
-		wc->chans[x].sigcap |= ZT_SIG_FXSKS | ZT_SIG_FXSLS | ZT_SIG_SF | ZT_SIG_CLEAR;
+		wc->chans[x].sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
+		wc->chans[x].sigcap |= DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
 		wc->chans[x].chanpos = x+1;
 		wc->chans[x].pvt = wc;
 	}
@@ -2868,7 +2868,7 @@ static int wctdm_initialize(struct wctdm *wc)
 	wc->span.hooksig = wctdm_hooksig;
 	wc->span.open = wctdm_open;
 	wc->span.close = wctdm_close;
-	wc->span.flags = ZT_FLAG_RBS;
+	wc->span.flags = DAHDI_FLAG_RBS;
 	wc->span.ioctl = wctdm_ioctl;
 	wc->span.watchdog = wctdm_watchdog;
 	wc->span.dacs= wctdm_dacs;
@@ -2889,12 +2889,12 @@ static void wctdm_post_initialize(struct wctdm *wc)
 	for (x = 0; x <wc->cards; x++) {
 		if (wc->cardflag & (1 << x)) {
 			if (wc->modtype[x] == MOD_TYPE_FXO)
-				wc->chans[x].sigcap = ZT_SIG_FXSKS | ZT_SIG_FXSLS | ZT_SIG_SF | ZT_SIG_CLEAR;
+				wc->chans[x].sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
 			else if (wc->modtype[x] == MOD_TYPE_FXS)
-				wc->chans[x].sigcap = ZT_SIG_FXOKS | ZT_SIG_FXOLS | ZT_SIG_FXOGS | ZT_SIG_SF | ZT_SIG_EM | ZT_SIG_CLEAR;
+				wc->chans[x].sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
 			else if (wc->modtype[x] == MOD_TYPE_QRV)
-				wc->chans[x].sigcap = ZT_SIG_SF | ZT_SIG_EM | ZT_SIG_CLEAR;
-		} else if (!(wc->chans[x].sigcap & ZT_SIG_BROKEN)) {
+				wc->chans[x].sigcap = DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
+		} else if (!(wc->chans[x].sigcap & DAHDI_SIG_BROKEN)) {
 			wc->chans[x].sigcap = 0;
 		}
 	}
@@ -3044,7 +3044,7 @@ static void vpm150m_bh(struct work_struct *data)
 					printk("Channel %d: Detected DTMF tone %d of duration %d!!!\n", channel + 1, tone, duration);
 
 				if (test_bit(channel, &wc->dtmfmask) && (eventdata.toneEvent.ToneDuration > 0)) {
-					struct zt_chan *chan = &wc->chans[channel];
+					struct dahdi_chan *chan = &wc->chans[channel];
 
 					if ((tone != EndofMFDigit) && (zaptone != 0)) {
 						vpm150m->curtone[channel] = tone;
@@ -3057,7 +3057,7 @@ static void vpm150m_bh(struct work_struct *data)
 							spin_lock_irqsave(&chan->lock, flags);
 							for (y = 0; y < chan->numbufs; y++) {
 								if ((chan->inreadbuf > -1) && (chan->readidx[y]))
-									memset(chan->readbuf[chan->inreadbuf], ZT_XLAW(0, chan), chan->readidx[y]);
+									memset(chan->readbuf[chan->inreadbuf], DAHDI_XLAW(0, chan), chan->readidx[y]);
 							}
 							spin_unlock_irqrestore(&chan->lock, flags);
 						}
@@ -3065,12 +3065,12 @@ static void vpm150m_bh(struct work_struct *data)
 							if (debug & DEBUG_ECHOCAN)
 								printk("Queuing DTMFDOWN %c\n", zaptone);
 							set_bit(channel, &wc->dtmfactive);
-							zt_qevent_lock(chan, (ZT_EVENT_DTMFDOWN | zaptone));
+							dahdi_qevent_lock(chan, (DAHDI_EVENT_DTMFDOWN | zaptone));
 						}
 					} else if ((tone == EndofMFDigit) && test_bit(channel, &wc->dtmfactive)) {
 						if (debug & DEBUG_ECHOCAN)
 							printk("Queuing DTMFUP %c\n", vpm150mtone_to_zaptone(vpm150m->curtone[channel]));
-						zt_qevent_lock(chan, (ZT_EVENT_DTMFUP | vpm150mtone_to_zaptone(vpm150m->curtone[channel])));
+						dahdi_qevent_lock(chan, (DAHDI_EVENT_DTMFUP | vpm150mtone_to_zaptone(vpm150m->curtone[channel])));
 						clear_bit(channel, &wc->dtmfactive);
 					}
 				}
@@ -3682,7 +3682,7 @@ retry:
 					printk("Port %d: Installed -- MANUAL FXS\n",x + 1);
 				} else {
 					printk("Port %d: FAILED FXS (%s)\n", x + 1, fxshonormode ? fxo_modes[_opermode].name : "FCC");
-					wc->chans[x].sigcap = ZT_SIG_BROKEN | __ZT_SIG_FXO;
+					wc->chans[x].sigcap = DAHDI_SIG_BROKEN | __DAHDI_SIG_FXO;
 				} 
 			} else if (!(ret = wctdm_init_voicedaa(wc, x, 0, 0, sane))) {
 				wc->cardflag |= (1 << x);
@@ -3844,7 +3844,7 @@ retry:
 	wctdm_post_initialize(wc);
 	
 	/* We should be ready for zaptel to come in now. */
-	if (zt_register(&wc->span, 0)) {
+	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with zaptel\n");
 		return -1;
 	}
@@ -3862,7 +3862,7 @@ static void wctdm_release(struct wctdm *wc)
 	int i;
 
 	if (wc->initialized) {
-		zt_unregister(&wc->span);
+		dahdi_unregister(&wc->span);
 	}
 
 	voicebus_release(wc->vb);

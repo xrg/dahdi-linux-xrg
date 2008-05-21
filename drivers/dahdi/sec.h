@@ -130,7 +130,7 @@ static int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int16_t rx
 #define MIN_RX_POWER_FOR_ADAPTION   64
 */
 
-static int echo_can_create(struct zt_echocanparams *ecp, struct zt_echocanparam *p,
+static int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p,
 			   struct echo_can_state **ec)
 {
 	size_t size;

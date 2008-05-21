@@ -75,7 +75,7 @@ static struct ztdlocal {
 	unsigned short id;
 	struct ztdlocal *monitor_rx_peer; /* Indicates the peer span that monitors this span */
 	struct ztdlocal *peer; /* Indicates the rw peer for this span */
-	struct zt_span *span;
+	struct dahdi_span *span;
 	struct ztdlocal *next;
 } *zdevs = NULL;
 
@@ -87,10 +87,10 @@ static struct ztdlocal {
 	spin_lock_irqsave(&zlock, flags);
 	z = pvt;
 	if (z->peer && z->peer->span) {
-		zt_dynamic_receive(z->peer->span, msg, msglen);
+		dahdi_dynamic_receive(z->peer->span, msg, msglen);
 	}
 	if (z->monitor_rx_peer && z->monitor_rx_peer->span) {
-		zt_dynamic_receive(z->monitor_rx_peer->span, msg, msglen);
+		dahdi_dynamic_receive(z->monitor_rx_peer->span, msg, msglen);
 	}
 	spin_unlock_irqrestore(&zlock, flags);
 	return 0;
@@ -167,7 +167,7 @@ static int digit2int(char d)
 	}
 }
 
-/*static*/ void *ztdlocal_create(struct zt_span *span, char *address)
+/*static*/ void *ztdlocal_create(struct dahdi_span *span, char *address)
 {
 	struct ztdlocal *z, *l;
 	unsigned long flags;
@@ -253,7 +253,7 @@ INVALID_ADDRESS:
 	return NULL;
 }
 
-static struct zt_dynamic_driver ztd_local = {
+static struct dahdi_dynamic_driver ztd_local = {
 	"loc",
 	"Local",
 	ztdlocal_create,
@@ -264,13 +264,13 @@ static struct zt_dynamic_driver ztd_local = {
 
 /*static*/ int __init ztdlocal_init(void)
 {
-	zt_dynamic_register(&ztd_local);
+	dahdi_dynamic_register(&ztd_local);
 	return 0;
 }
 
 /*static*/ void __exit ztdlocal_exit(void)
 {
-	zt_dynamic_unregister(&ztd_local);
+	dahdi_dynamic_unregister(&ztd_local);
 }
 
 module_init(ztdlocal_init);

@@ -274,7 +274,7 @@
 	0x00,0x01, s&0x0F, 0x01, 0xFF,0xFF, 0x0A, 0x00, 0x00,0x06,0x09,0x04, 0x00,0x00, \
 	0x24,0x00, 0x00,0x00 }
 
-#define zt_send_cmd(wc, command, length, hex) \
+#define dahdi_send_cmd(wc, command, length, hex) \
 	({ \
 		int ret = 0; \
 		do { \
@@ -368,8 +368,8 @@ struct wcdte {
 	struct workqueue_struct *dte_wq;
 	struct work_struct dte_work;
 
-	struct zt_transcoder *uencode;
-	struct zt_transcoder *udecode;
+	struct dahdi_transcoder *uencode;
+	struct dahdi_transcoder *udecode;
 };
 
 struct wcdte_desc {
@@ -418,8 +418,8 @@ struct dte_state {
 };
 
 
-static struct zt_transcoder *uencode;
-static struct zt_transcoder *udecode;
+static struct dahdi_transcoder *uencode;
+static struct dahdi_transcoder *udecode;
 static struct dte_state *encoders;
 static struct dte_state *decoders;
 static int debug = 0;
@@ -490,7 +490,7 @@ static int __dump_descriptors(struct wcdte *wc)
 }
 
 /* Sanity check values */
-static inline int zt_tc_sanitycheck(struct zt_transcode_header *zth, unsigned int outbytes)
+static inline int dahdi_tc_sanitycheck(struct dahdi_transcode_header *zth, unsigned int outbytes)
 {
 	if (zth->dstoffset >= sizeof(zth->dstdata))
 		return 0;
@@ -544,16 +544,16 @@ static unsigned int wcdte_zapfmt_to_dtefmt(unsigned int fmt)
 	
 	switch(fmt)
 	{
-		case ZT_FORMAT_G723_1:
+		case DAHDI_FORMAT_G723_1:
 			pt = DTE_FORMAT_G723_1;
 			break;
-		case ZT_FORMAT_ULAW:
+		case DAHDI_FORMAT_ULAW:
 			pt = DTE_FORMAT_ULAW;
 			break;
-		case ZT_FORMAT_ALAW:
+		case DAHDI_FORMAT_ALAW:
 			pt = DTE_FORMAT_ALAW;
 			break;
-		case ZT_FORMAT_G729A:
+		case DAHDI_FORMAT_G729A:
 			pt = DTE_FORMAT_G729A;
 			break;
 		default:
@@ -673,11 +673,11 @@ static inline int transmit_demand(struct wcdte *wc)
 	return val;
 }
 
-static int dte_operation(struct zt_transcoder_channel *ztc, int op)
+static int dte_operation(struct dahdi_transcoder_channel *ztc, int op)
 {
-	struct zt_transcoder_channel *compl_ztc;
+	struct dahdi_transcoder_channel *compl_ztc;
 	struct dte_state *st = ztc->pvt, *compl_st;
-	struct zt_transcode_header *zth = ztc->tch;
+	struct dahdi_transcode_header *zth = ztc->tch;
 	struct wcdte *wc = st->wc;
 	unsigned char *chars;
 	unsigned int inbytes = 0;
@@ -686,7 +686,7 @@ static int dte_operation(struct zt_transcoder_channel *ztc, int op)
 	int res = 0;
 	unsigned int ipchksum, ndx;
 	switch(op) {
-	case ZT_TCOP_ALLOCATE:
+	case DAHDI_TCOP_ALLOCATE:
 		down(&wc->chansem);
 		if (ztc->chan_built == 0)
 		{
@@ -714,7 +714,7 @@ static int dte_operation(struct zt_transcoder_channel *ztc, int op)
 		}
 		up(&wc->chansem);
 		break;
-	case ZT_TCOP_RELEASE:
+	case DAHDI_TCOP_RELEASE:
 		down(&wc->chansem);
 		ndx = st->timeslot_in_num/2;
 
@@ -724,7 +724,7 @@ static int dte_operation(struct zt_transcoder_channel *ztc, int op)
 			compl_ztc = &(wc->uencode->channels[ndx]);
 
 		/* If the channel complement (other half of the encoder/decoder pair) is not being used... */
-		if ((compl_ztc->flags & ZT_TC_FLAG_BUSY) == 0)
+		if ((compl_ztc->flags & DAHDI_TC_FLAG_BUSY) == 0)
 		{
 			if (st->encoder == 1)
 				wcdte_destroy_channel(wc, st->chan_in_num, st->chan_out_num);
@@ -747,27 +747,27 @@ static int dte_operation(struct zt_transcoder_channel *ztc, int op)
 		st->dte_seqno_rcv = 0;
 		up(&wc->chansem);
 		break;
-	case ZT_TCOP_TRANSCODE:
-		if ( (((zth->srcfmt == ZT_FORMAT_ULAW) || (zth->srcfmt == ZT_FORMAT_ALAW)) && ((zth->dstfmt == ZT_FORMAT_G729A  && zth->srclen >= G729_SAMPLES) ||(zth->dstfmt == ZT_FORMAT_G723_1  && zth->srclen >= G723_SAMPLES)) )
-			|| ((zth->srcfmt == ZT_FORMAT_G729A) && (zth->srclen >= G729_BYTES))
-			|| ((zth->srcfmt == ZT_FORMAT_G723_1) && (zth->srclen >= G723_SID_BYTES)) )
+	case DAHDI_TCOP_TRANSCODE:
+		if ( (((zth->srcfmt == DAHDI_FORMAT_ULAW) || (zth->srcfmt == DAHDI_FORMAT_ALAW)) && ((zth->dstfmt == DAHDI_FORMAT_G729A  && zth->srclen >= G729_SAMPLES) ||(zth->dstfmt == DAHDI_FORMAT_G723_1  && zth->srclen >= G723_SAMPLES)) )
+			|| ((zth->srcfmt == DAHDI_FORMAT_G729A) && (zth->srclen >= G729_BYTES))
+			|| ((zth->srcfmt == DAHDI_FORMAT_G723_1) && (zth->srclen >= G723_SID_BYTES)) )
 		{
 			do
 			{
 				chars = (unsigned char *)(zth->srcdata + zth->srcoffset);
 					
-				if ((zth->srcfmt == ZT_FORMAT_ULAW) || (zth->srcfmt == ZT_FORMAT_ALAW)) {
-					if (zth->dstfmt == ZT_FORMAT_G729A) {
+				if ((zth->srcfmt == DAHDI_FORMAT_ULAW) || (zth->srcfmt == DAHDI_FORMAT_ALAW)) {
+					if (zth->dstfmt == DAHDI_FORMAT_G729A) {
 						inbytes = G729_SAMPLES; 
 						timestamp_inc = G729_SAMPLES; 
-					} else if (zth->dstfmt == ZT_FORMAT_G723_1) {
+					} else if (zth->dstfmt == DAHDI_FORMAT_G723_1) {
 						inbytes = G723_SAMPLES; 
 						timestamp_inc = G723_SAMPLES; 
 					}
-				} else if (zth->srcfmt == ZT_FORMAT_G729A) {
+				} else if (zth->srcfmt == DAHDI_FORMAT_G729A) {
 					inbytes = G729_BYTES;
 					timestamp_inc = G729_SAMPLES;
-				} else if (zth->srcfmt == ZT_FORMAT_G723_1) {
+				} else if (zth->srcfmt == DAHDI_FORMAT_G723_1) {
 					/* determine the size of the frame */
 					switch (chars[0] & 0x03) {
 					case 0x00:
@@ -851,12 +851,12 @@ static int dte_operation(struct zt_transcoder_channel *ztc, int op)
 				zth->srcoffset += inbytes;
 
 
-			} while ((((zth->srcfmt == ZT_FORMAT_ULAW) || (zth->srcfmt == ZT_FORMAT_ALAW)) && ((zth->dstfmt == ZT_FORMAT_G729A  && zth->srclen >= G729_SAMPLES) ||(zth->dstfmt == ZT_FORMAT_G723_1  && zth->srclen >= G723_SAMPLES)) )
-				|| ((zth->srcfmt == ZT_FORMAT_G729A) && (zth->srclen >= G729_BYTES))
-				|| ((zth->srcfmt == ZT_FORMAT_G723_1) && (zth->srclen >= G723_SID_BYTES)) );
+			} while ((((zth->srcfmt == DAHDI_FORMAT_ULAW) || (zth->srcfmt == DAHDI_FORMAT_ALAW)) && ((zth->dstfmt == DAHDI_FORMAT_G729A  && zth->srclen >= G729_SAMPLES) ||(zth->dstfmt == DAHDI_FORMAT_G723_1  && zth->srclen >= G723_SAMPLES)) )
+				|| ((zth->srcfmt == DAHDI_FORMAT_G729A) && (zth->srclen >= G729_BYTES))
+				|| ((zth->srcfmt == DAHDI_FORMAT_G723_1) && (zth->srclen >= G723_SID_BYTES)) );
 
 		} else {
-			zt_transcoder_alert(ztc);
+			dahdi_transcoder_alert(ztc);
 		}
 
 		res = 0;
@@ -870,8 +870,8 @@ static void wcdte_stop_dma(struct wcdte *wc);
 static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 {
 	volatile unsigned char *readchunk;
-	struct zt_transcoder_channel *ztc = NULL;
-	struct zt_transcode_header *zth = NULL;
+	struct dahdi_transcoder_channel *ztc = NULL;
+	struct dahdi_transcode_header *zth = NULL;
 	struct dte_state *st = NULL;
 	int o2,i;
 	unsigned char rseq, rcodec;
@@ -1036,7 +1036,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 
 		if (rcodec == 0x00)	/* ulaw */
 		{
-			if (zt_tc_sanitycheck(zth, rlen) && ((zth->srcfmt == ZT_FORMAT_G729A && rlen == G729_SAMPLES) || (zth->srcfmt == ZT_FORMAT_G723_1 && rlen == G723_SAMPLES))) {
+			if (dahdi_tc_sanitycheck(zth, rlen) && ((zth->srcfmt == DAHDI_FORMAT_G729A && rlen == G729_SAMPLES) || (zth->srcfmt == DAHDI_FORMAT_G723_1 && rlen == G723_SAMPLES))) {
 				for (i = 0; i < rlen; i++)
 					chars[i] = readchunk[i+54];
 
@@ -1046,11 +1046,11 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 			} else {
 				ztc->errorstatus = -EOVERFLOW;
 			}
-			zt_transcoder_alert(ztc);
+			dahdi_transcoder_alert(ztc);
 		}
 		else if (rcodec == 0x08)	/* alaw */
 		{
-			if (zt_tc_sanitycheck(zth, rlen) && ((zth->srcfmt == ZT_FORMAT_G729A && rlen == G729_SAMPLES) || (zth->srcfmt == ZT_FORMAT_G723_1 && rlen == G723_SAMPLES))) {
+			if (dahdi_tc_sanitycheck(zth, rlen) && ((zth->srcfmt == DAHDI_FORMAT_G729A && rlen == G729_SAMPLES) || (zth->srcfmt == DAHDI_FORMAT_G723_1 && rlen == G723_SAMPLES))) {
 
 				for (i = 0; i < rlen; i++)
 					chars[i] = readchunk[i+54];
@@ -1061,11 +1061,11 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 			} else {
 				ztc->errorstatus = -EOVERFLOW;
 			}
-			zt_transcoder_alert(ztc);
+			dahdi_transcoder_alert(ztc);
 		}
 		else if (rcodec == 0x04)	/* G.723.1 */
 		{
-			if (zt_tc_sanitycheck(zth, rlen) &&
+			if (dahdi_tc_sanitycheck(zth, rlen) &&
 			    ((rlen == G723_6K_BYTES) || (rlen == G723_5K_BYTES) || (rlen == G723_SID_BYTES)))
 			{
 				for (i = 0; i < rlen; i++)
@@ -1080,12 +1080,12 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 
 			if (!(zth->dstsamples % G723_SAMPLES))
 			{
-				zt_transcoder_alert(ztc);
+				dahdi_transcoder_alert(ztc);
 			} 
 		}
 		else if (rcodec == 0x12)	/* G.729a */
 		{
-			if (zt_tc_sanitycheck(zth, rlen) && (rlen == G729_BYTES))
+			if (dahdi_tc_sanitycheck(zth, rlen) && (rlen == G729_BYTES))
 			{
 				for (i = 0; i < rlen; i++)
 					chars[i] = readchunk[i+54];
@@ -1099,7 +1099,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 
 			if (!(zth->dstsamples % G729_SAMPLES))
 			{
-				zt_transcoder_alert(ztc);
+				dahdi_transcoder_alert(ztc);
 			} 
 		}
 	}
@@ -1528,7 +1528,7 @@ static int wcdte_create_channel(struct wcdte *wc, int simple, int complicated, i
 {
 	int length = 0;
 	unsigned char chan1, chan2;
-	struct zt_transcoder_channel *ztc1, *ztc2;
+	struct dahdi_transcoder_channel *ztc1, *ztc2;
 	struct dte_state *st1, *st2;
 	if(complicated == DTE_FORMAT_G729A)
 		length = G729_LENGTH;
@@ -1536,13 +1536,13 @@ static int wcdte_create_channel(struct wcdte *wc, int simple, int complicated, i
 		length = G723_LENGTH;
 
 	/* Create complex channel */
-	zt_send_cmd(wc, CMD_MSG_CREATE_CHANNEL(wc->seq_num++, part1_id), CMD_MSG_CREATE_CHANNEL_LEN, 0x0010);
-	zt_send_cmd(wc, CMD_MSG_QUERY_CHANNEL(wc->seq_num++, part1_id), CMD_MSG_QUERY_CHANNEL_LEN, 0x0010);
+	dahdi_send_cmd(wc, CMD_MSG_CREATE_CHANNEL(wc->seq_num++, part1_id), CMD_MSG_CREATE_CHANNEL_LEN, 0x0010);
+	dahdi_send_cmd(wc, CMD_MSG_QUERY_CHANNEL(wc->seq_num++, part1_id), CMD_MSG_QUERY_CHANNEL_LEN, 0x0010);
 	chan1 = wc->last_rparm1;
 
 	/* Create simple channel */
-	zt_send_cmd(wc, CMD_MSG_CREATE_CHANNEL(wc->seq_num++, part2_id), CMD_MSG_CREATE_CHANNEL_LEN, 0x0010);
-	zt_send_cmd(wc, CMD_MSG_QUERY_CHANNEL(wc->seq_num++, part2_id), CMD_MSG_QUERY_CHANNEL_LEN, 0x0010);
+	dahdi_send_cmd(wc, CMD_MSG_CREATE_CHANNEL(wc->seq_num++, part2_id), CMD_MSG_CREATE_CHANNEL_LEN, 0x0010);
+	dahdi_send_cmd(wc, CMD_MSG_QUERY_CHANNEL(wc->seq_num++, part2_id), CMD_MSG_QUERY_CHANNEL_LEN, 0x0010);
 	chan2 = wc->last_rparm1;
 
 	ztc1 = &(wc->uencode->channels[part1_id/2]);
@@ -1551,25 +1551,25 @@ static int wcdte_create_channel(struct wcdte *wc, int simple, int complicated, i
 	st2 = ztc2->pvt;
 
 	/* Configure complex channel */
-	zt_send_cmd(wc, CMD_MSG_SET_IP_HDR_CHANNEL(st1->cmd_seqno++, chan1, part2_id, part1_id), CMD_MSG_SET_IP_HDR_CHANNEL_LEN, 0x9000);
-	zt_send_cmd(wc, CMD_MSG_VOIP_VCEOPT(st1->cmd_seqno++, chan1, length, 0), CMD_MSG_VOIP_VCEOPT_LEN, 0x8001);
+	dahdi_send_cmd(wc, CMD_MSG_SET_IP_HDR_CHANNEL(st1->cmd_seqno++, chan1, part2_id, part1_id), CMD_MSG_SET_IP_HDR_CHANNEL_LEN, 0x9000);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_VCEOPT(st1->cmd_seqno++, chan1, length, 0), CMD_MSG_VOIP_VCEOPT_LEN, 0x8001);
 
 	/* Configure simple channel */
-	zt_send_cmd(wc, CMD_MSG_SET_IP_HDR_CHANNEL(st2->cmd_seqno++, chan2, part1_id, part2_id), CMD_MSG_SET_IP_HDR_CHANNEL_LEN, 0x9000);
-	zt_send_cmd(wc, CMD_MSG_VOIP_VCEOPT(st2->cmd_seqno++, chan2, length, 0), CMD_MSG_VOIP_VCEOPT_LEN, 0x8001);
+	dahdi_send_cmd(wc, CMD_MSG_SET_IP_HDR_CHANNEL(st2->cmd_seqno++, chan2, part1_id, part2_id), CMD_MSG_SET_IP_HDR_CHANNEL_LEN, 0x9000);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_VCEOPT(st2->cmd_seqno++, chan2, length, 0), CMD_MSG_VOIP_VCEOPT_LEN, 0x8001);
 
 #ifdef QUIET_DSP
-	zt_send_cmd(wc, CMD_MSG_VOIP_TONECTL(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_TONECTL_LEN, 0x805B);
-	zt_send_cmd(wc, CMD_MSG_VOIP_DTMFOPT(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_DTMFOPT_LEN, 0x8002);
-	zt_send_cmd(wc, CMD_MSG_VOIP_TONECTL(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_TONECTL_LEN, 0x805B);
-	zt_send_cmd(wc, CMD_MSG_VOIP_DTMFOPT(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_DTMFOPT_LEN, 0x8002);
-	zt_send_cmd(wc, CMD_MSG_VOIP_INDCTRL(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_INDCTRL_LEN, 0x8084);
-	zt_send_cmd(wc, CMD_MSG_VOIP_INDCTRL(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_INDCTRL_LEN, 0x8084);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_TONECTL(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_TONECTL_LEN, 0x805B);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_DTMFOPT(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_DTMFOPT_LEN, 0x8002);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_TONECTL(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_TONECTL_LEN, 0x805B);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_DTMFOPT(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_DTMFOPT_LEN, 0x8002);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_INDCTRL(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_INDCTRL_LEN, 0x8084);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_INDCTRL(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_INDCTRL_LEN, 0x8084);
 #endif
 
-	zt_send_cmd(wc, CMD_MSG_TRANS_CONNECT(wc->seq_num++, 1, chan1, chan2, complicated, simple), CMD_MSG_TRANS_CONNECT_LEN, 0x9322);
-	zt_send_cmd(wc, CMD_MSG_VOIP_VOPENA(st1->cmd_seqno++, chan1, complicated), CMD_MSG_VOIP_VOPENA_LEN, 0x8000);
-	zt_send_cmd(wc, CMD_MSG_VOIP_VOPENA(st2->cmd_seqno++, chan2, simple), CMD_MSG_VOIP_VOPENA_LEN, 0x8000);
+	dahdi_send_cmd(wc, CMD_MSG_TRANS_CONNECT(wc->seq_num++, 1, chan1, chan2, complicated, simple), CMD_MSG_TRANS_CONNECT_LEN, 0x9322);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_VOPENA(st1->cmd_seqno++, chan1, complicated), CMD_MSG_VOIP_VOPENA_LEN, 0x8000);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_VOPENA(st2->cmd_seqno++, chan2, simple), CMD_MSG_VOIP_VOPENA_LEN, 0x8000);
 
 	*dte_chan1 = chan1;
 	*dte_chan2 = chan2;
@@ -1579,7 +1579,7 @@ static int wcdte_create_channel(struct wcdte *wc, int simple, int complicated, i
 
 static int wcdte_destroy_channel(struct wcdte *wc, unsigned int chan1, unsigned int chan2)
 {
-	struct zt_transcoder_channel *ztc1, *ztc2;
+	struct dahdi_transcoder_channel *ztc1, *ztc2;
 	struct dte_state *st1, *st2;
 
 	ztc1 = &(wc->uencode->channels[chan1/2]);
@@ -1588,15 +1588,15 @@ static int wcdte_destroy_channel(struct wcdte *wc, unsigned int chan1, unsigned 
 	st2 = ztc2->pvt;
 
 	/* Turn off both channels */
-	zt_send_cmd(wc, CMD_MSG_VOIP_VOPENA_CLOSE(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_VOPENA_CLOSE_LEN, 0x8000);
-	zt_send_cmd(wc, CMD_MSG_VOIP_VOPENA_CLOSE(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_VOPENA_CLOSE_LEN, 0x8000);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_VOPENA_CLOSE(st1->cmd_seqno++, chan1), CMD_MSG_VOIP_VOPENA_CLOSE_LEN, 0x8000);
+	dahdi_send_cmd(wc, CMD_MSG_VOIP_VOPENA_CLOSE(st2->cmd_seqno++, chan2), CMD_MSG_VOIP_VOPENA_CLOSE_LEN, 0x8000);
 	
 	/* Disconnect the channels */
-	zt_send_cmd(wc, CMD_MSG_TRANS_CONNECT(wc->seq_num++, 0, chan1, chan2, 0, 0), CMD_MSG_TRANS_CONNECT_LEN, 0x9322);
+	dahdi_send_cmd(wc, CMD_MSG_TRANS_CONNECT(wc->seq_num++, 0, chan1, chan2, 0, 0), CMD_MSG_TRANS_CONNECT_LEN, 0x9322);
 
 	/* Remove the channels */
-	zt_send_cmd(wc, CMD_MSG_DESTROY_CHANNEL(wc->seq_num++, chan1), CMD_MSG_DESTROY_CHANNEL_LEN, 0x0011);
-	zt_send_cmd(wc, CMD_MSG_DESTROY_CHANNEL(wc->seq_num++, chan2), CMD_MSG_DESTROY_CHANNEL_LEN, 0x0011);
+	dahdi_send_cmd(wc, CMD_MSG_DESTROY_CHANNEL(wc->seq_num++, chan1), CMD_MSG_DESTROY_CHANNEL_LEN, 0x0011);
+	dahdi_send_cmd(wc, CMD_MSG_DESTROY_CHANNEL(wc->seq_num++, chan2), CMD_MSG_DESTROY_CHANNEL_LEN, 0x0011);
 
 	return 1;
 }
@@ -1607,34 +1607,34 @@ static int __wcdte_setup_channels(struct wcdte *wc)
 	wc->seq_num = 6;
 
 #ifndef USE_TEST_HW
-	zt_send_cmd(wc, CMD_MSG_SET_ARM_CLK(wc->seq_num++), CMD_MSG_SET_ARM_CLK_LEN, 0x0411);
-	zt_send_cmd(wc, CMD_MSG_SET_SPU_CLK(wc->seq_num++), CMD_MSG_SET_SPU_CLK_LEN, 0x0412);
+	dahdi_send_cmd(wc, CMD_MSG_SET_ARM_CLK(wc->seq_num++), CMD_MSG_SET_ARM_CLK_LEN, 0x0411);
+	dahdi_send_cmd(wc, CMD_MSG_SET_SPU_CLK(wc->seq_num++), CMD_MSG_SET_SPU_CLK_LEN, 0x0412);
 #endif
 
 #ifdef USE_TDM_CONFIG
-	zt_send_cmd(wc, CMD_MSG_TDM_SELECT_BUS_MODE(wc->seq_num++), CMD_MSG_TDM_SELECT_BUS_MODE_LEN, 0x0417);
-	zt_send_cmd(wc, CMD_MSG_TDM_ENABLE_BUS(wc->seq_num++), CMD_MSG_TDM_ENABLE_BUS_LEN, 0x0405);
-	zt_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x03, 0x20, 0x00), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
-	zt_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x04, 0x80, 0x04), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
-	zt_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x05, 0x20, 0x08), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
-	zt_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x06, 0x80, 0x0C), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
+	dahdi_send_cmd(wc, CMD_MSG_TDM_SELECT_BUS_MODE(wc->seq_num++), CMD_MSG_TDM_SELECT_BUS_MODE_LEN, 0x0417);
+	dahdi_send_cmd(wc, CMD_MSG_TDM_ENABLE_BUS(wc->seq_num++), CMD_MSG_TDM_ENABLE_BUS_LEN, 0x0405);
+	dahdi_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x03, 0x20, 0x00), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
+	dahdi_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x04, 0x80, 0x04), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
+	dahdi_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x05, 0x20, 0x08), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
+	dahdi_send_cmd(wc, CMD_MSG_SUPVSR_SETUP_TDM_PARMS(wc->seq_num++, 0x06, 0x80, 0x0C), CMD_MSG_SUPVSR_SETUP_TDM_PARMS_LEN, 0x0407);
 #endif
 
-	zt_send_cmd(wc, CMD_MSG_SET_ETH_HEADER(wc->seq_num++), CMD_MSG_SET_ETH_HEADER_LEN, 0x0100);
-	zt_send_cmd(wc, CMD_MSG_IP_SERVICE_CONFIG(wc->seq_num++), CMD_MSG_IP_SERVICE_CONFIG_LEN, 0x0302);
-	zt_send_cmd(wc, CMD_MSG_ARP_SERVICE_CONFIG(wc->seq_num++), CMD_MSG_ARP_SERVICE_CONFIG_LEN, 0x0105);
-	zt_send_cmd(wc, CMD_MSG_ICMP_SERVICE_CONFIG(wc->seq_num++), CMD_MSG_ICMP_SERVICE_CONFIG_LEN, 0x0304);
+	dahdi_send_cmd(wc, CMD_MSG_SET_ETH_HEADER(wc->seq_num++), CMD_MSG_SET_ETH_HEADER_LEN, 0x0100);
+	dahdi_send_cmd(wc, CMD_MSG_IP_SERVICE_CONFIG(wc->seq_num++), CMD_MSG_IP_SERVICE_CONFIG_LEN, 0x0302);
+	dahdi_send_cmd(wc, CMD_MSG_ARP_SERVICE_CONFIG(wc->seq_num++), CMD_MSG_ARP_SERVICE_CONFIG_LEN, 0x0105);
+	dahdi_send_cmd(wc, CMD_MSG_ICMP_SERVICE_CONFIG(wc->seq_num++), CMD_MSG_ICMP_SERVICE_CONFIG_LEN, 0x0304);
 
 #ifdef USE_TDM_CONFIG
-	zt_send_cmd(wc, CMD_MSG_DEVICE_SET_COUNTRY_CODE(wc->seq_num++), CMD_MSG_DEVICE_SET_COUNTRY_CODE_LEN, 0x041B);
+	dahdi_send_cmd(wc, CMD_MSG_DEVICE_SET_COUNTRY_CODE(wc->seq_num++), CMD_MSG_DEVICE_SET_COUNTRY_CODE_LEN, 0x041B);
 #endif
 
-	zt_send_cmd(wc, CMD_MSG_SPU_FEATURES_CONTROL(wc->seq_num++, 0x02), CMD_MSG_SPU_FEATURES_CONTROL_LEN, 0x0013);
-	zt_send_cmd(wc, CMD_MSG_IP_OPTIONS(wc->seq_num++), CMD_MSG_IP_OPTIONS_LEN, 0x0306);
-	zt_send_cmd(wc, CMD_MSG_SPU_FEATURES_CONTROL(wc->seq_num++, 0x04), CMD_MSG_SPU_FEATURES_CONTROL_LEN, 0x0013);
+	dahdi_send_cmd(wc, CMD_MSG_SPU_FEATURES_CONTROL(wc->seq_num++, 0x02), CMD_MSG_SPU_FEATURES_CONTROL_LEN, 0x0013);
+	dahdi_send_cmd(wc, CMD_MSG_IP_OPTIONS(wc->seq_num++), CMD_MSG_IP_OPTIONS_LEN, 0x0306);
+	dahdi_send_cmd(wc, CMD_MSG_SPU_FEATURES_CONTROL(wc->seq_num++, 0x04), CMD_MSG_SPU_FEATURES_CONTROL_LEN, 0x0013);
 
 #ifdef USE_TDM_CONFIG
-	zt_send_cmd(wc, CMD_MSG_TDM_OPT(wc->seq_num++), CMD_MSG_TDM_OPT_LEN, 0x0435);
+	dahdi_send_cmd(wc, CMD_MSG_TDM_OPT(wc->seq_num++), CMD_MSG_TDM_OPT_LEN, 0x0435);
 #endif
 
 	wc->timeout = HZ/10 + 1; 	/* 100msec */
@@ -1772,33 +1772,33 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 
 			if (!mode || strlen(mode) < 4) {
 				sprintf(wc->complexname, "G.729a / G.723.1");
- 				complexfmts = ZT_FORMAT_G729A | ZT_FORMAT_G723_1;
+ 				complexfmts = DAHDI_FORMAT_G729A | DAHDI_FORMAT_G723_1;
 				wc->numchannels = min_numchannels;
 			} else if (mode[3] == '9') {	/* "G.729" */
 				sprintf(wc->complexname, "G.729a");
-				complexfmts = ZT_FORMAT_G729A;
+				complexfmts = DAHDI_FORMAT_G729A;
 				wc->numchannels = g729_numchannels;
 			} else if (mode[3] == '3') {	/* "G.723.1" */
 				sprintf(wc->complexname, "G.723.1");
-				complexfmts = ZT_FORMAT_G723_1;
+				complexfmts = DAHDI_FORMAT_G723_1;
 				wc->numchannels = g723_numchannels;
 			} else {
 				sprintf(wc->complexname, "G.729a / G.723.1");
-				complexfmts = ZT_FORMAT_G729A | ZT_FORMAT_G723_1;
+				complexfmts = DAHDI_FORMAT_G729A | DAHDI_FORMAT_G723_1;
 				wc->numchannels = min_numchannels;
 			}
 			
-			uencode = zt_transcoder_alloc(wc->numchannels);
-			udecode = zt_transcoder_alloc(wc->numchannels);
+			uencode = dahdi_transcoder_alloc(wc->numchannels);
+			udecode = dahdi_transcoder_alloc(wc->numchannels);
 			encoders = vmalloc(sizeof(struct dte_state) * wc->numchannels);
 			decoders = vmalloc(sizeof(struct dte_state) * wc->numchannels);
 			memset(encoders, 0, sizeof(struct dte_state) * wc->numchannels);
 			memset(decoders, 0, sizeof(struct dte_state) * wc->numchannels);
 			if (!uencode || !udecode || !encoders || !decoders) {
 				if (uencode)
-					zt_transcoder_free(uencode);
+					dahdi_transcoder_free(uencode);
 				if (udecode)
-					zt_transcoder_free(udecode);
+					dahdi_transcoder_free(udecode);
 				if (encoders)
 					vfree(encoders);
 				if (decoders)
@@ -1809,7 +1809,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 			sprintf(uencode->name, "DTE Encoder");
 	
 			udecode->srcfmts = uencode->dstfmts = complexfmts;
-			udecode->dstfmts = uencode->srcfmts = ZT_FORMAT_ULAW | ZT_FORMAT_ALAW;
+			udecode->dstfmts = uencode->srcfmts = DAHDI_FORMAT_ULAW | DAHDI_FORMAT_ALAW;
 			
 			udecode->operation = uencode->operation = dte_operation;
 
@@ -1825,8 +1825,8 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 			wc->uencode = uencode;
 			wc->udecode = udecode;
 		
-			zt_transcoder_register(uencode);
-			zt_transcoder_register(udecode);
+			dahdi_transcoder_register(uencode);
+			dahdi_transcoder_register(udecode);
 
 			printk("Zaptel DTE (%s) Transcoder support LOADED (firm ver = %d.%d)\n", wc->complexname, dte_firmware_ver, dte_firmware_ver_minor);
 
@@ -1927,7 +1927,7 @@ static void __devexit wcdte_remove_one(struct pci_dev *pdev)
 {
 	int i;
 	struct wcdte *wc = pci_get_drvdata(pdev);
-	struct zt_transcoder_channel *ztc_en, *ztc_de;
+	struct dahdi_transcoder_channel *ztc_en, *ztc_de;
 	struct dte_state *st_en, *st_de;
 
 	if (wc) {
@@ -1949,10 +1949,10 @@ static void __devexit wcdte_remove_one(struct pci_dev *pdev)
 			}
 		}
 
-		zt_transcoder_unregister(wc->udecode);
-		zt_transcoder_unregister(wc->uencode);
-		zt_transcoder_free(wc->uencode);
-		zt_transcoder_free(wc->udecode);
+		dahdi_transcoder_unregister(wc->udecode);
+		dahdi_transcoder_unregister(wc->uencode);
+		dahdi_transcoder_free(wc->uencode);
+		dahdi_transcoder_free(wc->udecode);
 		vfree(wc->uencode->channels[0].pvt);
 		vfree(wc->udecode->channels[0].pvt);
 	

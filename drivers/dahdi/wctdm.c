@@ -198,7 +198,7 @@ enum battery_state {
 struct wctdm {
 	struct pci_dev *dev;
 	char *variety;
-	struct zt_span span;
+	struct dahdi_span span;
 	unsigned char ios;
 	int usecount;
 	unsigned int intcount;
@@ -255,7 +255,7 @@ struct wctdm {
 	dma_addr_t	writedma;
 	volatile unsigned int *writechunk;				/* Double-word aligned write memory */
 	volatile unsigned int *readchunk;				/* Double-word aligned read memory */
-	struct zt_chan chans[NUM_CARDS];
+	struct dahdi_chan chans[NUM_CARDS];
 };
 
 
@@ -305,11 +305,11 @@ static inline void wctdm_transmitprep(struct wctdm *wc, unsigned char ints)
 		/* Write is at interrupt address.  Start writing from normal offset */
 		writechunk = wc->writechunk;
 	else 
-		writechunk = wc->writechunk + ZT_CHUNKSIZE;
+		writechunk = wc->writechunk + DAHDI_CHUNKSIZE;
 	/* Calculate Transmission */
-	zt_transmit(&wc->span);
+	dahdi_transmit(&wc->span);
 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		/* Send a sample, as a 32-bit word */
 		writechunk[x] = 0;
 #ifdef __BIG_ENDIAN
@@ -342,10 +342,10 @@ static inline void ring_check(struct wctdm *wc, int card)
 	short sample;
 	if (wc->modtype[card] != MOD_TYPE_FXO)
 		return;
-	wc->mod[card].fxo.pegtimer += ZT_CHUNKSIZE;
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	wc->mod[card].fxo.pegtimer += DAHDI_CHUNKSIZE;
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		/* Look for pegging to indicate ringing */
-		sample = ZT_XLAW(wc->chans[card].readchunk[x], (&(wc->chans[card])));
+		sample = DAHDI_XLAW(wc->chans[card].readchunk[x], (&(wc->chans[card])));
 		if ((sample > 10000) && (wc->mod[card].fxo.peg != 1)) {
 			if (debug > 1) printk("High peg!\n");
 			if ((wc->mod[card].fxo.pegtimer < PEGTIME) && (wc->mod[card].fxo.pegtimer > MINPEGTIME))
@@ -373,14 +373,14 @@ static inline void ring_check(struct wctdm *wc, int card)
 			if (debug)
 				printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
 			if (!wc->mod[card].fxo.offhook)
-				zt_hooksig(&wc->chans[card], ZT_RXSIG_RING);
+				dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_RING);
 			wc->mod[card].fxo.ring = 1;
 		}
 		if (wc->mod[card].fxo.ring && !wc->mod[card].fxo.pegcount) {
 			/* No more ring */
 			if (debug)
 				printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
-			zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+			dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 			wc->mod[card].fxo.ring = 0;
 		}
 	}
@@ -392,11 +392,11 @@ static inline void wctdm_receiveprep(struct wctdm *wc, unsigned char ints)
 	int x;
 
 	if (ints & 0x08)
-		readchunk = wc->readchunk + ZT_CHUNKSIZE;
+		readchunk = wc->readchunk + DAHDI_CHUNKSIZE;
 	else
 		/* Read is at interrupt address.  Valid data is available at normal offset */
 		readchunk = wc->readchunk;
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 #ifdef __BIG_ENDIAN
 		if (wc->cardflag & (1 << 3))
 			wc->chans[3].readchunk[x] = (readchunk[x]) & 0xff;
@@ -424,9 +424,9 @@ static inline void wctdm_receiveprep(struct wctdm *wc, unsigned char ints)
 	/* XXX We're wasting 8 taps.  We should get closer :( */
 	for (x = 0; x < NUM_CARDS; x++) {
 		if (wc->cardflag & (1 << x))
-			zt_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, wc->chans[x].writechunk);
+			dahdi_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, wc->chans[x].writechunk);
 	}
-	zt_receive(&wc->span);
+	dahdi_receive(&wc->span);
 }
 
 static void wctdm_stop_dma(struct wctdm *wc);
@@ -782,7 +782,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 1;
 						if (debug)
 							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_RING);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_RING);
 					}
 					fxo->lastrdtx = res;
 					fxo->ringdebounce = 10;
@@ -791,7 +791,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 0;
 						if (debug)
 							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 					}
 				}
 			} else if (res && (fxo->battery == BATTERY_PRESENT)) {
@@ -801,22 +801,22 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		} else {
 			res = wc->reg0shadow[card];
 			if ((res & 0x60) && (fxo->battery == BATTERY_PRESENT)) {
-				fxo->ringdebounce += (ZT_CHUNKSIZE * 16);
-				if (fxo->ringdebounce >= ZT_CHUNKSIZE * ringdebounce) {
+				fxo->ringdebounce += (DAHDI_CHUNKSIZE * 16);
+				if (fxo->ringdebounce >= DAHDI_CHUNKSIZE * ringdebounce) {
 					if (!fxo->wasringing) {
 						fxo->wasringing = 1;
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_RING);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_RING);
 						if (debug)
 							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
-					fxo->ringdebounce = ZT_CHUNKSIZE * ringdebounce;
+					fxo->ringdebounce = DAHDI_CHUNKSIZE * ringdebounce;
 				}
 			} else {
-				fxo->ringdebounce -= ZT_CHUNKSIZE * 4;
+				fxo->ringdebounce -= DAHDI_CHUNKSIZE * 4;
 				if (fxo->ringdebounce <= 0) {
 					if (fxo->wasringing) {
 						fxo->wasringing = 0;
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 						if (debug)
 							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
@@ -851,7 +851,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						printk("NO BATTERY on %d/%d!\n", wc->span.spanno, card + 1);
 #ifdef	JAPAN
 					if (!wc->ohdebounce && wc->offhook) {
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_ONHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
 						if (debug)
 							printk("Signalled On Hook\n");
 #ifdef	ZERO_BATT_RING
@@ -859,7 +859,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 #endif
 					}
 #else
-					zt_hooksig(&wc->chans[card], ZT_RXSIG_ONHOOK);
+					dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
 					/* set the alarm timer, taking into account that part of its time
 					   period has already passed while debouncing occurred */
 					fxo->battalarm = (battalarm - battdebounce) / MS_PER_CHECK_HOOK;
@@ -895,12 +895,12 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 #ifdef	ZERO_BATT_RING
 					if (wc->onhook) {
 						wc->onhook = 0;
-						zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 						if (debug)
 							printk("Signalled Off Hook\n");
 					}
 #else
-					zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+					dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 #endif
 					/* set the alarm timer, taking into account that part of its time
 					   period has already passed while debouncing occurred */
@@ -930,7 +930,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		if (--fxo->battalarm == 0) {
 			/* the alarm timer has expired, so update the battery alarm state
 			   for this channel */
-			zt_alarm_channel(&wc->chans[card], fxo->battery ? ZT_ALARM_NONE : ZT_ALARM_RED);
+			dahdi_alarm_channel(&wc->chans[card], fxo->battery ? DAHDI_ALARM_NONE : DAHDI_ALARM_RED);
 		}
 	}
 
@@ -942,7 +942,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				       fxo->polarity, 
 				       fxo->lastpol);
 				if (fxo->polarity)
-					zt_qevent_lock(&wc->chans[card], ZT_EVENT_POLARITY);
+					dahdi_qevent_lock(&wc->chans[card], DAHDI_EVENT_POLARITY);
 				fxo->polarity = fxo->lastpol;
 		    }
 		}
@@ -968,7 +968,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 #endif
 	} else {
 		if (wc->mod[card].fxs.debounce > 0) {
-			wc->mod[card].fxs.debounce-= 16 * ZT_CHUNKSIZE;
+			wc->mod[card].fxs.debounce-= 16 * DAHDI_CHUNKSIZE;
 #if 0
 			printk("Sustaining hook %d, %d\n", hook, wc->mod[card].fxs.debounce);
 #endif
@@ -984,7 +984,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 				if (debug)
 #endif				
 					printk("wctdm: Card %d Going off hook\n", card);
-				zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
+				dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 				if (robust)
 					wctdm_init_proslic(wc, card, 1, 0, 1);
 				wc->mod[card].fxs.oldrxhook = 1;
@@ -995,7 +995,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 				if (debug)
 #endif				
 					printk("wctdm: Card %d Going on hook\n", card);
-				zt_hooksig(&wc->chans[card], ZT_RXSIG_ONHOOK);
+				dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
 				wc->mod[card].fxs.oldrxhook = 0;
 			}
 		}
@@ -1053,7 +1053,7 @@ ZAP_IRQ_HANDLER(wctdm_interrupt)
 					wc->mod[x].fxs.idletxhookstate = 0x2; 
 			} else {
 				if (wc->mod[x].fxs.ohttimer) {
-					wc->mod[x].fxs.ohttimer-= ZT_CHUNKSIZE;
+					wc->mod[x].fxs.ohttimer-= DAHDI_CHUNKSIZE;
 					if (!wc->mod[x].fxs.ohttimer) {
 						if (reversepolarity)
 							wc->mod[x].fxs.idletxhookstate = 0x5;	/* Switch to active */
@@ -1795,17 +1795,17 @@ static int wctdm_init_proslic(struct wctdm *wc, int card, int fast, int manual, 
 }
 
 
-static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data)
+static int wctdm_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data)
 {
 	struct wctdm_stats stats;
 	struct wctdm_regs regs;
 	struct wctdm_regop regop;
 	struct wctdm_echo_coefs echoregs;
-	struct zt_hwgain hwgain;
+	struct dahdi_hwgain hwgain;
 	struct wctdm *wc = chan->pvt;
 	int x;
 	switch (cmd) {
-	case ZT_ONHOOKTRANSFER:
+	case DAHDI_ONHOOKTRANSFER:
 		if (wc->modtype[chan->chanpos - 1] != MOD_TYPE_FXS)
 			return -EINVAL;
 		if (get_user(x, (int *)data))
@@ -1824,7 +1824,7 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 				wctdm_setreg(wc, chan->chanpos - 1, 64, wc->mod[chan->chanpos - 1].fxs.lasttxhook);
 		}
 		break;
-	case ZT_SETPOLARITY:
+	case DAHDI_SETPOLARITY:
 		if (get_user(x, (int *)data))
 			return -EFAULT;
 		if (wc->modtype[chan->chanpos - 1] != MOD_TYPE_FXS)
@@ -1909,8 +1909,8 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 
 		}
 		break;
-	case ZT_SET_HWGAIN:
-		if (copy_from_user(&hwgain, (struct zt_hwgain*) data, sizeof(hwgain)))
+	case DAHDI_SET_HWGAIN:
+		if (copy_from_user(&hwgain, (struct dahdi_hwgain*) data, sizeof(hwgain)))
 			return -EFAULT;
 
 		wctdm_set_hwgain(wc, chan->chanpos-1, hwgain.newgain, hwgain.tx);
@@ -1926,7 +1926,7 @@ static int wctdm_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 
 }
 
-static int wctdm_open(struct zt_chan *chan)
+static int wctdm_open(struct dahdi_chan *chan)
 {
 	struct wctdm *wc = chan->pvt;
 	if (!(wc->cardflag & (1 << (chan->chanpos - 1))))
@@ -1942,14 +1942,14 @@ static int wctdm_open(struct zt_chan *chan)
 	return 0;
 }
 
-static int wctdm_watchdog(struct zt_span *span, int event)
+static int wctdm_watchdog(struct dahdi_span *span, int event)
 {
 	printk("TDM: Restarting DMA\n");
 	wctdm_restart_dma(span->pvt);
 	return 0;
 }
 
-static int wctdm_close(struct zt_chan *chan)
+static int wctdm_close(struct dahdi_chan *chan)
 {
 	struct wctdm *wc = chan->pvt;
 	wc->usecount--;
@@ -1970,19 +1970,19 @@ static int wctdm_close(struct zt_chan *chan)
 	return 0;
 }
 
-static int wctdm_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
+static int wctdm_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
 {
 	struct wctdm *wc = chan->pvt;
 	int reg=0;
 	if (wc->modtype[chan->chanpos - 1] == MOD_TYPE_FXO) {
 		/* XXX Enable hooksig for FXO XXX */
 		switch(txsig) {
-		case ZT_TXSIG_START:
-		case ZT_TXSIG_OFFHOOK:
+		case DAHDI_TXSIG_START:
+		case DAHDI_TXSIG_OFFHOOK:
 			wc->mod[chan->chanpos - 1].fxo.offhook = 1;
 			wctdm_setreg(wc, chan->chanpos - 1, 5, 0x9);
 			break;
-		case ZT_TXSIG_ONHOOK:
+		case DAHDI_TXSIG_ONHOOK:
 			wc->mod[chan->chanpos - 1].fxo.offhook = 0;
 			wctdm_setreg(wc, chan->chanpos - 1, 5, 0x8);
 			break;
@@ -1991,21 +1991,21 @@ static int wctdm_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 		}
 	} else {
 		switch(txsig) {
-		case ZT_TXSIG_ONHOOK:
+		case DAHDI_TXSIG_ONHOOK:
 			switch(chan->sig) {
-			case ZT_SIG_EM:
-			case ZT_SIG_FXOKS:
-			case ZT_SIG_FXOLS:
+			case DAHDI_SIG_EM:
+			case DAHDI_SIG_FXOKS:
+			case DAHDI_SIG_FXOLS:
 				wc->mod[chan->chanpos-1].fxs.lasttxhook = wc->mod[chan->chanpos-1].fxs.idletxhookstate;
 				break;
-			case ZT_SIG_FXOGS:
+			case DAHDI_SIG_FXOGS:
 				wc->mod[chan->chanpos-1].fxs.lasttxhook = 3;
 				break;
 			}
 			break;
-		case ZT_TXSIG_OFFHOOK:
+		case DAHDI_TXSIG_OFFHOOK:
 			switch(chan->sig) {
-			case ZT_SIG_EM:
+			case DAHDI_SIG_EM:
 				wc->mod[chan->chanpos-1].fxs.lasttxhook = 5;
 				break;
 			default:
@@ -2013,10 +2013,10 @@ static int wctdm_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 				break;
 			}
 			break;
-		case ZT_TXSIG_START:
+		case DAHDI_TXSIG_START:
 			wc->mod[chan->chanpos-1].fxs.lasttxhook = 4;
 			break;
-		case ZT_TXSIG_KEWL:
+		case DAHDI_TXSIG_KEWL:
 			wc->mod[chan->chanpos-1].fxs.lasttxhook = 0;
 			break;
 		default:
@@ -2045,13 +2045,13 @@ static int wctdm_initialize(struct wctdm *wc)
 	zap_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
 	if (alawoverride) {
 		printk("ALAW override parameter detected.  Device will be operating in ALAW\n");
-		wc->span.deflaw = ZT_LAW_ALAW;
+		wc->span.deflaw = DAHDI_LAW_ALAW;
 	} else
-		wc->span.deflaw = ZT_LAW_MULAW;
+		wc->span.deflaw = DAHDI_LAW_MULAW;
 	for (x = 0; x < NUM_CARDS; x++) {
 		sprintf(wc->chans[x].name, "WCTDM/%d/%d", wc->pos, x);
-		wc->chans[x].sigcap = ZT_SIG_FXOKS | ZT_SIG_FXOLS | ZT_SIG_FXOGS | ZT_SIG_SF | ZT_SIG_EM | ZT_SIG_CLEAR;
-		wc->chans[x].sigcap |= ZT_SIG_FXSKS | ZT_SIG_FXSLS | ZT_SIG_SF | ZT_SIG_CLEAR;
+		wc->chans[x].sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
+		wc->chans[x].sigcap |= DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
 		wc->chans[x].chanpos = x+1;
 		wc->chans[x].pvt = wc;
 	}
@@ -2061,13 +2061,13 @@ static int wctdm_initialize(struct wctdm *wc)
 	wc->span.irq = wc->dev->irq;
 	wc->span.open = wctdm_open;
 	wc->span.close = wctdm_close;
-	wc->span.flags = ZT_FLAG_RBS;
+	wc->span.flags = DAHDI_FLAG_RBS;
 	wc->span.ioctl = wctdm_ioctl;
 	wc->span.watchdog = wctdm_watchdog;
 	init_waitqueue_head(&wc->span.maintq);
 
 	wc->span.pvt = wc;
-	if (zt_register(&wc->span, 0)) {
+	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with zaptel\n");
 		return -1;
 	}
@@ -2082,10 +2082,10 @@ static void wctdm_post_initialize(struct wctdm *wc)
 	for (x = 0; x < NUM_CARDS; x++) {
 		if (wc->cardflag & (1 << x)) {
 			if (wc->modtype[x] == MOD_TYPE_FXO)
-				wc->chans[x].sigcap = ZT_SIG_FXSKS | ZT_SIG_FXSLS | ZT_SIG_SF | ZT_SIG_CLEAR;
+				wc->chans[x].sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
 			else
-				wc->chans[x].sigcap = ZT_SIG_FXOKS | ZT_SIG_FXOLS | ZT_SIG_FXOGS | ZT_SIG_SF | ZT_SIG_EM | ZT_SIG_CLEAR;
-		} else if (!(wc->chans[x].sigcap & ZT_SIG_BROKEN)) {
+				wc->chans[x].sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
+		} else if (!(wc->chans[x].sigcap & DAHDI_SIG_BROKEN)) {
 			wc->chans[x].sigcap = 0;
 		}
 	}
@@ -2164,12 +2164,12 @@ static int wctdm_hardware_init(struct wctdm *wc)
 
 	/* Setup DMA Addresses */
 	outl(wc->writedma,                    wc->ioaddr + WC_DMAWS);		/* Write start */
-	outl(wc->writedma + ZT_CHUNKSIZE * 4 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
-	outl(wc->writedma + ZT_CHUNKSIZE * 8 - 4, wc->ioaddr + WC_DMAWE);			/* End */
+	outl(wc->writedma + DAHDI_CHUNKSIZE * 4 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
+	outl(wc->writedma + DAHDI_CHUNKSIZE * 8 - 4, wc->ioaddr + WC_DMAWE);			/* End */
 	
 	outl(wc->readdma,                    	 wc->ioaddr + WC_DMARS);	/* Read start */
-	outl(wc->readdma + ZT_CHUNKSIZE * 4 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
-	outl(wc->readdma + ZT_CHUNKSIZE * 8 - 4, wc->ioaddr + WC_DMARE);	/* End */
+	outl(wc->readdma + DAHDI_CHUNKSIZE * 4 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
+	outl(wc->readdma + DAHDI_CHUNKSIZE * 8 - 4, wc->ioaddr + WC_DMARE);	/* End */
 	
 	/* Clear interrupts */
 	outb(0xff, wc->ioaddr + WC_INTSTAT);
@@ -2203,7 +2203,7 @@ static int wctdm_hardware_init(struct wctdm *wc)
 					printk("Module %d: Installed -- MANUAL FXS\n",x);
 				} else {
 					printk("Module %d: FAILED FXS (%s)\n", x, fxshonormode ? fxo_modes[_opermode].name : "FCC");
-					wc->chans[x].sigcap = __ZT_SIG_FXO | ZT_SIG_BROKEN;
+					wc->chans[x].sigcap = __DAHDI_SIG_FXO | DAHDI_SIG_BROKEN;
 				} 
 			} else if (!(ret = wctdm_init_voicedaa(wc, x, 0, 0, sane))) {
 				wc->cardflag |= (1 << x);
@@ -2301,7 +2301,7 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 
 			/* Allocate enough memory for two zt chunks, receive and transmit.  Each sample uses
 			   32 bits.  Allocate an extra set just for control too */
-			wc->writechunk = pci_alloc_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &wc->writedma);
+			wc->writechunk = pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &wc->writedma);
 			if (!wc->writechunk) {
 				printk("wctdm: Unable to allocate DMA-able memory\n");
 				if (wc->freeregion)
@@ -2309,8 +2309,8 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 				return -ENOMEM;
 			}
 
-			wc->readchunk = wc->writechunk + ZT_MAX_CHUNKSIZE * 2;	/* in doublewords */
-			wc->readdma = wc->writedma + ZT_MAX_CHUNKSIZE * 8;		/* in bytes */
+			wc->readchunk = wc->writechunk + DAHDI_MAX_CHUNKSIZE * 2;	/* in doublewords */
+			wc->readdma = wc->writedma + DAHDI_MAX_CHUNKSIZE * 8;		/* in bytes */
 
 			if (wctdm_initialize(wc)) {
 				printk("wctdm: Unable to intialize FXS\n");
@@ -2321,7 +2321,7 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 				free_irq(pdev->irq, wc);
 				if (wc->freeregion)
 					release_region(wc->ioaddr, 0xff);
-				pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
+				pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
 				kfree(wc);
 				return -EIO;
 			}
@@ -2336,7 +2336,7 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 				printk("wctdm: Unable to request IRQ %d\n", pdev->irq);
 				if (wc->freeregion)
 					release_region(wc->ioaddr, 0xff);
-				pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
+				pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
 				pci_set_drvdata(pdev, NULL);
 				kfree(wc);
 				return -EIO;
@@ -2353,9 +2353,9 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 				free_irq(pdev->irq, wc);
 				if (wc->freeregion)
 					release_region(wc->ioaddr, 0xff);
-				pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
+				pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
 				pci_set_drvdata(pdev, NULL);
-				zt_unregister(&wc->span);
+				dahdi_unregister(&wc->span);
 				kfree(wc);
 				return -EIO;
 
@@ -2366,7 +2366,7 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 			/* Enable interrupts */
 			wctdm_enable_interrupts(wc);
 			/* Initialize Write/Buffers to all blank data */
-			memset((void *)wc->writechunk,0,ZT_MAX_CHUNKSIZE * 2 * 2 * 4);
+			memset((void *)wc->writechunk,0,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 4);
 
 			/* Start DMA */
 			wctdm_start_dma(wc);
@@ -2386,7 +2386,7 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 
 static void wctdm_release(struct wctdm *wc)
 {
-	zt_unregister(&wc->span);
+	dahdi_unregister(&wc->span);
 	if (wc->freeregion)
 		release_region(wc->ioaddr, 0xff);
 	kfree(wc);
@@ -2406,7 +2406,7 @@ static void __devexit wctdm_remove_one(struct pci_dev *pdev)
 		wctdm_disable_interrupts(wc);
 		
 		/* Immediately free resources */
-		pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
+		pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
 		free_irq(pdev->irq, wc);
 
 		/* Reset PCI chip and registers */

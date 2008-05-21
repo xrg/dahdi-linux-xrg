@@ -59,17 +59,17 @@ static struct sk_buff_head skbs;
 static struct ztdeth {
 	unsigned char addr[ETH_ALEN];
 	unsigned short subaddr; /* Network byte order */
-	struct zt_span *span;
+	struct dahdi_span *span;
 	char ethdev[IFNAMSIZ];
 	struct net_device *dev;
 	struct ztdeth *next;
 } *zdevs = NULL;
 
-struct zt_span *ztdeth_getspan(unsigned char *addr, unsigned short subaddr)
+struct dahdi_span *ztdeth_getspan(unsigned char *addr, unsigned short subaddr)
 {
 	unsigned long flags;
 	struct ztdeth *z;
-	struct zt_span *span = NULL;
+	struct dahdi_span *span = NULL;
 	spin_lock_irqsave(&zlock, flags);
 	z = zdevs;
 	while(z) {
@@ -90,7 +90,7 @@ static int ztdeth_rcv(struct sk_buff *skb, struct net_device *dev, struct packet
 static int ztdeth_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt)
 #endif
 {
-	struct zt_span *span;
+	struct dahdi_span *span;
 	struct ztdeth_header *zh;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22)
 	zh = (struct ztdeth_header *)skb_network_header(skb);
@@ -104,7 +104,7 @@ static int ztdeth_rcv(struct sk_buff *skb, struct net_device *dev, struct packet
 #endif	
 	if (span) {
 		skb_pull(skb, sizeof(struct ztdeth_header));
-		zt_dynamic_receive(span, (unsigned char *)skb->data, skb->len);
+		dahdi_dynamic_receive(span, (unsigned char *)skb->data, skb->len);
 	}
 	kfree_skb(skb);
 	return 0;
@@ -300,7 +300,7 @@ static void ztdeth_destroy(void *pvt)
 	}
 }
 
-static void *ztdeth_create(struct zt_span *span, char *addr)
+static void *ztdeth_create(struct dahdi_span *span, char *addr)
 {
 	struct ztdeth *z;
 	char src[256];
@@ -408,7 +408,7 @@ static void *ztdeth_create(struct zt_span *span, char *addr)
 	return z;
 }
 
-static struct zt_dynamic_driver ztd_eth = {
+static struct dahdi_dynamic_driver ztd_eth = {
 	"eth",
 	"Ethernet",
 	ztdeth_create,
@@ -425,7 +425,7 @@ static int __init ztdeth_init(void)
 {
 	dev_add_pack(&ztdeth_ptype);
 	register_netdevice_notifier(&ztdeth_nblock);
-	zt_dynamic_register(&ztd_eth);
+	dahdi_dynamic_register(&ztd_eth);
 
 	skb_queue_head_init(&skbs);
 
@@ -436,7 +436,7 @@ static void __exit ztdeth_exit(void)
 {
 	dev_remove_pack(&ztdeth_ptype);
 	unregister_netdevice_notifier(&ztdeth_nblock);
-	zt_dynamic_unregister(&ztd_eth);
+	dahdi_dynamic_unregister(&ztd_eth);
 }
 
 MODULE_DESCRIPTION("Zaptel Dynamic TDMoE Support");

@@ -141,8 +141,8 @@ static int wecareregs[] =
 struct wcfxo {
 	struct pci_dev *dev;
 	char *variety;
-	struct zt_span span;
-	struct zt_chan chan;
+	struct dahdi_span span;
+	struct dahdi_chan chan;
 	int usecount;
 	int dead;
 	int pos;
@@ -169,9 +169,9 @@ struct wcfxo {
 	int ignoreread;
 	int reset;
 	/* Up to 6 register can be written at a time */
-	struct reg regs[ZT_CHUNKSIZE];
-	struct reg oldregs[ZT_CHUNKSIZE];
-	unsigned char lasttx[ZT_CHUNKSIZE];
+	struct reg regs[DAHDI_CHUNKSIZE];
+	struct reg oldregs[DAHDI_CHUNKSIZE];
+	unsigned char lasttx[DAHDI_CHUNKSIZE];
 	/* Up to 32 registers of whatever we most recently read */
 	unsigned char readregs[32];
 	unsigned long ioaddr;
@@ -252,34 +252,34 @@ static inline void wcfxo_transmitprep(struct wcfxo *wc, unsigned char ints)
 	int written=0;
 	unsigned short cmd;
 
-	/* if nothing to transmit, have to do the zt_transmit() anyway */
+	/* if nothing to transmit, have to do the dahdi_transmit() anyway */
 	if (!(ints & 3)) {
 		/* Calculate Transmission */
-		zt_transmit(&wc->span);
+		dahdi_transmit(&wc->span);
 		return;
 	}
 
 	/* Remember what it was we just sent */
-	memcpy(wc->lasttx, wc->chan.writechunk, ZT_CHUNKSIZE);
+	memcpy(wc->lasttx, wc->chan.writechunk, DAHDI_CHUNKSIZE);
 
 	if (ints & 0x01)  {
 		/* Write is at interrupt address.  Start writing from normal offset */
 		writechunk = wc->writechunk;
 	} else {
-		writechunk = wc->writechunk + ZT_CHUNKSIZE * 2;
+		writechunk = wc->writechunk + DAHDI_CHUNKSIZE * 2;
 	}
 
-	zt_transmit(&wc->span);
+	dahdi_transmit(&wc->span);
 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		/* Send a sample, as a 32-bit word, and be sure to indicate that a command follows */
 		if (wc->flags & FLAG_INVERTSER)
 			writechunk[x << 1] = cpu_to_le32(
-				~((unsigned short)(ZT_XLAW(wc->chan.writechunk[x], (&wc->chan)))| 0x1) << 16
+				~((unsigned short)(DAHDI_XLAW(wc->chan.writechunk[x], (&wc->chan)))| 0x1) << 16
 				);
 		else
 			writechunk[x << 1] = cpu_to_le32(
-				((unsigned short)(ZT_XLAW(wc->chan.writechunk[x], (&wc->chan)))| 0x1) << 16
+				((unsigned short)(DAHDI_XLAW(wc->chan.writechunk[x], (&wc->chan)))| 0x1) << 16
 				);
 
 		/* We always have a command to follow our signal */
@@ -320,7 +320,7 @@ static inline void wcfxo_transmitprep(struct wcfxo *wc, unsigned char ints)
 		wc->readpos = 0;
 	wc->wregcount = 0;
 
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		/* Rotate through registers */
 		wc->oldregs[x] = wc->regs[x];
 		wc->regs[x].flags = FLAG_EMPTY;
@@ -339,11 +339,11 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 		/* Read is at interrupt address.  Valid data is available at normal offset */
 		readchunk = wc->readchunk;
 	else
-		readchunk = wc->readchunk + ZT_CHUNKSIZE * 2;
+		readchunk = wc->readchunk + DAHDI_CHUNKSIZE * 2;
 
 	/* Keep track of how quickly our peg alternates */
-	wc->pegtimer+=ZT_CHUNKSIZE;
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
+	wc->pegtimer+=DAHDI_CHUNKSIZE;
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 
 		/* We always have a command to follow our signal.  */
 		if (wc->oldregs[x].flags == FLAG_READ && !wc->ignoreread) {
@@ -377,7 +377,7 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 			wc->pegtimer = 0;
 			wc->peg = -1;
 		}
-		wc->chan.readchunk[x] = ZT_LIN2X((sample), (&wc->chan));
+		wc->chan.readchunk[x] = DAHDI_LIN2X((sample), (&wc->chan));
 	}
 	if (wc->pegtimer > PEGTIME) {
 		/* Reset pegcount if our timer expires */
@@ -391,14 +391,14 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 			/* It's ringing */
 			if (debug)
 				printk("RING!\n");
-			zt_hooksig(&wc->chan, ZT_RXSIG_RING);
+			dahdi_hooksig(&wc->chan, DAHDI_RXSIG_RING);
 			wc->ring = 1;
 		}
 		if (wc->ring && !wc->pegcount) {
 			/* No more ring */
 			if (debug)
 				printk("NO RING!\n");
-			zt_hooksig(&wc->chan, ZT_RXSIG_OFFHOOK);
+			dahdi_hooksig(&wc->chan, DAHDI_RXSIG_OFFHOOK);
 			wc->ring = 0;
 		}
 	}
@@ -407,10 +407,10 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 
 	/* Do the echo cancellation...  We are echo cancelling against
 	   what we sent two chunks ago*/
-	zt_ec_chunk(&wc->chan, wc->chan.readchunk, wc->lasttx);
+	dahdi_ec_chunk(&wc->chan, wc->chan.readchunk, wc->lasttx);
 
 	/* Receive the result */
-	zt_receive(&wc->span);
+	dahdi_receive(&wc->span);
 }
 
 #ifdef ENABLE_TASKLETS
@@ -504,7 +504,7 @@ ZAP_IRQ_HANDLER(wcfxo_interrupt)
 				wc->battery =  0;
 #ifdef	JAPAN
 				if ((!wc->ohdebounce) && wc->offhook) {
-					zt_hooksig(&wc->chan, ZT_RXSIG_ONHOOK);
+					dahdi_hooksig(&wc->chan, DAHDI_RXSIG_ONHOOK);
 					if (debug)
 						printk("Signalled On Hook\n");
 #ifdef	ZERO_BATT_RING
@@ -512,7 +512,7 @@ ZAP_IRQ_HANDLER(wcfxo_interrupt)
 #endif
 				}
 #else
-				zt_hooksig(&wc->chan, ZT_RXSIG_ONHOOK);
+				dahdi_hooksig(&wc->chan, DAHDI_RXSIG_ONHOOK);
 #endif
 				wc->battdebounce = BATT_DEBOUNCE;
 			} else if (!wc->battery)
@@ -522,8 +522,8 @@ ZAP_IRQ_HANDLER(wcfxo_interrupt)
 			    !(wc->readregs[WC_DAA_DCTL1] & 0x04) &&
 #endif
 			    (!wc->span.alarms)) {
-				wc->span.alarms = ZT_ALARM_RED;
-				zt_alarm_notify(&wc->span);
+				wc->span.alarms = DAHDI_ALARM_RED;
+				dahdi_alarm_notify(&wc->span);
 			}
 		} else if (b == 0xf) {
 			if (!wc->battery && !wc->battdebounce) {
@@ -532,19 +532,19 @@ ZAP_IRQ_HANDLER(wcfxo_interrupt)
 #ifdef	ZERO_BATT_RING
 				if (wc->onhook) {
 					wc->onhook = 0;
-					zt_hooksig(&wc->chan, ZT_RXSIG_OFFHOOK);
+					dahdi_hooksig(&wc->chan, DAHDI_RXSIG_OFFHOOK);
 					if (debug)
 						printk("Signalled Off Hook\n");
 				}
 #else
-				zt_hooksig(&wc->chan, ZT_RXSIG_OFFHOOK);
+				dahdi_hooksig(&wc->chan, DAHDI_RXSIG_OFFHOOK);
 #endif
 				wc->battery = 1;
 				wc->nobatttimer = 0;
 				wc->battdebounce = BATT_DEBOUNCE;
 				if (wc->span.alarms) {
 					wc->span.alarms = 0;
-					zt_alarm_notify(&wc->span);
+					dahdi_alarm_notify(&wc->span);
 				}
 			} else if (wc->battery)
 				wc->battdebounce = BATT_DEBOUNCE;
@@ -569,7 +569,7 @@ ZAP_IRQ_HANDLER(wcfxo_interrupt)
 static int wcfxo_setreg(struct wcfxo *wc, unsigned char reg, unsigned char value)
 {
 	int x;
-	if (wc->wregcount < ZT_CHUNKSIZE) {
+	if (wc->wregcount < DAHDI_CHUNKSIZE) {
 		x = wc->wregcount;
 		wc->regs[x].reg = reg;
 		wc->regs[x].value = value;
@@ -581,7 +581,7 @@ static int wcfxo_setreg(struct wcfxo *wc, unsigned char reg, unsigned char value
 	return -1;
 }
 
-static int wcfxo_open(struct zt_chan *chan)
+static int wcfxo_open(struct dahdi_chan *chan)
 {
 	struct wcfxo *wc = chan->pvt;
 	if (wc->dead)
@@ -593,14 +593,14 @@ static int wcfxo_open(struct zt_chan *chan)
 	return 0;
 }
 
-static int wcfxo_watchdog(struct zt_span *span, int event)
+static int wcfxo_watchdog(struct dahdi_span *span, int event)
 {
 	printk("FXO: Restarting DMA\n");
 	wcfxo_restart_dma(span->pvt);
 	return 0;
 }
 
-static int wcfxo_close(struct zt_chan *chan)
+static int wcfxo_close(struct dahdi_chan *chan)
 {
 	struct wcfxo *wc = chan->pvt;
 	wc->usecount--;
@@ -613,13 +613,13 @@ static int wcfxo_close(struct zt_chan *chan)
 	return 0;
 }
 
-static int wcfxo_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
+static int wcfxo_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
 {
 	struct wcfxo *wc = chan->pvt;
 	int reg=0;
 	switch(txsig) {
-	case ZT_TXSIG_START:
-	case ZT_TXSIG_OFFHOOK:
+	case DAHDI_TXSIG_START:
+	case DAHDI_TXSIG_OFFHOOK:
 		/* Take off hook and enable normal mode reception.  This must
 		   be done in two steps because of a hardware bug. */
 		reg = wc->readregs[WC_DAA_DCTL1] & ~0x08;
@@ -634,7 +634,7 @@ static int wcfxo_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 		wc->ohdebounce = OH_DEBOUNCE;
 #endif
 		break;
-	case ZT_TXSIG_ONHOOK:
+	case DAHDI_TXSIG_ONHOOK:
 		/* Put on hook and enable on hook line monitor */
 		reg =  wc->readregs[WC_DAA_DCTL1] & 0xfe;
 		wcfxo_setreg(wc, WC_DAA_DCTL1, reg);
@@ -666,7 +666,7 @@ static int wcfxo_initialize(struct wcfxo *wc)
 		 "PCI Bus %02d Slot %02d", wc->dev->bus->number, PCI_SLOT(wc->dev->devfn) + 1);
 	wc->span.manufacturer = "Digium";
 	zap_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
-	wc->chan.sigcap = ZT_SIG_FXSKS | ZT_SIG_FXSLS | ZT_SIG_SF;
+	wc->chan.sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF;
 	wc->chan.chanpos = 1;
 	wc->span.chans = &wc->chan;
 	wc->span.channels = 1;
@@ -674,8 +674,8 @@ static int wcfxo_initialize(struct wcfxo *wc)
 	wc->span.irq = wc->dev->irq;
 	wc->span.open = wcfxo_open;
 	wc->span.close = wcfxo_close;
-	wc->span.flags = ZT_FLAG_RBS;
-	wc->span.deflaw = ZT_LAW_MULAW;
+	wc->span.flags = DAHDI_FLAG_RBS;
+	wc->span.deflaw = DAHDI_LAW_MULAW;
 	wc->span.watchdog = wcfxo_watchdog;
 #ifdef ENABLE_TASKLETS
 	tasklet_init(&wc->wcfxo_tlet, wcfxo_tasklet, (unsigned long)wc);
@@ -684,7 +684,7 @@ static int wcfxo_initialize(struct wcfxo *wc)
 
 	wc->span.pvt = wc;
 	wc->chan.pvt = wc;
-	if (zt_register(&wc->span, 0)) {
+	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with zaptel\n");
 		return -1;
 	}
@@ -729,12 +729,12 @@ static int wcfxo_hardware_init(struct wcfxo *wc)
 
 	/* Setup DMA Addresses */
 	outl(wc->writedma,                    wc->ioaddr + WC_DMAWS);		/* Write start */
-	outl(wc->writedma + ZT_CHUNKSIZE * 8 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
-	outl(wc->writedma + ZT_CHUNKSIZE * 16 - 4, wc->ioaddr + WC_DMAWE);			/* End */
+	outl(wc->writedma + DAHDI_CHUNKSIZE * 8 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
+	outl(wc->writedma + DAHDI_CHUNKSIZE * 16 - 4, wc->ioaddr + WC_DMAWE);			/* End */
 	
 	outl(wc->readdma,                    	 wc->ioaddr + WC_DMARS);	/* Read start */
-	outl(wc->readdma + ZT_CHUNKSIZE * 8 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
-	outl(wc->readdma + ZT_CHUNKSIZE * 16 - 4, wc->ioaddr + WC_DMARE);	/* End */
+	outl(wc->readdma + DAHDI_CHUNKSIZE * 8 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
+	outl(wc->readdma + DAHDI_CHUNKSIZE * 16 - 4, wc->ioaddr + WC_DMARE);	/* End */
 	
 	/* Clear interrupts */
 	outb(0xff, wc->ioaddr + WC_INTSTAT);
@@ -807,7 +807,7 @@ static void wcfxo_set_daa_mode(struct wcfxo *wc)
 
 	/* Wait a couple of jiffies for our writes to finish */
 	set_current_state(TASK_INTERRUPTIBLE);
-	schedule_timeout(1 + (ZT_CHUNKSIZE * HZ) / 800);
+	schedule_timeout(1 + (DAHDI_CHUNKSIZE * HZ) / 800);
 
 	printk("wcfxo: DAA mode is '%s'\n", fxo_modes[opermode].name);
 }
@@ -826,7 +826,7 @@ static int wcfxo_init_daa(struct wcfxo *wc)
 
 	/* Let the reset go */
 	set_current_state(TASK_UNINTERRUPTIBLE);
-	schedule_timeout(1 + (ZT_CHUNKSIZE * HZ) / 800);
+	schedule_timeout(1 + (DAHDI_CHUNKSIZE * HZ) / 800);
 
 	/* We have a clock at 18.432 Mhz, so N1=1, M1=2, CGM=0 */
 	wcfxo_setreg(wc, WC_DAA_PLL1_N1, 0x0);	/* This value is N1 - 1 */
@@ -836,7 +836,7 @@ static int wcfxo_init_daa(struct wcfxo *wc)
 	
 	/* Wait until the PLL's are locked. Time is between 100 uSec and 1 mSec */
 	set_current_state(TASK_INTERRUPTIBLE);
-	schedule_timeout(1 + HZ/1000 + (ZT_CHUNKSIZE * HZ) / 800);
+	schedule_timeout(1 + HZ/1000 + (DAHDI_CHUNKSIZE * HZ) / 800);
 
 	/* No additional ration is applied to the PLL and faster lock times
 	 * are possible */
@@ -853,7 +853,7 @@ static int wcfxo_init_daa(struct wcfxo *wc)
 
 	/* Wait a couple of jiffies for our writes to finish */
 	set_current_state(TASK_INTERRUPTIBLE);
-	schedule_timeout(1 + (ZT_CHUNKSIZE * HZ) / 800);
+	schedule_timeout(1 + (DAHDI_CHUNKSIZE * HZ) / 800);
 	reg15 = 0x0;
 	/* Go ahead and attenuate transmit signal by 6 db */
 	if (quiet) {
@@ -936,7 +936,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 
 	/* Allocate enough memory for two zt chunks, receive and transmit.  Each sample uses
 	   32 bits.  Allocate an extra set just for control too */
-	wc->writechunk = (int *)pci_alloc_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &wc->writedma);
+	wc->writechunk = (int *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &wc->writedma);
 	if (!wc->writechunk) {
 		printk("wcfxo: Unable to allocate DMA-able memory\n");
 		if (wc->freeregion)
@@ -944,8 +944,8 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 		return -ENOMEM;
 	}
 
-	wc->readchunk = wc->writechunk + ZT_MAX_CHUNKSIZE * 4;	/* in doublewords */
-	wc->readdma = wc->writedma + ZT_MAX_CHUNKSIZE * 16;		/* in bytes */
+	wc->readchunk = wc->writechunk + DAHDI_MAX_CHUNKSIZE * 4;	/* in doublewords */
+	wc->readdma = wc->writedma + DAHDI_MAX_CHUNKSIZE * 16;		/* in bytes */
 
 	if (wcfxo_initialize(wc)) {
 		printk("wcfxo: Unable to intialize modem\n");
@@ -974,7 +974,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	/* Enable interrupts */
 	wcfxo_enable_interrupts(wc);
 	/* Initialize Write/Buffers to all blank data */
-	memset((void *)wc->writechunk,0,ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4);
+	memset((void *)wc->writechunk,0,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4);
 	/* Start DMA */
 	wcfxo_start_dma(wc);
 
@@ -983,7 +983,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 		printk("Failed to initailize DAA, giving up...\n");
 		wcfxo_stop_dma(wc);
 		wcfxo_disable_interrupts(wc);
-		zt_unregister(&wc->span);
+		dahdi_unregister(&wc->span);
 		free_irq(pdev->irq, wc);
 
 		/* Reset PCI chip and registers */
@@ -1002,7 +1002,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 
 static void wcfxo_release(struct wcfxo *wc)
 {
-	zt_unregister(&wc->span);
+	dahdi_unregister(&wc->span);
 	if (wc->freeregion)
 		release_region(wc->ioaddr, 0xff);
 	kfree(wc);
@@ -1022,7 +1022,7 @@ static void __devexit wcfxo_remove_one(struct pci_dev *pdev)
 		wcfxo_disable_interrupts(wc);
 		
 		/* Immediately free resources */
-		pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
+		pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
 		free_irq(pdev->irq, wc);
 
 		/* Reset PCI chip and registers */

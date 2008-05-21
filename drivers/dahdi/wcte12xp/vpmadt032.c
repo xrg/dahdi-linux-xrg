@@ -508,7 +508,7 @@ static void vpm150m_echocan_bh(struct work_struct *data)
 
 	list_for_each_safe(task, next_task, &vpm150m->worklist) {
 		struct vpm150m_workentry *we = list_entry(task, struct vpm150m_workentry, list);
-		struct zt_chan *chan = we->chan;
+		struct dahdi_chan *chan = we->chan;
 		int deflaw;
 		int res;
 		GPAK_AlgControlStat_t pstatus;
@@ -649,7 +649,7 @@ static void vpm150m_dtmf_bh(struct work_struct *data)
 				debug_printk(1, "Channel %d: Detected DTMF tone %d of duration %d\n", channel + 1, tone, duration);
 
 				if (test_bit(channel, &wc->dtmfmask) && (eventdata.toneEvent.ToneDuration > 0)) {
-					struct zt_chan *chan = &wc->chans[channel];
+					struct dahdi_chan *chan = &wc->chans[channel];
 
 					module_printk("DTMF detected channel=%d tone=%d duration=%d\n", channel + 1, tone, duration);
 
@@ -664,18 +664,18 @@ static void vpm150m_dtmf_bh(struct work_struct *data)
 							spin_lock_irqsave(&chan->lock, flags);
 							for (y = 0; y < chan->numbufs; y++) {
 								if ((chan->inreadbuf > -1) && (chan->readidx[y]))
-									memset(chan->readbuf[chan->inreadbuf], ZT_XLAW(0, chan), chan->readidx[y]);
+									memset(chan->readbuf[chan->inreadbuf], DAHDI_XLAW(0, chan), chan->readidx[y]);
 							}
 							spin_unlock_irqrestore(&chan->lock, flags);
 						}
 						if (!test_bit(channel, &wc->dtmfactive)) {
 							debug_printk(1,"Queuing DTMFDOWN %c\n", zaptone);
 							set_bit(channel, &wc->dtmfactive);
-							zt_qevent_lock(chan, (ZT_EVENT_DTMFDOWN | zaptone));
+							dahdi_qevent_lock(chan, (DAHDI_EVENT_DTMFDOWN | zaptone));
 						}
 					} else if ((tone == EndofMFDigit) && test_bit(channel, &wc->dtmfactive)) {
 						debug_printk(1,"Queuing DTMFUP %c\n", vpm150mtone_to_zaptone(vpm150m->curtone[channel]));
-						zt_qevent_lock(chan, (ZT_EVENT_DTMFUP | vpm150mtone_to_zaptone(vpm150m->curtone[channel])));
+						dahdi_qevent_lock(chan, (DAHDI_EVENT_DTMFUP | vpm150mtone_to_zaptone(vpm150m->curtone[channel])));
 						clear_bit(channel, &wc->dtmfactive);
 					}
 				}

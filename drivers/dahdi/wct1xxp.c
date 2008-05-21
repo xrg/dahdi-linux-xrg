@@ -159,11 +159,11 @@ struct t1xxp {
 	dma_addr_t	writedma;
 	volatile unsigned char *writechunk;					/* Double-word aligned write memory */
 	volatile unsigned char *readchunk;					/* Double-word aligned read memory */
-	unsigned char ec_chunk1[31][ZT_CHUNKSIZE];
-	unsigned char ec_chunk2[31][ZT_CHUNKSIZE];
+	unsigned char ec_chunk1[31][DAHDI_CHUNKSIZE];
+	unsigned char ec_chunk2[31][DAHDI_CHUNKSIZE];
 	unsigned char tempo[32];
-	struct zt_span span;						/* Span */
-	struct zt_chan chans[31];					/* Channels */
+	struct dahdi_span span;						/* Span */
+	struct dahdi_chan chans[31];					/* Channels */
 };
 
 #define CANARY 0xca1e
@@ -205,7 +205,7 @@ static inline void __select_control(struct t1xxp *wc)
 	}
 }
 
-static int t1xxp_open(struct zt_chan *chan)
+static int t1xxp_open(struct dahdi_chan *chan)
 {
 	struct t1xxp *wc = chan->pvt;
 	if (wc->dead)
@@ -277,12 +277,12 @@ static int control_get_reg(struct t1xxp *wc, int reg)
 
 static void t1xxp_release(struct t1xxp *wc)
 {
-	zt_unregister(&wc->span);
+	dahdi_unregister(&wc->span);
 	kfree(wc);
 	printk("Freed a Wildcard\n");
 }
 
-static int t1xxp_close(struct zt_chan *chan)
+static int t1xxp_close(struct dahdi_chan *chan)
 {
 	struct t1xxp *wc = chan->pvt;
 	wc->usecount--;
@@ -342,7 +342,7 @@ static void __t1xxp_set_clear(struct t1xxp *wc)
 	for (x=0;x<3;x++) {
 		b = 0;
 		for (y=0;y<8;y++)
-			if (wc->chans[x * 8 + y].sig & ZT_SIG_CLEAR)
+			if (wc->chans[x * 8 + y].sig & DAHDI_SIG_CLEAR)
 				b |= (1 << y);
 		__t1_set_reg(wc, 0x39 + x, b);
 	}
@@ -353,27 +353,27 @@ static void t1xxp_t1_framer_start(struct t1xxp *wc)
 	int i;
 	char *coding, *framing;
 	unsigned long endjiffies;
-	int alreadyrunning = wc->span.flags & ZT_FLAG_RUNNING;
+	int alreadyrunning = wc->span.flags & DAHDI_FLAG_RUNNING;
 	unsigned long flags;
 
 	spin_lock_irqsave(&wc->lock, flags);
 
 	/* Build up config */
 	i = 0x20;
-	if (wc->span.lineconfig & ZT_CONFIG_ESF) {
+	if (wc->span.lineconfig & DAHDI_CONFIG_ESF) {
 		coding = "ESF";
 		i = 0x88;
 	} else {
 		coding = "SF";
 	}
-	if (wc->span.lineconfig & ZT_CONFIG_B8ZS) {
+	if (wc->span.lineconfig & DAHDI_CONFIG_B8ZS) {
 		framing = "B8ZS";
 		i |= 0x44;
 	} else {
 		framing = "AMI";
 	}
 	__t1_set_reg(wc, 0x38, i);
-	if (!(wc->span.lineconfig & ZT_CONFIG_ESF)) {
+	if (!(wc->span.lineconfig & DAHDI_CONFIG_ESF)) {
 		/* 1c in FDL bit */
 		__t1_set_reg(wc, 0x7e, 0x1c);
 	} else {
@@ -401,7 +401,7 @@ static void t1xxp_t1_framer_start(struct t1xxp *wc)
 		/* Reset LIRST bit and reset elastic stores */
 		__t1_set_reg(wc, 0xa, 0x30);
 
-		wc->span.flags |= ZT_FLAG_RUNNING;
+		wc->span.flags |= DAHDI_FLAG_RUNNING;
 	}
 	spin_unlock_irqrestore(&wc->lock, flags);
 }
@@ -411,7 +411,7 @@ static void t1xxp_e1_framer_start(struct t1xxp *wc)
 	int i;
 	char *coding, *framing;
 	unsigned long endjiffies;
-	int alreadyrunning = wc->span.flags & ZT_FLAG_RUNNING;
+	int alreadyrunning = wc->span.flags & DAHDI_FLAG_RUNNING;
 	unsigned long flags;
 	char *crcing = "";
 	unsigned char ccr1, tcr1, tcr2;
@@ -422,20 +422,20 @@ static void t1xxp_e1_framer_start(struct t1xxp *wc)
 	ccr1 = 0;
 	tcr1 = 8;
 	tcr2 = 0;
-	if (wc->span.lineconfig & ZT_CONFIG_CCS) {
+	if (wc->span.lineconfig & DAHDI_CONFIG_CCS) {
 		coding = "CCS"; /* Receive CCS */
 		ccr1 |= 8;
 	} else {
 		tcr1 |= 0x20;
 		coding = "CAS";
 	}
-	if (wc->span.lineconfig & ZT_CONFIG_HDB3) {
+	if (wc->span.lineconfig & DAHDI_CONFIG_HDB3) {
 		ccr1 |= 0x44;		/* TX/RX HDB3 */
 		framing = "HDB3";
 	} else {
 		framing = "AMI";
 	}
-	if (wc->span.lineconfig & ZT_CONFIG_CRC4) {
+	if (wc->span.lineconfig & DAHDI_CONFIG_CRC4) {
 		ccr1 |= 0x11;
 		tcr2 |= 0x02;
 		crcing = " with CRC4";
@@ -473,7 +473,7 @@ static void t1xxp_e1_framer_start(struct t1xxp *wc)
 
 		/* Reset LIRST bit and reset elastic stores */
 
-		wc->span.flags |= ZT_FLAG_RUNNING;
+		wc->span.flags |= DAHDI_FLAG_RUNNING;
 	}
 	spin_unlock_irqrestore(&wc->lock, flags);
 }
@@ -552,7 +552,7 @@ static int t1xxp_framer_hard_reset(struct t1xxp *wc)
 	return 0;
 }
 
-static int t1xxp_rbsbits(struct zt_chan *chan, int bits)
+static int t1xxp_rbsbits(struct dahdi_chan *chan, int bits)
 {
 	struct t1xxp *wc = chan->pvt;
 	unsigned long flags;
@@ -577,14 +577,14 @@ static int t1xxp_rbsbits(struct zt_chan *chan, int bits)
 
 		mask = (1 << o);
 
-		if (bits & ZT_ABIT) {
+		if (bits & DAHDI_ABIT) {
 			/* Set A-bit */
 			wc->txsiga[b] |= mask;
 		} else {
 			/* Clear A-bit */
 			wc->txsiga[b] &= ~mask;
 		}
-		if (bits & ZT_BBIT) {
+		if (bits & DAHDI_BBIT) {
 			/* Set B-bit */
 			wc->txsigb[b] |= mask;
 		} else {
@@ -600,7 +600,7 @@ static int t1xxp_rbsbits(struct zt_chan *chan, int bits)
 	return 0;
 }
 
-static int t1xxp_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long data)
+static int t1xxp_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data)
 {
 	switch(cmd) {
 	default:
@@ -608,19 +608,19 @@ static int t1xxp_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 	}
 }
 
-static int t1xxp_startup(struct zt_span *span)
+static int t1xxp_startup(struct dahdi_span *span)
 {
 	struct t1xxp *wc = span->pvt;
 
-	int i,alreadyrunning = span->flags & ZT_FLAG_RUNNING;
+	int i,alreadyrunning = span->flags & DAHDI_FLAG_RUNNING;
 
 	/* initialize the start value for the entire chunk of last ec buffer */
 	for(i = 0; i < span->channels; i++)
 	{
 		memset(wc->ec_chunk1[i],
-			ZT_LIN2X(0,&span->chans[i]),ZT_CHUNKSIZE);
+			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
 		memset(wc->ec_chunk2[i],
-			ZT_LIN2X(0,&span->chans[i]),ZT_CHUNKSIZE);
+			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
 	}
 
 	/* Reset framer with proper parameters and start */
@@ -634,12 +634,12 @@ static int t1xxp_startup(struct zt_span *span)
 		/* Only if we're not already going */
 		t1xxp_enable_interrupts(wc);
 		t1xxp_start_dma(wc);
-		span->flags |= ZT_FLAG_RUNNING;
+		span->flags |= DAHDI_FLAG_RUNNING;
 	}
 	return 0;
 }
 
-static int t1xxp_shutdown(struct zt_span *span)
+static int t1xxp_shutdown(struct dahdi_span *span)
 {
 	struct t1xxp *wc = span->pvt;
 	unsigned long flags;
@@ -647,14 +647,14 @@ static int t1xxp_shutdown(struct zt_span *span)
 	spin_lock_irqsave(&wc->lock, flags);
 	__t1xxp_stop_dma(wc);
 	__t1xxp_disable_interrupts(wc);
-	span->flags &= ~ZT_FLAG_RUNNING;
+	span->flags &= ~DAHDI_FLAG_RUNNING;
 	spin_unlock_irqrestore(&wc->lock, flags);
 
 	t1xxp_framer_hard_reset(wc);
 	return 0;
 }
 
-static int t1xxp_maint(struct zt_span *span, int cmd)
+static int t1xxp_maint(struct dahdi_span *span, int cmd)
 {
 	struct t1xxp *wc = span->pvt;
 	int res = 0;
@@ -662,18 +662,18 @@ static int t1xxp_maint(struct zt_span *span, int cmd)
 	spin_lock_irqsave(&wc->lock, flags);
 	if (wc->ise1) {
 		switch(cmd) {
-		case ZT_MAINT_NONE:
+		case DAHDI_MAINT_NONE:
 			__t1_set_reg(wc,0xa8,0); /* no loops */
 			break;
-		case ZT_MAINT_LOCALLOOP:
+		case DAHDI_MAINT_LOCALLOOP:
 			__t1_set_reg(wc,0xa8,0x40); /* local loop */
 			break;
-		case ZT_MAINT_REMOTELOOP:
+		case DAHDI_MAINT_REMOTELOOP:
 			__t1_set_reg(wc,0xa8,0x80); /* remote loop */
 			break;
-		case ZT_MAINT_LOOPUP:
-		case ZT_MAINT_LOOPDOWN:
-		case ZT_MAINT_LOOPSTOP:
+		case DAHDI_MAINT_LOOPUP:
+		case DAHDI_MAINT_LOOPDOWN:
+		case DAHDI_MAINT_LOOPSTOP:
 			res = -ENOSYS;
 			break;
 		default:
@@ -683,29 +683,29 @@ static int t1xxp_maint(struct zt_span *span, int cmd)
 		}
 	} else {
 		switch(cmd) {
-	    case ZT_MAINT_NONE:
+	    case DAHDI_MAINT_NONE:
 			__t1_set_reg(wc,0x19,0); /* no local loop */
 			__t1_set_reg(wc,0x0a,0); /* no remote loop */
 			break;
-	    case ZT_MAINT_LOCALLOOP:
+	    case DAHDI_MAINT_LOCALLOOP:
 			__t1_set_reg(wc,0x19,0x40); /* local loop */
 			__t1_set_reg(wc,0x0a,0); /* no remote loop */
 			break;
-	    case ZT_MAINT_REMOTELOOP:
+	    case DAHDI_MAINT_REMOTELOOP:
 			__t1_set_reg(wc,0x1e,0); /* no local loop */
 			__t1_set_reg(wc,0x0a,0x40); /* remote loop */
 			break;
-	    case ZT_MAINT_LOOPUP:
+	    case DAHDI_MAINT_LOOPUP:
 			__t1_set_reg(wc,0x30,2); /* send loopup code */
 			__t1_set_reg(wc,0x12,0x22); /* send loopup code */
 			__t1_set_reg(wc,0x13,0x80); /* send loopup code */
 			break;
-	    case ZT_MAINT_LOOPDOWN:
+	    case DAHDI_MAINT_LOOPDOWN:
 			__t1_set_reg(wc,0x30,2); /* send loopdown code */
 			__t1_set_reg(wc,0x12,0x62); /* send loopdown code */
 			__t1_set_reg(wc,0x13,0x90); /* send loopdown code */
 			break;
-	    case ZT_MAINT_LOOPSTOP:
+	    case DAHDI_MAINT_LOOPSTOP:
 			__t1_set_reg(wc,0x30,0);	/* stop sending loopup code */
 			break;
 	    default:
@@ -717,11 +717,11 @@ static int t1xxp_maint(struct zt_span *span, int cmd)
 	return res;
 }
 
-static int t1xxp_chanconfig(struct zt_chan *chan, int sigtype)
+static int t1xxp_chanconfig(struct dahdi_chan *chan, int sigtype)
 {
 	struct t1xxp *wc = chan->pvt;
 	unsigned long flags;
-	int alreadyrunning = chan->span->flags & ZT_FLAG_RUNNING;
+	int alreadyrunning = chan->span->flags & DAHDI_FLAG_RUNNING;
 
 	spin_lock_irqsave(&wc->lock, flags);
 
@@ -732,14 +732,14 @@ static int t1xxp_chanconfig(struct zt_chan *chan, int sigtype)
 	return 0;
 }
 
-static int t1xxp_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
+static int t1xxp_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 {
 	struct t1xxp *wc = span->pvt;
 
 	/* Do we want to SYNC on receive or not */
 	wc->sync = lc->sync;
 	/* If already running, apply changes immediately */
-	if (span->flags & ZT_FLAG_RUNNING)
+	if (span->flags & DAHDI_FLAG_RUNNING)
 		return t1xxp_startup(span);
 
 	return 0;
@@ -773,31 +773,31 @@ static int t1xxp_software_init(struct t1xxp *wc)
 	wc->span.open = t1xxp_open;
 	wc->span.close = t1xxp_close;
 	wc->span.chans = wc->chans;
-	wc->span.flags = ZT_FLAG_RBS;
+	wc->span.flags = DAHDI_FLAG_RBS;
 	wc->span.ioctl = t1xxp_ioctl;
 	wc->span.pvt = wc;
 	if (wc->ise1) {
 		wc->span.channels = 31;
-		wc->span.deflaw = ZT_LAW_ALAW;
-		wc->span.linecompat = ZT_CONFIG_HDB3 | ZT_CONFIG_CCS | ZT_CONFIG_CRC4;
+		wc->span.deflaw = DAHDI_LAW_ALAW;
+		wc->span.linecompat = DAHDI_CONFIG_HDB3 | DAHDI_CONFIG_CCS | DAHDI_CONFIG_CRC4;
 		wc->span.spantype = "E1";
 	} else {
 		wc->span.channels = 24;
-		wc->span.deflaw = ZT_LAW_MULAW;
-		wc->span.linecompat = ZT_CONFIG_AMI | ZT_CONFIG_B8ZS | ZT_CONFIG_D4 | ZT_CONFIG_ESF;
+		wc->span.deflaw = DAHDI_LAW_MULAW;
+		wc->span.linecompat = DAHDI_CONFIG_AMI | DAHDI_CONFIG_B8ZS | DAHDI_CONFIG_D4 | DAHDI_CONFIG_ESF;
 		wc->span.spantype = "T1";
 	}
 	init_waitqueue_head(&wc->span.maintq);
 	for (x=0;x<wc->span.channels;x++) {
 		sprintf(wc->chans[x].name, "WCT1/%d/%d", wc->num, x + 1);
-		wc->chans[x].sigcap = ZT_SIG_EM | ZT_SIG_CLEAR | ZT_SIG_EM_E1 | 
-				      ZT_SIG_FXSLS | ZT_SIG_FXSGS | 
-				      ZT_SIG_FXSKS | ZT_SIG_FXOLS | ZT_SIG_DACS_RBS |
-				      ZT_SIG_FXOGS | ZT_SIG_FXOKS | ZT_SIG_CAS | ZT_SIG_SF;
+		wc->chans[x].sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_EM_E1 | 
+				      DAHDI_SIG_FXSLS | DAHDI_SIG_FXSGS | 
+				      DAHDI_SIG_FXSKS | DAHDI_SIG_FXOLS | DAHDI_SIG_DACS_RBS |
+				      DAHDI_SIG_FXOGS | DAHDI_SIG_FXOKS | DAHDI_SIG_CAS | DAHDI_SIG_SF;
 		wc->chans[x].pvt = wc;
 		wc->chans[x].chanpos = x + 1;
 	}
-	if (zt_register(&wc->span, 0)) {
+	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with zaptel\n");
 		return -1;
 	}
@@ -809,7 +809,7 @@ static inline void __handle_leds(struct t1xxp *wc)
 	int oldreg;
 	wc->blinktimer++;
 
-	if (wc->span.alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE)) {
+	if (wc->span.alarms & (DAHDI_ALARM_RED | DAHDI_ALARM_BLUE)) {
 		/* Red/Blue alarm */
 #ifdef FANCY_ALARM
 		if (wc->blinktimer == (altab[wc->alarmpos] >> 1)) {
@@ -834,7 +834,7 @@ static inline void __handle_leds(struct t1xxp *wc)
 			wc->blinktimer = 0;
 		}
 #endif
-	} else if (wc->span.alarms & ZT_ALARM_YELLOW) {
+	} else if (wc->span.alarms & DAHDI_ALARM_YELLOW) {
 		/* Yellow Alarm */
 		if (!(wc->blinktimer % 2)) 
 			wc->ledtestreg = (wc->ledtestreg | BIT_LED1) & ~BIT_LED0;
@@ -844,11 +844,11 @@ static inline void __handle_leds(struct t1xxp *wc)
 	} else {
 		/* No Alarm */
 		oldreg = wc->ledtestreg;
-		if (wc->span.maintstat != ZT_MAINT_NONE)
+		if (wc->span.maintstat != DAHDI_MAINT_NONE)
 			wc->ledtestreg |= BIT_TEST;
 		else
 			wc->ledtestreg &= ~BIT_TEST;
-		if (wc->span.flags & ZT_FLAG_RUNNING)
+		if (wc->span.flags & DAHDI_FLAG_RUNNING)
 			wc->ledtestreg = (wc->ledtestreg | BIT_LED0) & ~BIT_LED1;
 		else
 			wc->ledtestreg = wc->ledtestreg & ~(BIT_LED0 | BIT_LED1);
@@ -868,19 +868,19 @@ static void t1xxp_transmitprep(struct t1xxp *wc, int ints)
 		txbuf = wc->writechunk;
 	} else {
 		/* Just finished sending second buffer, fill it now */
-		txbuf = wc->writechunk + 32 * ZT_CHUNKSIZE;
+		txbuf = wc->writechunk + 32 * DAHDI_CHUNKSIZE;
 	}
-	zt_transmit(&wc->span);
+	dahdi_transmit(&wc->span);
 	for (x=0;x<wc->offset;x++)
 		txbuf[x] = wc->tempo[x];
-	for (y=0;y<ZT_CHUNKSIZE;y++) {
+	for (y=0;y<DAHDI_CHUNKSIZE;y++) {
 		for (x=0;x<wc->span.channels;x++) {
 			pos = y * 32 + wc->chanmap[x] + wc->offset;
 			/* Put channel number as outgoing data */
-			if (pos < 32 * ZT_CHUNKSIZE)
+			if (pos < 32 * DAHDI_CHUNKSIZE)
 				txbuf[pos] = wc->chans[x].writechunk[y];
 			else
-				wc->tempo[pos - 32 * ZT_CHUNKSIZE] = wc->chans[x].writechunk[y];
+				wc->tempo[pos - 32 * DAHDI_CHUNKSIZE] = wc->chans[x].writechunk[y];
 		}
 	}
 }
@@ -895,10 +895,10 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 	if (ints & 0x04) {
 		/* Just received first buffer */
 		rxbuf = wc->readchunk;
-		canary = (unsigned int *)(wc->readchunk + ZT_CHUNKSIZE * 64 - 4);
+		canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 - 4);
 	} else {
-		rxbuf = wc->readchunk + ZT_CHUNKSIZE * 32;
-		canary = (unsigned int *)(wc->readchunk + ZT_CHUNKSIZE * 32 - 4);
+		rxbuf = wc->readchunk + DAHDI_CHUNKSIZE * 32;
+		canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 32 - 4);
 	}
 	oldcan = *canary;
 	if (((oldcan & 0xffff0000) >> 16) != CANARY) {
@@ -909,7 +909,7 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 		if (debug) printk("Expecting bottom %d, got %d\n", wc->canary - 1, oldcan & 0xffff);
 		wc->span.irqmisses++;
 	}
-	for (y=0;y<ZT_CHUNKSIZE;y++) {
+	for (y=0;y<DAHDI_CHUNKSIZE;y++) {
 		for (x=0;x<wc->span.channels;x++) {
 			/* XXX Optimize, remove * and + XXX */
 			/* Must map received channels into appropriate data */
@@ -949,15 +949,15 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 		} 
 	}
 	/* Store the next canary */
-	canary = (unsigned int *)(rxbuf + ZT_CHUNKSIZE * 32 - 4);
+	canary = (unsigned int *)(rxbuf + DAHDI_CHUNKSIZE * 32 - 4);
 	*canary = (wc->canary++) | (CANARY << 16);
 	for (x=0;x<wc->span.channels;x++) {
-		zt_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, 
+		dahdi_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, 
 			wc->ec_chunk2[x]);
-		memcpy(wc->ec_chunk2[x],wc->ec_chunk1[x],ZT_CHUNKSIZE);
-		memcpy(wc->ec_chunk1[x],wc->chans[x].writechunk,ZT_CHUNKSIZE);
+		memcpy(wc->ec_chunk2[x],wc->ec_chunk1[x],DAHDI_CHUNKSIZE);
+		memcpy(wc->ec_chunk1[x],wc->chans[x].writechunk,DAHDI_CHUNKSIZE);
 	}
-	zt_receive(&wc->span);
+	dahdi_receive(&wc->span);
 }
 
 static void t1xxp_check_sigbits(struct t1xxp *wc, int x)
@@ -972,18 +972,18 @@ static void t1xxp_check_sigbits(struct t1xxp *wc, int x)
 			a = __t1_get_reg(wc, 0x31 + i);
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(wc->chans[i+16].sig & ZT_SIG_CLEAR)) {
+			if (!(wc->chans[i+16].sig & DAHDI_SIG_CLEAR)) {
 				if (wc->chans[i+16].rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					zt_rbsbits(&wc->chans[i+16], rxs);
+					dahdi_rbsbits(&wc->chans[i+16], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(wc->chans[i].sig & ZT_SIG_CLEAR)) {
+			if (!(wc->chans[i].sig & DAHDI_SIG_CLEAR)) {
 				if (wc->chans[i].rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					zt_rbsbits(&wc->chans[i], rxs);
+					dahdi_rbsbits(&wc->chans[i], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
@@ -995,13 +995,13 @@ static void t1xxp_check_sigbits(struct t1xxp *wc, int x)
 			i = x * 8 + y;
 				rxs = 0;
 			if (a & (1 << y))
-				rxs |= ZT_ABIT;
+				rxs |= DAHDI_ABIT;
 			if (b & (1 << y))
-				rxs |= ZT_BBIT;
-			if (!(wc->chans[i].sig & ZT_SIG_CLEAR)) {
+				rxs |= DAHDI_BBIT;
+			if (!(wc->chans[i].sig & DAHDI_SIG_CLEAR)) {
 				if (wc->chans[i].rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					zt_rbsbits(&wc->chans[i], rxs);
+					dahdi_rbsbits(&wc->chans[i], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
@@ -1036,7 +1036,7 @@ static void t1xxp_check_alarms(struct t1xxp *wc)
 	alarms = 0;
 
 	/* And consider only carrier alarms */
-	wc->span.alarms &= (ZT_ALARM_RED | ZT_ALARM_BLUE | ZT_ALARM_NOTOPEN);
+	wc->span.alarms &= (DAHDI_ALARM_RED | DAHDI_ALARM_BLUE | DAHDI_ALARM_NOTOPEN);
 
 	if (wc->ise1) {
 		/* XXX Implement me XXX */
@@ -1044,10 +1044,10 @@ static void t1xxp_check_alarms(struct t1xxp *wc)
 		/* Detect loopup code if we're not sending one */
 		if ((!wc->span.mainttimer) && (c & 0x80)) {
 			/* Loop-up code detected */
-			if ((wc->loopupcnt++ > 80)  && (wc->span.maintstat != ZT_MAINT_REMOTELOOP)) {
+			if ((wc->loopupcnt++ > 80)  && (wc->span.maintstat != DAHDI_MAINT_REMOTELOOP)) {
 				__t1_set_reg(wc, 0x1e, 0);	/* No local loop */
 				__t1_set_reg(wc, 0x0a, 0x40);	/* Remote Loop */
-				wc->span.maintstat = ZT_MAINT_REMOTELOOP;
+				wc->span.maintstat = DAHDI_MAINT_REMOTELOOP;
 			}
 		} else {
 			wc->loopupcnt = 0;
@@ -1055,39 +1055,39 @@ static void t1xxp_check_alarms(struct t1xxp *wc)
 		/* Same for loopdown code */
 		if ((!wc->span.mainttimer) && (c & 0x40)) {
 			/* Loop-down code detected */
-			if ((wc->loopdowncnt++ > 80)  && (wc->span.maintstat == ZT_MAINT_REMOTELOOP)) {
+			if ((wc->loopdowncnt++ > 80)  && (wc->span.maintstat == DAHDI_MAINT_REMOTELOOP)) {
 				__t1_set_reg(wc, 0x1e, 0);	/* No local loop */
 				__t1_set_reg(wc, 0x0a, 0x0);	/* No remote Loop */
-				wc->span.maintstat = ZT_MAINT_NONE;
+				wc->span.maintstat = DAHDI_MAINT_NONE;
 			}
 		} else
 			wc->loopdowncnt = 0;
 	}
 
-	if (wc->span.lineconfig & ZT_CONFIG_NOTOPEN) {
+	if (wc->span.lineconfig & DAHDI_CONFIG_NOTOPEN) {
 		for (x=0,j=0;x < wc->span.channels;x++)
-			if ((wc->chans[x].flags & ZT_FLAG_OPEN) ||
-			    (wc->chans[x].flags & ZT_FLAG_NETDEV))
+			if ((wc->chans[x].flags & DAHDI_FLAG_OPEN) ||
+			    (wc->chans[x].flags & DAHDI_FLAG_NETDEV))
 				j++;
 		if (!j)
-			alarms |= ZT_ALARM_NOTOPEN;
+			alarms |= DAHDI_ALARM_NOTOPEN;
 	}
 
 	if (wc->ise1) {
 		if (c & 0x9) 
-			alarms |= ZT_ALARM_RED;
+			alarms |= DAHDI_ALARM_RED;
 		if (c & 0x2)
-			alarms |= ZT_ALARM_BLUE;
+			alarms |= DAHDI_ALARM_BLUE;
 	} else {
 		/* Check actual alarm status */
 		if (c & 0x3) 
-			alarms |= ZT_ALARM_RED;
+			alarms |= DAHDI_ALARM_RED;
 		if (c & 0x8)
-			alarms |= ZT_ALARM_BLUE;
+			alarms |= DAHDI_ALARM_BLUE;
 	}
 	/* Keep track of recovering */
 	if ((!alarms) && wc->span.alarms)
-		wc->alarmtimer = ZT_ALARMSETTLE_TIME;
+		wc->alarmtimer = DAHDI_ALARMSETTLE_TIME;
 
 	/* If receiving alarms, go into Yellow alarm state */
 	if (alarms && (!wc->span.alarms)) {
@@ -1103,7 +1103,7 @@ static void t1xxp_check_alarms(struct t1xxp *wc)
 	if (wc->span.alarms != alarms) {
 		d = __control_get_reg(wc, WC_CLOCK); 
 		start_alarm(wc);
-		if (!(alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE | ZT_ALARM_LOOPBACK)) &&
+		if (!(alarms & (DAHDI_ALARM_RED | DAHDI_ALARM_BLUE | DAHDI_ALARM_LOOPBACK)) &&
 		    wc->sync) {
 			/* Use the recieve signalling */
 			wc->span.syncsrc = wc->span.spanno;
@@ -1115,15 +1115,15 @@ static void t1xxp_check_alarms(struct t1xxp *wc)
 		__control_set_reg(wc, WC_CLOCK, d);  
 	}
 	if (wc->alarmtimer)
-		alarms |= ZT_ALARM_RECOVER;
+		alarms |= DAHDI_ALARM_RECOVER;
 	if (c & 0x4)
-		alarms |= ZT_ALARM_YELLOW;
+		alarms |= DAHDI_ALARM_YELLOW;
 
 	wc->span.alarms = alarms;
 
 	spin_unlock_irqrestore(&wc->lock, flags);
 
-	zt_alarm_notify(&wc->span);
+	dahdi_alarm_notify(&wc->span);
 }
 
 static void t1xxp_do_counters(struct t1xxp *wc)
@@ -1133,7 +1133,7 @@ static void t1xxp_do_counters(struct t1xxp *wc)
 	spin_lock_irqsave(&wc->lock, flags);
 	if (wc->alarmtimer) {
 		if (!--wc->alarmtimer) {
-			wc->span.alarms &= ~(ZT_ALARM_RECOVER);
+			wc->span.alarms &= ~(DAHDI_ALARM_RECOVER);
 			/* Clear yellow alarm */
 #if 0
 			printk("Coming out of alarm\n");
@@ -1143,7 +1143,7 @@ static void t1xxp_do_counters(struct t1xxp *wc)
 			else
 				__t1_set_reg(wc, 0x35, 0x10);
 			spin_unlock_irqrestore(&wc->lock, flags);
-			zt_alarm_notify(&wc->span);
+			dahdi_alarm_notify(&wc->span);
 			spin_lock_irqsave(&wc->lock, flags);
 		}
 	}
@@ -1242,15 +1242,15 @@ static int t1xxp_hardware_init(struct t1xxp *wc)
 	/* Start at writedma */
 	outl(wc->writedma,                    wc->ioaddr + WC_DMAWS);		/* Write start */
 	/* First frame */
-	outl(wc->writedma + ZT_CHUNKSIZE * 32 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
+	outl(wc->writedma + DAHDI_CHUNKSIZE * 32 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
 	/* Second frame */
-	outl(wc->writedma + ZT_CHUNKSIZE * 32 * 2 - 4, wc->ioaddr + WC_DMAWE);			/* End */
+	outl(wc->writedma + DAHDI_CHUNKSIZE * 32 * 2 - 4, wc->ioaddr + WC_DMAWE);			/* End */
 	
 	outl(wc->readdma,                    	 wc->ioaddr + WC_DMARS);	/* Read start */
 	/* First frame */
-	outl(wc->readdma + ZT_CHUNKSIZE * 32 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
+	outl(wc->readdma + DAHDI_CHUNKSIZE * 32 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
 	/* Second frame */
-	outl(wc->readdma + ZT_CHUNKSIZE * 32 * 2 - 4, wc->ioaddr + WC_DMARE);	/* End */
+	outl(wc->readdma + DAHDI_CHUNKSIZE * 32 * 2 - 4, wc->ioaddr + WC_DMARE);	/* End */
 	
 	if (debug) printk("Setting up DMA (write/read = %08lx/%08lx)\n", (long)wc->writedma, (long)wc->readdma);
 
@@ -1297,22 +1297,22 @@ static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_devic
 
 			wc->writechunk = 
 				/* 32 channels, Double-buffer, Read/Write */
-				(unsigned char *)pci_alloc_consistent(pdev, ZT_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
+				(unsigned char *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
 			if (!wc->writechunk) {
 				printk("wct1xxp: Unable to allocate DMA-able memory\n");
 				return -ENOMEM;
 			}
 
 			/* Read is after the whole write piece (in bytes) */
-			wc->readchunk = wc->writechunk + ZT_CHUNKSIZE * 32 * 2;
+			wc->readchunk = wc->writechunk + DAHDI_CHUNKSIZE * 32 * 2;
 
 			/* Same thing...  */
-			wc->readdma = wc->writedma + ZT_CHUNKSIZE * 32 * 2;
+			wc->readdma = wc->writedma + DAHDI_CHUNKSIZE * 32 * 2;
 
 			/* Initialize Write/Buffers to all blank data */
-			memset((void *)wc->writechunk,0x00,ZT_MAX_CHUNKSIZE * 2 * 2 * 32);
+			memset((void *)wc->writechunk,0x00,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32);
 			/* Initialize canary */
-			canary = (unsigned int *)(wc->readchunk + ZT_CHUNKSIZE * 64 - 4);
+			canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 - 4);
 			*canary = (CANARY << 16) | (0xffff);
 
 			/* Enable bus mastering */
@@ -1373,7 +1373,7 @@ static void __devexit t1xxp_remove_one(struct pci_dev *pdev)
 		t1xxp_stop_stuff(wc);
 
 		/* Immediately free resources */
-		pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 32 * 4, (void *)wc->writechunk, wc->writedma);
+		pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32 * 4, (void *)wc->writechunk, wc->writedma);
 		free_irq(pdev->irq, wc);
 
 		/* Reset PCI chip and registers */

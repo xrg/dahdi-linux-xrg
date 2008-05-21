@@ -33,8 +33,8 @@ struct hpec_license {
 	__u8 response[16];
 };
 
-#define ZT_EC_LICENSE_CHALLENGE _IOR(ZT_CODE, 60, struct hpec_challenge)
-#define ZT_EC_LICENSE_RESPONSE  _IOW(ZT_CODE, 61, struct hpec_license)
+#define DAHDI_EC_LICENSE_CHALLENGE _IOR(DAHDI_CODE, 60, struct hpec_challenge)
+#define DAHDI_EC_LICENSE_RESPONSE  _IOW(DAHDI_CODE, 61, struct hpec_license)
 
 #endif /* !defined(_HPEC_USER_H) */
 
