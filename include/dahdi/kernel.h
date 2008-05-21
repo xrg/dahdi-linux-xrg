@@ -156,8 +156,6 @@
 
 #define DAHDI_MAJOR	196
 
-#define DAHDI_CODE	'J'
-
 /* Default chunk size for conferences and such -- static right now, might make
    variable sometime.  8 samples = 1 ms = most frequent service interval possible
    for a USB device */
@@ -423,7 +421,7 @@ struct dahdi_hwgain{
 
 
 /* ioctl definitions */
-#define DAHDI_CODE	'J'
+#define DAHDI_CODE	0xDA
 
 /*
  * Get Transfer Block Size.
