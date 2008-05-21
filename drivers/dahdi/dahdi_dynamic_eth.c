@@ -314,12 +314,12 @@ static void *ztdeth_create(struct dahdi_span *span, char *addr)
 		memset(z, 0, sizeof(struct ztdeth));
 
 		/* Address should be <dev>/<macaddr>[/subaddr] */
-		zap_copy_string(tmp, addr, sizeof(tmp));
+		dahdi_copy_string(tmp, addr, sizeof(tmp));
 		tmp2 = strchr(tmp, '/');
 		if (tmp2) {
 			*tmp2 = '\0';
 			tmp2++;
-			zap_copy_string(z->ethdev, tmp, sizeof(z->ethdev));
+			dahdi_copy_string(z->ethdev, tmp, sizeof(z->ethdev));
 		} else {
 			printk("Invalid TDMoE address (no device) '%s'\n", addr);
 			kfree(z);

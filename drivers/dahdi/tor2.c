@@ -186,7 +186,7 @@ static int tor2_shutdown(struct dahdi_span *span);
 static int tor2_rbsbits(struct dahdi_chan *chan, int bits);
 static int tor2_maint(struct dahdi_span *span, int cmd);
 static int tor2_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data);
-ZAP_IRQ_HANDLER(tor2_intr);
+DAHDI_IRQ_HANDLER(tor2_intr);
 
 /* translations of data channels for 24 channels in a 32 bit PCM highway */
 unsigned datxlt_t1[] = { 
@@ -274,7 +274,7 @@ static void init_spans(struct tor2 *tor)
 			 "Tormenta 2 (PCI) Quad %s Card %d Span %d",
 			 (tor->cardtype == TYPE_T1)  ?  "T1"  :  "E1", tor->num, x + 1);
 		tor->spans[x].manufacturer = "Digium";
-		zap_copy_string(tor->spans[x].devicetype, tor->type, sizeof(tor->spans[x].devicetype));
+		dahdi_copy_string(tor->spans[x].devicetype, tor->type, sizeof(tor->spans[x].devicetype));
 		snprintf(tor->spans[x].location, sizeof(tor->spans[x].location) - 1,
 			 "PCI Bus %02d Slot %02d", tor->pci->bus->number, PCI_SLOT(tor->pci->devfn) + 1);
 		tor->spans[x].spanconfig = tor2_spanconfig;
@@ -533,7 +533,7 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 	for (x = 0; x < 256; x++) tor->mem32[x] = 0x7f7f7f7f;
 
 
-	if (request_irq(tor->irq, tor2_intr, ZAP_IRQ_SHARED_DISABLED, "tor2", tor)) {
+	if (request_irq(tor->irq, tor2_intr, DAHDI_IRQ_SHARED_DISABLED, "tor2", tor)) {
 		printk(KERN_ERR "Unable to request tormenta IRQ %d\n", tor->irq);
 		goto err_out_release_all;
 	}
@@ -639,7 +639,7 @@ static struct pci_driver tor2_driver = {
 
 static int __init tor2_init(void) {
 	int res;
-	res = zap_pci_module(&tor2_driver);
+	res = dahdi_pci_module(&tor2_driver);
 	printk("Registered Tormenta2 PCI\n");
 	return res;
 }
@@ -1180,7 +1180,7 @@ found:
 	return 0;
 }
 
-ZAP_IRQ_HANDLER(tor2_intr)
+DAHDI_IRQ_HANDLER(tor2_intr)
 {
 	int n, i, j, k, syncsrc;
 	unsigned int rxword,txword;

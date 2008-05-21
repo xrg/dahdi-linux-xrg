@@ -431,7 +431,7 @@ static void wcfxo_tasklet(unsigned long data)
 static void wcfxo_stop_dma(struct wcfxo *wc);
 static void wcfxo_restart_dma(struct wcfxo *wc);
 
-ZAP_IRQ_HANDLER(wcfxo_interrupt)
+DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 {
 	struct wcfxo *wc = dev_id;
 	unsigned char ints;
@@ -665,7 +665,7 @@ static int wcfxo_initialize(struct wcfxo *wc)
 	snprintf(wc->span.location, sizeof(wc->span.location) - 1,
 		 "PCI Bus %02d Slot %02d", wc->dev->bus->number, PCI_SLOT(wc->dev->devfn) + 1);
 	wc->span.manufacturer = "Digium";
-	zap_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
+	dahdi_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
 	wc->chan.sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF;
 	wc->chan.chanpos = 1;
 	wc->span.chans = &wc->chan;
@@ -961,7 +961,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	/* Keep track of which device we are */
 	pci_set_drvdata(pdev, wc);
 
-	if (request_irq(pdev->irq, wcfxo_interrupt, ZAP_IRQ_SHARED, "wcfxo", wc)) {
+	if (request_irq(pdev->irq, wcfxo_interrupt, DAHDI_IRQ_SHARED, "wcfxo", wc)) {
 		printk("wcfxo: Unable to request IRQ %d\n", pdev->irq);
 		if (wc->freeregion)
 			release_region(wc->ioaddr, 0xff);
@@ -1068,7 +1068,7 @@ static int __init wcfxo_init(void)
 			printk("%d: %s\n", x, fxo_modes[x].name);
 		return -ENODEV;
 	}
-	res = zap_pci_module(&wcfxo_driver);
+	res = dahdi_pci_module(&wcfxo_driver);
 	if (res)
 		return -ENODEV;
 	return 0;

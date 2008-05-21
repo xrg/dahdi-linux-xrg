@@ -67,7 +67,7 @@ static void echo_can_init(void)
 
 static void echo_can_identify(char *buf, size_t len)
 {
-	zap_copy_string(buf, "HPEC", len);
+	dahdi_copy_string(buf, "HPEC", len);
 }
 
 static void echo_can_shutdown(void)

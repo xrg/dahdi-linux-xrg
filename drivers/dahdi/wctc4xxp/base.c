@@ -1182,7 +1182,7 @@ static void dte_wque_run(void *work_data)
 	transmit_demand(wc);
 }
 
-ZAP_IRQ_HANDLER(wcdte_interrupt)
+DAHDI_IRQ_HANDLER(wcdte_interrupt)
 {
 	struct wcdte *wc = dev_id;
 	unsigned int ints;
@@ -1837,7 +1837,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 			/* Keep track of which device we are */
 			pci_set_drvdata(pdev, wc);
 
-			if (request_irq(pdev->irq, wcdte_interrupt, ZAP_IRQ_SHARED, "tc400b", wc)) {
+			if (request_irq(pdev->irq, wcdte_interrupt, DAHDI_IRQ_SHARED, "tc400b", wc)) {
 				printk("wcdte error: Unable to request IRQ %d\n", pdev->irq);
 				if (wc->freeregion)
 					release_region(wc->iobase, 0xff);
@@ -1999,7 +1999,7 @@ int ztdte_init(void)
 {
 	int res;
 
-	res = zap_pci_module(&wcdte_driver);
+	res = dahdi_pci_module(&wcdte_driver);
 	if (res)
 		return -ENODEV;
 	return 0;

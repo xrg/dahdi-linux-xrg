@@ -390,7 +390,7 @@ static int ztdummy_initialize(struct ztdummy *ztd)
 	sprintf(ztd->span.name, "ZTDUMMY/1");
 	snprintf(ztd->span.desc, sizeof(ztd->span.desc) - 1, "%s (source: " CLOCK_SRC ") %d", ztd->span.name, 1);
 	sprintf(ztd->chan.name, "ZTDUMMY/%d/%d", 1, 0);
-	zap_copy_string(ztd->span.devicetype, "Zaptel Dummy Timing Driver", sizeof(ztd->span.devicetype));
+	dahdi_copy_string(ztd->span.devicetype, "Zaptel Dummy Timing Driver", sizeof(ztd->span.devicetype));
 	ztd->chan.chanpos = 1;
 	ztd->span.chans = &ztd->chan;
 	ztd->span.channels = 0;		/* no channels on our span */
@@ -483,13 +483,13 @@ int init_module(void)
 	irq=s->irq;
 	spin_lock_irq(&mylock);
 	free_irq(s->irq, s);	/* remove uhci_interrupt temporaly */
-	if (request_irq (irq, ztdummy_interrupt, ZAP_IRQ_SHARED, "ztdummy", ztd)) {
+	if (request_irq (irq, ztdummy_interrupt, DAHDI_IRQ_SHARED, "ztdummy", ztd)) {
 		spin_unlock_irq(&mylock);
 		err("Our request_irq %d failed!",irq);
 		kfree(ztd);
 		return -EIO;
 	}		/* we add our handler first, to assure, that our handler gets called first */
-	if (request_irq (irq, uhci_interrupt, ZAP_IRQ_SHARED, s->uhci_pci->driver->name, s)) {
+	if (request_irq (irq, uhci_interrupt, DAHDI_IRQ_SHARED, s->uhci_pci->driver->name, s)) {
 		spin_unlock_irq(&mylock);
 		err("Original request_irq %d failed!",irq);
 	}

@@ -739,7 +739,7 @@ static void pciradio_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 #endif
 #endif
 
-ZAP_IRQ_HANDLER(pciradio_interrupt)
+DAHDI_IRQ_HANDLER(pciradio_interrupt)
 {
 	struct pciradio *rad = dev_id;
 	unsigned char ints,byte1,byte2,gotcor,gotctcss,gotslowctcss,ctcss;
@@ -1814,7 +1814,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 
 			}
 
-			if (request_irq(pdev->irq, pciradio_interrupt, ZAP_IRQ_SHARED, "pciradio", rad)) {
+			if (request_irq(pdev->irq, pciradio_interrupt, DAHDI_IRQ_SHARED, "pciradio", rad)) {
 				printk("pciradio: Unable to request IRQ %d\n", pdev->irq);
 				if (rad->freeregion)
 					release_region(rad->ioaddr, 0xff);
@@ -1905,7 +1905,7 @@ static int __init pciradio_init(void)
 {
 	int res;
 
-	res = zap_pci_module(&pciradio_driver);
+	res = dahdi_pci_module(&pciradio_driver);
 	if (res)
 		return -ENODEV;
 	return 0;

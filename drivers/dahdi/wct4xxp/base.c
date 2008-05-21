@@ -1561,7 +1561,7 @@ static void init_spans(struct t4 *wc)
 		snprintf(ts->span.desc, sizeof(ts->span.desc) - 1,
 			 "T%dXXP (PCI) Card %d Span %d", wc->numspans, wc->num, x+1);
 		ts->span.manufacturer = "Digium";
-		zap_copy_string(ts->span.devicetype, wc->variety, sizeof(ts->span.devicetype));
+		dahdi_copy_string(ts->span.devicetype, wc->variety, sizeof(ts->span.devicetype));
 		if (wc->vpm == T4_VPM_PRESENT) {
 			if (!wc->vpm450m)
 				strncat(ts->span.devicetype, " with VPM400M", sizeof(ts->span.devicetype) - 1);
@@ -2784,7 +2784,7 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 }
 
 #ifdef SUPPORT_GEN1
-ZAP_IRQ_HANDLER(t4_interrupt)
+DAHDI_IRQ_HANDLER(t4_interrupt)
 {
 	struct t4 *wc = dev_id;
 	unsigned long flags;
@@ -2901,7 +2901,7 @@ static void t4_isr_bh(unsigned long data)
 #endif
 }
 
-ZAP_IRQ_HANDLER(t4_interrupt_gen2)
+DAHDI_IRQ_HANDLER(t4_interrupt_gen2)
 {
 	struct t4 *wc = dev_id;
 	unsigned int status;
@@ -3660,14 +3660,14 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 
 
 #ifdef SUPPORT_GEN1
-			if (request_irq(pdev->irq, (dt->flags & FLAG_2NDGEN) ? t4_interrupt_gen2 :t4_interrupt, ZAP_IRQ_SHARED_DISABLED, (wc->numspans == 2) ? "wct2xxp" : "wct4xxp", wc)) 
+			if (request_irq(pdev->irq, (dt->flags & FLAG_2NDGEN) ? t4_interrupt_gen2 :t4_interrupt, DAHDI_IRQ_SHARED_DISABLED, (wc->numspans == 2) ? "wct2xxp" : "wct4xxp", wc)) 
 #else
 			if (!(wc->tspans[0]->spanflags & FLAG_2NDGEN)) {
 				printk("This driver does not support 1st gen modules\n");
 				kfree(wc);
 				return -ENODEV;
 			}	
-			if (request_irq(pdev->irq, t4_interrupt_gen2, ZAP_IRQ_SHARED_DISABLED, "t4xxp", wc)) 
+			if (request_irq(pdev->irq, t4_interrupt_gen2, DAHDI_IRQ_SHARED_DISABLED, "t4xxp", wc)) 
 #endif
 			{
 				printk("t4xxp: Unable to request IRQ %d\n", pdev->irq);
@@ -3834,7 +3834,7 @@ static struct pci_driver t4_driver = {
 static int __init t4_init(void)
 {
 	int res;
-	res = zap_pci_module(&t4_driver);
+	res = dahdi_pci_module(&t4_driver);
 	if (res)
 		return -ENODEV;
 	return 0;

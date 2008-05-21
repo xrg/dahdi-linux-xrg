@@ -1717,7 +1717,7 @@ static int __init te12xp_init(void)
 {
 	int res;
 
-	res = zap_pci_module(&te12xp_driver);
+	res = dahdi_pci_module(&te12xp_driver);
 
 	return res ? -ENODEV : 0;
 }

@@ -89,7 +89,7 @@
 
 /* udev support */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,1)
-#define CONFIG_ZAP_UDEV
+#define CONFIG_DAHDI_UDEV
 #endif
 
 /* We now use the linux kernel config to detect which options to use */
@@ -102,7 +102,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,23)
 /* Starting with 2.4.23 the kernel hdlc api changed again */
 /* Now we have to use hdlc_type_trans(skb, dev) instead of htons(ETH_P_HDLC) */
-#define ZAP_HDLC_TYPE_TRANS
+#define DAHDI_HDLC_TYPE_TRANS
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,3)
 #define HDLC_MAINTAINERS_ARE_MORE_STUPID_THAN_I_THOUGHT

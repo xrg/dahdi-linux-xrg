@@ -140,7 +140,7 @@ static void echo_can_init(void)
 
 static void echo_can_identify(char *buf, size_t len)
 {
-	zap_copy_string(buf, "KB1", len);
+	dahdi_copy_string(buf, "KB1", len);
 }
 
 static void echo_can_shutdown(void)

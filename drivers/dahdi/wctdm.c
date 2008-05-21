@@ -1003,7 +1003,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 	wc->mod[card].fxs.lastrxhook = hook;
 }
 
-ZAP_IRQ_HANDLER(wctdm_interrupt)
+DAHDI_IRQ_HANDLER(wctdm_interrupt)
 {
 	struct wctdm *wc = dev_id;
 	unsigned char ints;
@@ -2042,7 +2042,7 @@ static int wctdm_initialize(struct wctdm *wc)
 	snprintf(wc->span.location, sizeof(wc->span.location) - 1,
 		 "PCI Bus %02d Slot %02d", wc->dev->bus->number, PCI_SLOT(wc->dev->devfn) + 1);
 	wc->span.manufacturer = "Digium";
-	zap_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
+	dahdi_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
 	if (alawoverride) {
 		printk("ALAW override parameter detected.  Device will be operating in ALAW\n");
 		wc->span.deflaw = DAHDI_LAW_ALAW;
@@ -2332,7 +2332,7 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 			/* Keep track of which device we are */
 			pci_set_drvdata(pdev, wc);
 
-			if (request_irq(pdev->irq, wctdm_interrupt, ZAP_IRQ_SHARED, "wctdm", wc)) {
+			if (request_irq(pdev->irq, wctdm_interrupt, DAHDI_IRQ_SHARED, "wctdm", wc)) {
 				printk("wctdm: Unable to request IRQ %d\n", pdev->irq);
 				if (wc->freeregion)
 					release_region(wc->ioaddr, 0xff);
@@ -2492,7 +2492,7 @@ static int __init wctdm_init(void)
 		battthresh = fxo_modes[_opermode].battthresh;
 	}
 
-	res = zap_pci_module(&wctdm_driver);
+	res = dahdi_pci_module(&wctdm_driver);
 	if (res)
 		return -ENODEV;
 	return 0;

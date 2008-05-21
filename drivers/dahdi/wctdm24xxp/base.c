@@ -3981,7 +3981,7 @@ static int __init wctdm_init(void)
 		battthresh = fxo_modes[_opermode].battthresh;
 	}
 
-	res = zap_pci_module(&wctdm_driver);
+	res = dahdi_pci_module(&wctdm_driver);
 	if (res)
 		return -ENODEV;
 	return 0;

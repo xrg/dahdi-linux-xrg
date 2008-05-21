@@ -162,7 +162,7 @@ static devfs_handle_t timer;
 #endif
 
 /* udev necessary data structures.  Yeah! */
-#ifdef CONFIG_ZAP_UDEV
+#ifdef CONFIG_DAHDI_UDEV
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
 #define CLASS_DEV_CREATE(class, devt, device, name) \
@@ -173,16 +173,16 @@ static devfs_handle_t timer;
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
-static struct class *zap_class = NULL;
+static struct class *dahdi_class = NULL;
 #else
-static struct class_simple *zap_class = NULL;
+static struct class_simple *dahdi_class = NULL;
 #define class_create class_simple_create
 #define class_destroy class_simple_destroy
 #define class_device_create class_simple_device_add
 #define class_device_destroy(a, b) class_simple_device_remove(b)
 #endif
 
-#endif /* CONFIG_ZAP_UDEV */
+#endif /* CONFIG_DAHDI_UDEV */
 
 
 /* There is a table like this in the PPP driver, too */
@@ -1361,7 +1361,7 @@ static devfs_handle_t register_devfs_channel(struct dahdi_chan *chan, devfs_hand
 	/* Set up the path of the file/link itself */
 	tmp_offset = devfs_generate_path(zaptel_devfs_dir, tmp, sizeof(tmp) - 1);
 	sprintf(buf, "/%d", chan->channo);
-	zap_copy_string(path, tmp+tmp_offset, sizeof(path));
+	dahdi_copy_string(path, tmp+tmp_offset, sizeof(path));
 	strncat(path, buf, sizeof(path) - 1);
 
 	err = devfs_mk_symlink(NULL, path, DEVFS_FL_DEFAULT, link+link_offset, &chan->fhandle_symlink, NULL);
@@ -2754,7 +2754,7 @@ static int ioctl_load_zone(unsigned long data)
 	ptr += sizeof(*z);
 	space -= sizeof(*z);
 
-	zap_copy_string(z->name, th.name, sizeof(z->name));
+	dahdi_copy_string(z->name, th.name, sizeof(z->name));
 
 	for (x = 0; x < DAHDI_MAX_CADENCE; x++)
 		z->ringcadence[x] = th.ringcadence[x];
@@ -3352,7 +3352,7 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		stack.param.pulseaftertime = chan->pulseaftertime;
 		if (chan->span) stack.param.spanno = chan->span->spanno;
 			else stack.param.spanno = 0;
-		zap_copy_string(stack.param.name, chan->name, sizeof(stack.param.name));
+		dahdi_copy_string(stack.param.name, chan->name, sizeof(stack.param.name));
 		stack.param.chanpos = chan->chanpos;
 		stack.param.sigcap = chan->sigcap;
 		/* Return current law */
@@ -3487,8 +3487,8 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		stack.spaninfo.spanno = i; /* put the span # in here */
 		stack.spaninfo.totalspans = 0;
 		if (maxspans) stack.spaninfo.totalspans = maxspans - 1; /* put total number of spans here */
-		zap_copy_string(stack.spaninfo.desc, spans[i]->desc, sizeof(stack.spaninfo.desc));
-		zap_copy_string(stack.spaninfo.name, spans[i]->name, sizeof(stack.spaninfo.name));
+		dahdi_copy_string(stack.spaninfo.desc, spans[i]->desc, sizeof(stack.spaninfo.desc));
+		dahdi_copy_string(stack.spaninfo.name, spans[i]->name, sizeof(stack.spaninfo.name));
 		stack.spaninfo.alarms = spans[i]->alarms;		/* get alarm status */
 		stack.spaninfo.bpvcount = spans[i]->bpvcount;	/* get BPV count */
 		stack.spaninfo.rxlevel = spans[i]->rxlevel;	/* get rx level */
@@ -3510,15 +3510,15 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		/* version 3 fields */
 		stack.spaninfo.irq = spans[i]->irq;
 		stack.spaninfo.linecompat = spans[i]->linecompat;
-		zap_copy_string(stack.spaninfo.lboname, dahdi_lboname(spans[i]->lbo), sizeof(stack.spaninfo.lboname));
+		dahdi_copy_string(stack.spaninfo.lboname, dahdi_lboname(spans[i]->lbo), sizeof(stack.spaninfo.lboname));
 		if (spans[i]->manufacturer)
-			zap_copy_string(stack.spaninfo.manufacturer, spans[i]->manufacturer,
+			dahdi_copy_string(stack.spaninfo.manufacturer, spans[i]->manufacturer,
 				sizeof(stack.spaninfo.manufacturer));
 		if (spans[i]->devicetype)
-			zap_copy_string(stack.spaninfo.devicetype, spans[i]->devicetype, sizeof(stack.spaninfo.devicetype));
-		zap_copy_string(stack.spaninfo.location, spans[i]->location, sizeof(stack.spaninfo.location));
+			dahdi_copy_string(stack.spaninfo.devicetype, spans[i]->devicetype, sizeof(stack.spaninfo.devicetype));
+		dahdi_copy_string(stack.spaninfo.location, spans[i]->location, sizeof(stack.spaninfo.location));
 		if (spans[i]->spantype)
-			zap_copy_string(stack.spaninfo.spantype, spans[i]->spantype, sizeof(stack.spaninfo.spantype));
+			dahdi_copy_string(stack.spaninfo.spantype, spans[i]->spantype, sizeof(stack.spaninfo.spantype));
 		
 		if (copy_to_user((struct dahdi_spaninfo *) data, &stack.spaninfo, size_to_copy))
 			return -EFAULT;
@@ -3999,7 +3999,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 		struct dahdi_versioninfo vi;
 
 		memset(&vi, 0, sizeof(vi));
-		zap_copy_string(vi.version, ZAPTEL_VERSION, sizeof(vi.version));
+		dahdi_copy_string(vi.version, ZAPTEL_VERSION, sizeof(vi.version));
 		echo_can_identify(vi.echo_canceller, sizeof(vi.echo_canceller) - 1);
 		if (copy_to_user((struct dahdi_versioninfo *) data, &vi, sizeof(vi)))
 			return -EFAULT;
@@ -4114,7 +4114,7 @@ static int ioctl_dahdi_dial(struct dahdi_chan *chan, unsigned long data)
 			rv = -EBUSY;
 			break;
 		}
-		zap_copy_string(chan->txdialbuf + strlen(chan->txdialbuf), tdo->dialstr, DAHDI_MAX_DTMF_BUF - strlen(chan->txdialbuf));
+		dahdi_copy_string(chan->txdialbuf + strlen(chan->txdialbuf), tdo->dialstr, DAHDI_MAX_DTMF_BUF - strlen(chan->txdialbuf));
 		if (!chan->dialing) {
 			chan->dialing = 1;
 			__do_dtmf(chan);
@@ -5223,15 +5223,15 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 	}
 #endif /* CONFIG_DEVFS_FS */
 
-#ifdef CONFIG_ZAP_UDEV
+#ifdef CONFIG_DAHDI_UDEV
 	for (x = 0; x < span->channels; x++) {
 		char chan_name[50];
 		if (span->chans[x].channo < 250) {
 			sprintf(chan_name, "zap%d", span->chans[x].channo);
-			CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo), NULL, chan_name);
+			CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo), NULL, chan_name);
 		}
 	}
-#endif /* CONFIG_ZAP_UDEV */
+#endif /* CONFIG_DAHDI_UDEV */
 
 	if (debug)
 		printk("Registered Span %d ('%s') with %d channels\n", span->spanno, span->name, span->channels);
@@ -5280,12 +5280,12 @@ int dahdi_unregister(struct dahdi_span *span)
 	devfs_unregister(span->dhandle);
 #endif /* CONFIG_DEVFS_FS */
 
-#ifdef CONFIG_ZAP_UDEV
+#ifdef CONFIG_DAHDI_UDEV
 	for (x = 0; x < span->channels; x++) {
 		if (span->chans[x].channo < 250)
-			class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo));
+			class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo));
 	}
-#endif /* CONFIG_ZAP_UDEV */
+#endif /* CONFIG_DAHDI_UDEV */
 
 	spans[span->spanno] = NULL;
 	span->spanno = 0;
@@ -6930,7 +6930,7 @@ out in the later versions, and is put back now. */
 			skb_reset_mac_header(skb);
 #endif
 			skb->dev = ztchan_to_dev(ms);
-#ifdef ZAP_HDLC_TYPE_TRANS
+#ifdef DAHDI_HDLC_TYPE_TRANS
 			skb->protocol = hdlc_type_trans(skb, ztchan_to_dev(ms));
 #else
 			skb->protocol = htons (ETH_P_HDLC);
@@ -7686,13 +7686,13 @@ int dahdi_register_chardev(struct dahdi_chardev *dev)
 	umode_t mode = S_IFCHR|S_IRUGO|S_IWUGO;
 #endif /* CONFIG_DEVFS_FS */
 
-#ifdef CONFIG_ZAP_UDEV
+#ifdef CONFIG_DAHDI_UDEV
 	char udevname[strlen(dev->name) + 3];
 
 	strcpy(udevname, "zap");
 	strcat(udevname, dev->name);
-	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, dev->minor), NULL, udevname);
-#endif /* CONFIG_ZAP_UDEV */
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, dev->minor), NULL, udevname);
+#endif /* CONFIG_DAHDI_UDEV */
 	
 #ifdef CONFIG_DEVFS_FS
 	dev->devfs_handle = devfs_register(zaptel_devfs_dir, dev->name, DEVFS_FL_DEFAULT, DAHDI_MAJOR, dev->minor, mode, &dahdi_fops, NULL);
@@ -7703,9 +7703,9 @@ int dahdi_register_chardev(struct dahdi_chardev *dev)
 
 int dahdi_unregister_chardev(struct dahdi_chardev *dev)
 {
-#ifdef CONFIG_ZAP_UDEV
-	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, dev->minor));
-#endif /* CONFIG_ZAP_UDEV */
+#ifdef CONFIG_DAHDI_UDEV
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, dev->minor));
+#endif /* CONFIG_DAHDI_UDEV */
 
 #ifdef CONFIG_DEVFS_FS
 	devfs_unregister(dev->devfs_handle);
@@ -7721,13 +7721,13 @@ static int __init dahdi_init(void) {
 	proc_entries[0] = proc_mkdir("zaptel", NULL);
 #endif
 
-#ifdef CONFIG_ZAP_UDEV /* udev support functions */
-	zap_class = class_create(THIS_MODULE, "zaptel");
-	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 253), NULL, "zaptimer");
-	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 254), NULL, "zapchannel");
-	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 255), NULL, "zappseudo");
-	CLASS_DEV_CREATE(zap_class, MKDEV(DAHDI_MAJOR, 0), NULL, "zapctl");
-#endif /* CONFIG_ZAP_UDEV */
+#ifdef CONFIG_DAHDI_UDEV /* udev support functions */
+	dahdi_class = class_create(THIS_MODULE, "zaptel");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 253), NULL, "zaptimer");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 254), NULL, "zapchannel");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 255), NULL, "zappseudo");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 0), NULL, "zapctl");
+#endif /* CONFIG_DAHDI_UDEV */
 
 #ifdef CONFIG_DEVFS_FS
 	{
@@ -7782,13 +7782,13 @@ static void __exit dahdi_cleanup(void) {
 	devfs_unregister(zaptel_devfs_dir);
 	devfs_unregister_chrdev(DAHDI_MAJOR, "zaptel");
 #else
-#ifdef CONFIG_ZAP_UDEV
-	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
-	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
-	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 255)); /* pseudo */
-	class_device_destroy(zap_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
-	class_destroy(zap_class);
-#endif /* CONFIG_ZAP_UDEV */
+#ifdef CONFIG_DAHDI_UDEV
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 255)); /* pseudo */
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
+	class_destroy(dahdi_class);
+#endif /* CONFIG_DAHDI_UDEV */
 	unregister_chrdev(DAHDI_MAJOR, "zaptel");
 #endif
 #ifdef CONFIG_ZAPTEL_WATCHDOG

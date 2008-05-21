@@ -610,8 +610,8 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 	memset(z->msgbuf, 0, bufsize);
 
 	/* Setup parameters properly assuming we're going to be okay. */
-	zap_copy_string(z->dname, zds->driver, sizeof(z->dname));
-	zap_copy_string(z->addr, zds->addr, sizeof(z->addr));
+	dahdi_copy_string(z->dname, zds->driver, sizeof(z->dname));
+	dahdi_copy_string(z->addr, zds->addr, sizeof(z->addr));
 	z->timing = zds->timing;
 	sprintf(z->span.name, "ZTD/%s/%s", zds->driver, zds->addr);
 	sprintf(z->span.desc, "Dynamic '%s' span at '%s'", zds->driver, zds->addr);

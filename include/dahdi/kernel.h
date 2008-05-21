@@ -52,29 +52,29 @@
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,10)
-#define zap_pci_module pci_register_driver
+#define dahdi_pci_module pci_register_driver
 #else
-#define zap_pci_module pci_module_init
+#define dahdi_pci_module pci_module_init
 #endif
 
 #ifdef LINUX26
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-#define ZAP_IRQ_HANDLER(a) static irqreturn_t a(int irq, void *dev_id)
+#define DAHDI_IRQ_HANDLER(a) static irqreturn_t a(int irq, void *dev_id)
 #else
-#define ZAP_IRQ_HANDLER(a) static irqreturn_t a(int irq, void *dev_id, struct pt_regs *regs)
+#define DAHDI_IRQ_HANDLER(a) static irqreturn_t a(int irq, void *dev_id, struct pt_regs *regs)
 #endif
 #else
-#define ZAP_IRQ_HANDLER(a) static void a(int irq, void *dev_id, struct pt_regs *regs)
+#define DAHDI_IRQ_HANDLER(a) static void a(int irq, void *dev_id, struct pt_regs *regs)
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,18)
-#define ZAP_IRQ_SHARED IRQF_SHARED
-#define ZAP_IRQ_DISABLED IRQF_DISABLED
-#define ZAP_IRQ_SHARED_DISABLED IRQF_SHARED | IRQF_DISABLED
+#define DAHDI_IRQ_SHARED IRQF_SHARED
+#define DAHDI_IRQ_DISABLED IRQF_DISABLED
+#define DAHDI_IRQ_SHARED_DISABLED IRQF_SHARED | IRQF_DISABLED
 #else
-#define ZAP_IRQ_SHARED SA_SHIRQ
-#define ZAP_IRQ_DISABLED SA_INTERRUPT
-#define ZAP_IRQ_SHARED_DISABLED SA_SHIRQ | SA_INTERRUPT
+#define DAHDI_IRQ_SHARED SA_SHIRQ
+#define DAHDI_IRQ_DISABLED SA_INTERRUPT
+#define DAHDI_IRQ_SHARED_DISABLED SA_SHIRQ | SA_INTERRUPT
 #endif
 
 #include "ecdis.h"
@@ -2093,7 +2093,7 @@ struct torisa_debug {
 	reduced buffer size to this function (unlike \a strncpy), and the buffer does not need
 	to be initialized to zeroes prior to calling this function.
 */
-static inline void zap_copy_string(char *dst, const char *src, unsigned int size)
+static inline void dahdi_copy_string(char *dst, const char *src, unsigned int size)
 {
 	while (*src && size) {
 		*dst++ = *src++;

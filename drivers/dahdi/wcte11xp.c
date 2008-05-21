@@ -975,7 +975,7 @@ static int t1xxp_software_init(struct t1 *wc)
 	sprintf(wc->span.name, "WCT1/%d", wc->num);
 	snprintf(wc->span.desc, sizeof(wc->span.desc) - 1, "%s Card %d", wc->variety, wc->num);
 	wc->span.manufacturer = "Digium";
-	zap_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
+	dahdi_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
 	snprintf(wc->span.location, sizeof(wc->span.location) - 1,
 		 "PCI Bus %02d Slot %02d", wc->dev->bus->number, PCI_SLOT(wc->dev->devfn) + 1);
 	wc->span.spanconfig = t1xxp_spanconfig;
@@ -1324,7 +1324,7 @@ static void t1_do_counters(struct t1 *wc)
 	spin_unlock_irqrestore(&wc->lock, flags);
 }
 
-ZAP_IRQ_HANDLER(t1xxp_interrupt)
+DAHDI_IRQ_HANDLER(t1xxp_interrupt)
 {
 	struct t1 *wc = dev_id;
 	unsigned char ints;
@@ -1522,7 +1522,7 @@ static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_devic
 			/* Keep track of which device we are */
 			pci_set_drvdata(pdev, wc);
 
-			if (request_irq(pdev->irq, t1xxp_interrupt, ZAP_IRQ_SHARED_DISABLED, "wcte11xp", wc)) {
+			if (request_irq(pdev->irq, t1xxp_interrupt, DAHDI_IRQ_SHARED_DISABLED, "wcte11xp", wc)) {
 				printk("wcte11xp: Unable to request IRQ %d\n", pdev->irq);
 				kfree(wc);
 				return -EIO;
@@ -1609,7 +1609,7 @@ static struct pci_driver t1xxp_driver = {
 static int __init t1xxp_init(void)
 {
 	int res;
-	res = zap_pci_module(&t1xxp_driver);
+	res = dahdi_pci_module(&t1xxp_driver);
 	if (res)
 		return -ENODEV;
 	return 0;

@@ -313,7 +313,7 @@ static int dahdi_tc_getinfo(unsigned long data)
 	if (!tc)
 		return -ENOSYS;
 
-	zap_copy_string(info.name, tc->name, sizeof(info.name));
+	dahdi_copy_string(info.name, tc->name, sizeof(info.name));
 	info.numchannels = tc->numchannels;
 	info.srcfmts = tc->srcfmts;
 	info.dstfmts = tc->dstfmts;

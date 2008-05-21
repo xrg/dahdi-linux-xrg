@@ -379,7 +379,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	if (*(argv[1]) == '/')
-		zap_copy_string(fn, argv[1], sizeof(fn));
+		dahdi_copy_string(fn, argv[1], sizeof(fn));
 	else
 		snprintf(fn, sizeof(fn), "/dev/zap/%d", atoi(argv[1]));
 	fd = open(fn, O_RDWR);
