@@ -2,7 +2,7 @@ ifdef ECHO_CAN_NAME
 	ECHO_CAN_CFLAGS	:= -DECHO_CAN_FROMENV -DECHO_CAN_$(ECHO_CAN_NAME)
 endif
 
-obj-m := pciradio.o tor2.o wcfxo.o wct1xxp.o wctdm.o wcte11xp.o zaptel.o ztd-eth.o ztd-loc.o ztdummy.o ztdynamic.o zttranscode.o
+obj-m := pciradio.o tor2.o wcfxo.o wct1xxp.o wctdm.o wcte11xp.o dahdi.o dahdi_dummy.o dahdi_dynamic.o dahdi_dynamic_eth.o dahdi_dynamic_loc.o dahdi_transcode.o
 obj-m += wct4xxp/ wctc4xxp/ wctdm24xxp/ wcte12xp/
 
 CFLAGS_MODULE += -I$(DAHDI_INCLUDE)
@@ -17,25 +17,25 @@ ifneq (,$(filter $(KVERS),$(BAD_KERNELS)))
 EXTRA_CFLAGS+=-Drw_lock_t=rwlock_t
 endif
 
-zaptel-objs := zaptel-base.o
+dahdi-objs := dahdi-base.o
 
 ifeq ($(ARCH),i386)
 ifneq ($(wildcard $(src)/hpec/hpec_x86_32.o_shipped),)
 HPEC_PRESENT=yes
-zaptel-objs += hpec/hpec_x86_32.o
+dahdi-objs += hpec/hpec_x86_32.o
 endif
 endif
 
 ifeq ($(ARCH),x86_64)
 ifneq ($(wildcard $(src)/hpec/hpec_x86_64.o_shipped),)
 HPEC_PRESENT=yes
-zaptel-objs += hpec/hpec_x86_64.o
+dahdi-objs += hpec/hpec_x86_64.o
 endif
 endif
 
 ifeq ($(HPEC_PRESENT),yes)
 EXTRA_CFLAGS += -DECHO_CAN_HPEC -I$(src)/hpec
-$(obj)/zaptel-base.o: $(src)/hpec/hpec_zaptel.h $(src)/hpec/hpec_user.h
+$(obj)/dahdi-base.o: $(src)/hpec/hpec_dahdi.h $(src)/hpec/hpec_user.h
 endif
 
 $(obj)/pciradio.o: $(obj)/radfw.h
@@ -51,7 +51,6 @@ $(obj)/radfw.h: $(src)/pciradio.rbt $(obj)/makefw
 
 $(obj)/makefw: $(src)/makefw.c
 	$(HOSTCC) -o $@ $^
-
 
 # set CONFIG_ZAPTEL_MMX for a number of CPU types.
 # Right now this part is not enabled, unless you build with
@@ -69,6 +68,6 @@ ZAPMMX_CONFIG_VALS := $(strip  $(foreach var,$(ZAPMMX_CONFIG_VARS),$(var))  )
 ifneq (,$(ZAPTEL_MMX_AUTO))
   ifneq (,$(ZAPMMX_CONFIG_VALS))
     # TODO: make that 
-    CFLAGS_zaptel-base.o += -DCONFIG_ZAPTEL_MMX
+    CFLAGS_dahdi-base.o += -DCONFIG_ZAPTEL_MMX
   endif
 endif

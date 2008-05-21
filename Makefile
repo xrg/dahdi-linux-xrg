@@ -146,7 +146,7 @@ prereq: version.h
 stackcheck: checkstack modules
 	./checkstack kernel/*.ko kernel/*/*.ko
 
-install: all devices install-modules install-firmware
+install: all devices install-modules install-firmware install-include
 	@echo "###################################################"
 	@echo "###"
 	@echo "### Zaptel installed successfully."
@@ -169,8 +169,8 @@ ifeq ($(HOTPLUG_FIRMWARE),yes)
 endif
 
 install-include:
-	$(INSTALL) -D -m 644 include/dahdi/kernel.h $(DESTDIR)/usr/include/dahdi/kernel.h
-	$(INSTALL) -D -m 644 include/dahdi/user.h $(DESTDIR)/usr/include/dahdi/user.h
+	install -D -m 644 include/dahdi/kernel.h $(DESTDIR)/usr/include/dahdi/kernel.h
+	install -D -m 644 include/dahdi/user.h $(DESTDIR)/usr/include/dahdi/user.h
 
 devices:
 ifneq (yes,$(DYNFS))
@@ -212,7 +212,7 @@ uninstall-hotplug:
 uninstall-modules:
 	@./build_tools/uninstall-modules $(DESTDIR)/lib/modules/$(KVERS) $(ALL_MODULES)
 
-install-modules: uninstall-modules
+install-modules: # uninstall-modules
 	$(KMAKE_INST)
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 

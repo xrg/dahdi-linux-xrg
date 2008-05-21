@@ -35,7 +35,7 @@
  */
 
 
-#include "zconfig.h"
+#include "dahdi_config.h"
 #include "../version.h"
 
 #include <linux/kernel.h>
@@ -2570,7 +2570,7 @@ static int zt_open(struct inode *inode, struct file *file)
 		return zt_ctl_open(inode, file);
 	if (unit == 250) {
 		if (!zt_transcode_fops)
-			request_module("zttranscode");
+			request_module("dahdi_transcode");
 		if (zt_transcode_fops && zt_transcode_fops->open) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
 			if (zt_transcode_fops->owner) {
@@ -4054,7 +4054,7 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		if (zt_dynamic_ioctl)
 			return zt_dynamic_ioctl(cmd, data);
 		else {
-			request_module("ztdynamic");
+			request_module("dahdi_dynamic");
 			if (zt_dynamic_ioctl)
 				return zt_dynamic_ioctl(cmd, data);
 		}

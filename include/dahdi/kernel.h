@@ -29,7 +29,7 @@
 #define _LINUX_ZAPTEL_H
 
 #ifdef __KERNEL__
-#include "zconfig.h"
+#include "dahdi_config.h"
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
 #include <linux/config.h>
