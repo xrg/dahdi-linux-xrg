@@ -48,10 +48,7 @@ endif
 
 # Set HOTPLUG_FIRMWARE=no to override automatic building with hotplug support
 # if it is enabled in the kernel.
-ifneq (,$(wildcard $(DESTDIR)/etc/udev/rules.d))
-  DYNFS=yes
-  UDEVRULES=yes
-endif
+
 ifeq (yes,$(HAS_KSRC))
   HOTPLUG_FIRMWARE:=$(shell if grep -q '^CONFIG_FW_LOADER=[ym]' $(KCONFIG); then echo "yes"; else echo "no"; fi)
 endif
@@ -61,24 +58,28 @@ MODULE_ALIASES=wcfxs wctdm8xxp wct2xxp
 KMAKE = $(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 KMAKE_INST = $(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 
+ifneq (,$(wildcard $(DESTDIR)/etc/udev/rules.d))
+  DYNFS=yes
+endif
+
 ROOT_PREFIX=
 
 CHKCONFIG	:= $(wildcard /sbin/chkconfig)
 UPDATE_RCD	:= $(wildcard /usr/sbin/update-rc.d)
 ifeq (,$(DESTDIR))
   ifneq (,$(CHKCONFIG))
-    ADD_INITD	:= $(CHKCONFIG) --add zaptel
+    ADD_INITD	:= $(CHKCONFIG) --add dahdi
   else
     ifndef (,$(UPDATE_RCD))
-      ADD_INITD	:= $(UPDATE_RCD) zaptel defaults 15 30
+      ADD_INITD	:= $(UPDATE_RCD) dahdi defaults 15 30
     endif
   endif
 endif
 
 INITRD_DIR	:= $(firstword $(wildcard /etc/rc.d/init.d /etc/init.d))
 ifneq (,$(INITRD_DIR))
-  INIT_TARGET	:= $(DESTDIR)$(INITRD_DIR)/zaptel
-  COPY_INITD	:= install -D zaptel.init $(INIT_TARGET)
+  INIT_TARGET	:= $(DESTDIR)$(INITRD_DIR)/dahdi
+  COPY_INITD	:= install -D dahdi.init $(INIT_TARGET)
 endif
 RCCONF_DIR	:= $(firstword $(wildcard /etc/sysconfig /etc/default))
 
@@ -128,7 +129,7 @@ install: all devices install-modules install-firmware install-include
 	@echo "###################################################"
 
 install-modconf:
-	build_tools/genmodconf $(BUILDVER) "$(ROOT_PREFIX)" "$(filter-out zaptel ztdummy xpp zttranscode ztdynamic,$(BUILD_MODULES)) $(MODULE_ALIASES)"
+	build_tools/genmodconf $(BUILDVER) "$(ROOT_PREFIX)" "$(filter-out dahdi dahdi_dummy xpp dahdi_transcode dahdi_dynamic,$(BUILD_MODULES)) $(MODULE_ALIASES)"
 	@if [ -d /etc/modutils ]; then \
 		/sbin/update-modules ; \
 	fi
@@ -166,12 +167,8 @@ ifneq (yes,$(DYNFS))
 		N=$$[$$N+1]; \
 	done
 else # DYNFS
-  ifneq (yes,$(UDEVRULES)) #!UDEVRULES
-	@echo "**** Dynamic filesystem detected -- not creating device nodes"
-  else # UDEVRULES
 	install -d $(DESTDIR)/etc/udev/rules.d
-	build_tools/genudevrules > $(DESTDIR)/etc/udev/rules.d/zaptel.rules
-  endif
+	build_tools/genudevrules > $(DESTDIR)/etc/udev/rules.d/dahdi.rules
 endif
 
 install-udev: devices
@@ -191,8 +188,8 @@ ifneq (,$(COPY_INITD))
 	$(COPY_INITD)
 endif
 ifneq (,$(RCCONF_DIR))
-  ifeq (,$(wildcard $(DESTDIR)$(RCCONF_DIR)/zaptel))
-	$(INSTALL) -D -m 644 zaptel.sysconfig $(DESTDIR)$(RCCONF_DIR)/zaptel
+  ifeq (,$(wildcard $(DESTDIR)$(RCCONF_DIR)/dahdi))
+	$(INSTALL) -D -m 644 dahdi.sysconfig $(DESTDIR)$(RCCONF_DIR)/dahdi
   endif
 endif
 ifneq (,$(COPY_NETSCR))
@@ -208,7 +205,7 @@ endif
 	@echo "optimal value for the variable MODULES."
 	@echo ""
 	@echo "I think that the DAHDI hardware you have on your system is:"
-	@kernel/xpp/utils/zaptel_hardware || true
+	@kernel/xpp/utils/dahdi_hardware || true
 
 update:
 	@if [ -d .svn ]; then \

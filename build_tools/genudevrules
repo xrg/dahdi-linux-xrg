@@ -21,15 +21,15 @@ else
 fi
 
 cat <<EOF
-# udev rules to generate the /dev/zap device files (if not yet provided 
+# udev rules to generate the /dev/dahdi device files (if not yet provided 
 # by your distribution):
-KERNEL${match}"zapctl", NAME="zap/ctl"
-KERNEL${match}"zaptranscode", NAME="zap/transcode"
-KERNEL${match}"zaptimer", NAME="zap/timer"
-KERNEL${match}"zapchannel", NAME="zap/channel"
-KERNEL${match}"zappseudo", NAME="zap/pseudo"
-KERNEL${match}"zap[0-9]*", NAME="zap/%n"
+KERNEL${match}"dahdictl", NAME="dahdi/ctl"
+KERNEL${match}"dahditranscode", NAME="dahdi/transcode"
+KERNEL${match}"dahditimer", NAME="dahdi/timer"
+KERNEL${match}"dahdichannel", NAME="dahdi/channel"
+KERNEL${match}"dahdipseudo", NAME="dahdi/pseudo"
+KERNEL${match}"dahdi[0-9]*", NAME="dahdi/%n"
 
-# zaptel devices with ownership/permissions for running as non-root
-SUBSYSTEM${match}"zaptel",  OWNER="asterisk", GROUP="asterisk", MODE="0660"
+# DAHDI devices with ownership/permissions for running as non-root
+SUBSYSTEM${match}"dahdi",  OWNER="asterisk", GROUP="asterisk", MODE="0660"
 EOF

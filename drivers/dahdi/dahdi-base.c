@@ -1330,7 +1330,7 @@ static int dahdi_net_open(hdlc_device *hdlc)
 	netif_start_queue(ztchan_to_dev(ms));
 
 #ifdef CONFIG_DAHDI_DEBUG
-	printk("ZAPNET: Opened channel %d name %s\n", ms->channo, ms->name);
+	printk("DAHDINET: Opened channel %d name %s\n", ms->channo, ms->name);
 #endif
 	return 0;
 }
@@ -2263,7 +2263,7 @@ static int dahdi_timer_release(struct inode *inode, struct file *file)
 		}
 		spin_unlock_irqrestore(&zaptimerlock, flags);
 		if (!cur) {
-			printk("Zap Timer: Not on list??\n");
+			printk("DAHDI Timer: Not on list??\n");
 			return 0;
 		}
 		kfree(t);
@@ -2336,7 +2336,7 @@ static struct dahdi_chan *dahdi_alloc_pseudo(void)
 {
 	struct dahdi_chan *pseudo;
 	unsigned long flags;
-	/* Don't allow /dev/zap/pseudo to open if there are no spans */
+	/* Don't allow /dev/dahdi/pseudo to open if there are no spans */
 	if (maxspans < 1)
 		return NULL;
 	pseudo = kmalloc(sizeof(struct dahdi_chan), GFP_KERNEL);
@@ -4983,7 +4983,7 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 	for (x = 0; x < span->channels; x++) {
 		char chan_name[50];
 		if (span->chans[x].channo < 250) {
-			sprintf(chan_name, "zap%d", span->chans[x].channo);
+			sprintf(chan_name, "dahdi%d", span->chans[x].channo);
 			CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo), NULL, chan_name);
 		}
 	}
@@ -7417,7 +7417,7 @@ int dahdi_register_chardev(struct dahdi_chardev *dev)
 #ifdef CONFIG_DAHDI_UDEV
 	char udevname[strlen(dev->name) + 3];
 
-	strcpy(udevname, "zap");
+	strcpy(udevname, "dahdi");
 	strcat(udevname, dev->name);
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, dev->minor), NULL, udevname);
 #endif /* CONFIG_DAHDI_UDEV */
@@ -7443,10 +7443,10 @@ static int __init dahdi_init(void) {
 
 #ifdef CONFIG_DAHDI_UDEV /* udev support functions */
 	dahdi_class = class_create(THIS_MODULE, "dahdi");
-	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 253), NULL, "zaptimer");
-	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 254), NULL, "zapchannel");
-	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 255), NULL, "zappseudo");
-	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 0), NULL, "zapctl");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 253), NULL, "dahditimer");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 254), NULL, "dahdichannel");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 255), NULL, "dahdipseudo");
+	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 0), NULL, "dahdictl");
 #endif /* CONFIG_DAHDI_UDEV */
 
 	if ((res = register_chrdev(DAHDI_MAJOR, "dahdi", &dahdi_fops))) {
