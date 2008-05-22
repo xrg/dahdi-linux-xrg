@@ -3086,10 +3086,8 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 
 	switch(cmd) {
 		/* get channel parameters */
-	case DAHDI_GET_PARAMS_V1:
 	case DAHDI_GET_PARAMS:
-		size_to_copy = (cmd == DAHDI_GET_PARAMS_V1) ? sizeof(struct dahdi_params_v1) :
-			       sizeof(struct dahdi_params);
+		size_to_copy = sizeof(struct dahdi_params);
 		if (copy_from_user(&stack.param, (struct dahdi_params *) data, size_to_copy))
 			return -EFAULT;
 
@@ -3173,13 +3171,8 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 
 		break;
 		/* set channel parameters */
-	case DAHDI_SET_PARAMS_V1:
 	case DAHDI_SET_PARAMS:
-		/* The difference between dahdi_params and dahdi_params_v1 is just the 
-		 * last field, which is read-only anyway. Thus we just read the
-		 * size of the older struct.
-		 */
-		if (copy_from_user(&stack.param, (struct dahdi_params *) data, sizeof(struct dahdi_params_v1)))
+		if (copy_from_user(&stack.param, (struct dahdi_params *) data, sizeof(struct dahdi_params)))
 			return -EFAULT;
 
 		stack.param.chan_alarms = 0; /* be explicit about the above */
@@ -3273,12 +3266,8 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		if (copy_to_user((struct dahdi_gains *) data,&stack.gain,sizeof(stack.gain)))
 			return -EFAULT;
 		break;
-	case DAHDI_SPANSTAT_V1:
-	case DAHDI_SPANSTAT_V2:
 	case DAHDI_SPANSTAT:
-		size_to_copy = (cmd == DAHDI_SPANSTAT_V1) ? sizeof(struct dahdi_spaninfo_v1) :
-			       (cmd == DAHDI_SPANSTAT_V2) ? sizeof(struct dahdi_spaninfo_v2) :
-			       sizeof(struct dahdi_spaninfo);
+		size_to_copy = sizeof(struct dahdi_spaninfo);
 		if (copy_from_user(&stack.spaninfo, (struct dahdi_spaninfo *) data, size_to_copy))
 			return -EFAULT;
 		i = stack.spaninfo.spanno; /* get specified span number */
@@ -3311,10 +3300,8 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 			if (spans[i]->chans[j].sig)
 				stack.spaninfo.numchans++;
 		}
-		/* version 2 fields */
 		stack.spaninfo.lbo = spans[i]->lbo;
 		stack.spaninfo.lineconfig = spans[i]->lineconfig;
-		/* version 3 fields */
 		stack.spaninfo.irq = spans[i]->irq;
 		stack.spaninfo.linecompat = spans[i]->linecompat;
 		dahdi_copy_string(stack.spaninfo.lboname, dahdi_lboname(spans[i]->lbo), sizeof(stack.spaninfo.lboname));

@@ -168,34 +168,6 @@
 #define DAHDI_SPANINFO_HAS_LINECONFIG
 #define DAHDI_SPANINFO_HAS_LBONAME
 
-struct dahdi_params_v1
-{
-	int channo;		/* Channel number */
-	int spanno;		/* Span itself */
-	int chanpos;		/* Channel number in span */
-	int sigtype;		/* read-only */
-	int sigcap;		/* read-only */
-	int rxisoffhook;	/* read-only */
-	int rxbits;		/* read-only */
-	int txbits;		/* read-only */
-	int txhooksig;		/* read-only */
-	int rxhooksig;		/* read-only */
-	int curlaw;		/* read-only  -- one of DAHDI_LAW_MULAW or DAHDI_LAW_ALAW */
-	int idlebits;		/* read-only  -- What is considered the idle state */
-	char name[40];		/* Name of channel */
-	int prewinktime;
-	int preflashtime;
-	int winktime;
-	int flashtime;
-	int starttime;
-	int rxwinktime;
-	int rxflashtime;
-	int debouncetime;
-	int pulsebreaktime;
-	int pulsemaketime;
-	int pulseaftertime;
-};
-
 typedef struct dahdi_params
 {
 	int channo;		/* Channel number */
@@ -224,44 +196,6 @@ typedef struct dahdi_params
 	int pulseaftertime;
 	__u32 chan_alarms;	/* alarms on this channel */
 } DAHDI_PARAMS;
-
-struct dahdi_spaninfo_v1 {
-	int	spanno;		/* span number */
-	char	name[20];	/* Name */
-	char	desc[40];	/* Description */
-	int	alarms;		/* alarms status */
-	int	txlevel;	/* what TX level is set to */
-	int	rxlevel;	/* current RX level */
-	int	bpvcount;	/* current BPV count */
-	int	crc4count;	/* current CRC4 error count */
-	int	ebitcount;	/* current E-bit error count */
-	int	fascount;	/* current FAS error count */
-	int	irqmisses;	/* current IRQ misses */
-	int	syncsrc;	/* span # of current sync source, or 0 for free run  */
-	int	numchans;	/* number of configured channels on this span */
-	int	totalchans;	/* total number of channels on the span */
-	int	totaflspans;	/* total number of spans in entire system */
-};
-
-struct dahdi_spaninfo_v2 {
-	int	spanno;		/* span number */
-	char	name[20];	/* Name */
-	char	desc[40];	/* Description */
-	int	alarms;		/* alarms status */
-	int	txlevel;	/* what TX level is set to */
-	int	rxlevel;	/* current RX level */
-	int	bpvcount;	/* current BPV count */
-	int	crc4count;	/* current CRC4 error count */
-	int	ebitcount;	/* current E-bit error count */
-	int	fascount;	/* current FAS error count */
-	int	irqmisses;	/* current IRQ misses */
-	int	syncsrc;	/* span # of current sync source, or 0 for free run  */
-	int	numchans;	/* number of configured channels on this span */
-	int	totalchans;	/* total number of channels on the span */
-	int	totalspans;	/* total number of spans in entire system */
-	int	lbo;        	/* line build out */
-	int	lineconfig;	 /* framing/coding */
-};
 
 typedef struct dahdi_spaninfo {
 	int	spanno;		/* span number */
@@ -430,13 +364,11 @@ struct dahdi_hwgain{
 /*
  * Get channel parameters
  */
-#define DAHDI_GET_PARAMS_V1	_IOR (DAHDI_CODE, 5, struct dahdi_params_v1)
 #define DAHDI_GET_PARAMS		_IOR (DAHDI_CODE, 5, struct dahdi_params)
 
 /*
  * Get channel parameters
  */
-#define DAHDI_SET_PARAMS_V1	_IOW (DAHDI_CODE, 6, struct dahdi_params_v1)
 #define DAHDI_SET_PARAMS		_IOW (DAHDI_CODE, 6, struct dahdi_params)
 
 /*
@@ -457,8 +389,6 @@ struct dahdi_hwgain{
 /*
  * Get Span Status
  */
-#define DAHDI_SPANSTAT_V1		_IOWR (DAHDI_CODE, 10, struct dahdi_spaninfo_v1)
-#define DAHDI_SPANSTAT_V2		_IOWR (DAHDI_CODE, 10, struct dahdi_spaninfo_v2)
 #define DAHDI_SPANSTAT		_IOWR (DAHDI_CODE, 10, struct dahdi_spaninfo)
 
 /*
