@@ -1,5 +1,5 @@
 /*
- * Zapata Telephony Interface Driver
+ * DAHDI Telephony Interface Driver
  *
  * Written by Mark Spencer <markster@digium.com>
  * Based on previous works, designs, and architectures conceived and
@@ -7,7 +7,7 @@
  * 
  * Special thanks to Steve Underwood <steve@coppice.org>
  * for substantial contributions to signal processing functions 
- * in zaptel and the zapata library.
+ * in DAHDI and the Zapata library.
  *
  * Yury Bokhoncovich <byg@cf1.ru>
  * Adaptation for 2.4.20+ kernels (HDLC API was changed)
@@ -154,7 +154,7 @@ static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS];
 
 /* Here are a couple important little additions for devfs */
 #ifdef CONFIG_DEVFS_FS
-static devfs_handle_t zaptel_devfs_dir;
+static devfs_handle_t dahdi_devfs_dir;
 static devfs_handle_t channel;
 static devfs_handle_t pseudo;
 static devfs_handle_t ctl;
@@ -419,7 +419,7 @@ static struct dahdi_zone *tone_zones[DAHDI_TONE_ZONE_MAX];
 
 /* Echo cancellation */
 #if defined(ECHO_CAN_HPEC)
-#include "hpec/hpec_zaptel.h"
+#include "hpec/hpec_dahdi.h"
 #elif defined(ECHO_CAN_STEVE)
 #include "sec.h"
 #elif defined(ECHO_CAN_STEVE2)
@@ -547,7 +547,7 @@ static inline int fill_alarm_string(char *buf, int count, int alarms)
 	return len;
 }
 
-static int zaptel_proc_read(char *page, char **start, off_t off, int count, int *eof, void *data)
+static int dahdi_proc_read(char *page, char **start, off_t off, int count, int *eof, void *data)
 {
 	int x, len = 0;
 	long span;
@@ -1182,8 +1182,8 @@ static int start_tone(struct dahdi_chan *chan, int tone)
 		static int __warnonce = 1;
 		if (__warnonce) {
 			__warnonce = 0;
-			/* The tonezones are loaded by ztcfg based on /etc/zaptel.conf. */
-			printk(KERN_WARNING "zaptel: Cannot start tones until tone zone is loaded.\n");
+			/* The tonezones are loaded by ztcfg based on /etc/dahdi.conf. */
+			printk(KERN_WARNING "DAHDI: Cannot start tones until tone zone is loaded.\n");
 		}
 		/* Note that no tone zone exists at the moment */
 		res = -ENODATA;
@@ -1346,20 +1346,20 @@ static devfs_handle_t register_devfs_channel(struct dahdi_chan *chan, devfs_hand
 	sprintf(path, "%d", chan->chanpos);
 	chan_dev = devfs_register(dir, path, flags, DAHDI_MAJOR, chan->channo, mode, &dahdi_fops, NULL);
 	if (!chan_dev) {
-		printk("zaptel: Something really bad happened.  Unable to register devfs entry\n");
+		printk("DAHDI: Something really bad happened.  Unable to register devfs entry\n");
 		return NULL;
 	}
 
 	/* Set up the path of the destination of the link */
 	link_offset = devfs_generate_path(chan_dev, link, sizeof(link) - 1);
 	/* Now we need to strip off the leading "zap/".  If we don't, then we build a broken symlink */
-	path_offset = devfs_generate_path(zaptel_devfs_dir, path, sizeof(path) - 1); /* We'll just "borrow" path for a second */
+	path_offset = devfs_generate_path(dahdi_devfs_dir, path, sizeof(path) - 1); /* We'll just "borrow" path for a second */
 	path_offset = strlen(path+path_offset);
 	link_offset += path_offset; /* Taking out the "zap" */
 	link_offset++; /* Add one more place for the '/'.  The path generated does not contain the '/' we need to strip */
 	
 	/* Set up the path of the file/link itself */
-	tmp_offset = devfs_generate_path(zaptel_devfs_dir, tmp, sizeof(tmp) - 1);
+	tmp_offset = devfs_generate_path(dahdi_devfs_dir, tmp, sizeof(tmp) - 1);
 	sprintf(buf, "/%d", chan->channo);
 	dahdi_copy_string(path, tmp+tmp_offset, sizeof(path));
 	strncat(path, buf, sizeof(path) - 1);
@@ -2912,8 +2912,8 @@ struct dahdi_tone *dahdi_mf_tone(const struct dahdi_chan *chan, char digit, int 
 		static int __warnonce = 1;
 		if (__warnonce) {
 			__warnonce = 0;
-			/* The tonezones are loaded by ztcfg based on /etc/zaptel.conf. */
-			printk(KERN_WARNING "zaptel: Cannot get dtmf tone until tone zone is loaded.\n");
+			/* The tonezones are loaded by ztcfg based on /etc/dahdi.conf. */
+			printk(KERN_WARNING "DAHDI: Cannot get dtmf tone until tone zone is loaded.\n");
 		}
 		return NULL;
 	}
@@ -4043,7 +4043,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			spin_lock_irqsave(&spans[maint.spanno]->lock, flags);
 			break;
 		default:
-			printk("zaptel: Unknown maintenance event: %d\n", maint.command);
+			printk("DAHDI: Unknown maintenance event: %d\n", maint.command);
 		}
 		dahdi_alarm_notify(spans[maint.spanno]);  /* process alarm-related events */
 		spin_unlock_irqrestore(&spans[maint.spanno]->lock, flags);
@@ -4092,8 +4092,8 @@ static int ioctl_dahdi_dial(struct dahdi_chan *chan, unsigned long data)
 	spin_lock_irqsave(&chan->lock, flags);
 	if (!chan->curzone) {
 		spin_unlock_irqrestore(&chan->lock, flags);
-		/* The tone zones are loaded by ztcfg from /etc/zaptel.conf */
-		printk(KERN_WARNING "zaptel: Cannot dial until a tone zone is loaded.\n");
+		/* The tone zones are loaded by ztcfg from /etc/dahdi.conf */
+		printk(KERN_WARNING "DAHDI: Cannot dial until a tone zone is loaded.\n");
 		return -ENODATA;
 	}
 	switch (tdo->op) {
@@ -5006,7 +5006,7 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 				spin_lock_irqsave(&chan->lock, flags);
 				if (!chan->curzone) {
 					spin_unlock_irqrestore(&chan->lock, flags);
-					printk(KERN_WARNING "zaptel: Cannot start tone until a tone zone is loaded.\n");
+					printk(KERN_WARNING "DAHDI: Cannot start tone until a tone zone is loaded.\n");
 					return -ENODATA;
 				}
 				if (chan->txstate != DAHDI_TXSTATE_ONHOOK) {
@@ -5185,19 +5185,19 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 		if (maxspans < x + 1)
 			maxspans = x + 1;
 	} else {
-		printk(KERN_ERR "Too many zapata spans registered\n");
+		printk(KERN_ERR "Too many DAHDI spans registered\n");
 		return -EBUSY;
 	}
 	span->flags |= DAHDI_FLAG_REGISTERED;
 	span->spanno = x;
 	spin_lock_init(&span->lock);
 	if (!span->deflaw) {
-		printk("zaptel: Span %s didn't specify default law.  Assuming mulaw, please fix driver!\n", span->name);
+		printk("DAHDI: Span %s didn't specify default law.  Assuming mulaw, please fix driver!\n", span->name);
 		span->deflaw = DAHDI_LAW_MULAW;
 	}
 
 	if (span->echocan && span->echocan_with_params) {
-		printk("zaptel: Span %s implements both echocan and echocan_with_params functions, preserving only echocan_with_params, please fix driver!\n", span->name);
+		printk("DAHDI: Span %s implements both echocan and echocan_with_params functions, preserving only echocan_with_params, please fix driver!\n", span->name);
 		span->echocan = NULL;
 	}
 
@@ -5207,15 +5207,15 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 	}
 
 #ifdef CONFIG_PROC_FS
-			sprintf(tempfile, "zaptel/%d", span->spanno);
-			proc_entries[span->spanno] = create_proc_read_entry(tempfile, 0444, NULL , zaptel_proc_read, (int *)(long)span->spanno);
+			sprintf(tempfile, "dahdi/%d", span->spanno);
+			proc_entries[span->spanno] = create_proc_read_entry(tempfile, 0444, NULL , dahdi_proc_read, (int *)(long)span->spanno);
 #endif
 
 #ifdef CONFIG_DEVFS_FS
 	{
 		char span_name[50];
 		sprintf(span_name, "span%d", span->spanno);
-		span->dhandle = devfs_mk_dir(zaptel_devfs_dir, span_name, NULL);
+		span->dhandle = devfs_mk_dir(dahdi_devfs_dir, span_name, NULL);
 		for (x = 0; x < span->channels; x++) {
 			struct dahdi_chan *chan = &span->chans[x];
 			chan->fhandle = register_devfs_channel(chan, chan->span->dhandle); /* Register our stuff with devfs */
@@ -5269,7 +5269,7 @@ int dahdi_unregister(struct dahdi_span *span)
 	if (debug)
 		printk("Unregistering Span '%s' with %d channels\n", span->name, span->channels);
 #ifdef CONFIG_PROC_FS
-	sprintf(tempfile, "zaptel/%d", span->spanno);
+	sprintf(tempfile, "dahdi/%d", span->spanno);
         remove_proc_entry(tempfile, NULL);
 #endif /* CONFIG_PROC_FS */
 #ifdef CONFIG_DEVFS_FS
@@ -5485,7 +5485,7 @@ static inline void __dahdi_process_getaudio_chunk(struct dahdi_chan *ss, unsigne
 		for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 			/* Check for echo cancel disabling tone */
 			if (echo_can_disable_detector_update(&ms->txecdis, getlin[x])) {
-				printk("zaptel Disabled echo canceller because of tone (tx) on channel %d\n", ss->channo);
+				printk("DAHDI Disabled echo canceller because of tone (tx) on channel %d\n", ss->channo);
 				ms->echocancel = 0;
 				ms->echostate = ECHO_STATE_IDLE;
 				ms->echolastupdate = 0;
@@ -6439,7 +6439,7 @@ static inline void __dahdi_process_putaudio_chunk(struct dahdi_chan *ss, unsigne
 	if (ms->ec) {
 		for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 			if (echo_can_disable_detector_update(&ms->rxecdis, putlin[x])) {
-				printk("zaptel Disabled echo canceller because of tone (rx) on channel %d\n", ss->channo);
+				printk("DAHDI Disabled echo canceller because of tone (rx) on channel %d\n", ss->channo);
 				ms->echocancel = 0;
 				ms->echostate = ECHO_STATE_IDLE;
 				ms->echolastupdate = 0;
@@ -7589,7 +7589,7 @@ int dahdi_receive(struct dahdi_span *span)
 }
 
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-MODULE_DESCRIPTION("Zapata Telephony Interface");
+MODULE_DESCRIPTION("DAHDI Telephony Interface");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");
 #endif
@@ -7695,7 +7695,7 @@ int dahdi_register_chardev(struct dahdi_chardev *dev)
 #endif /* CONFIG_DAHDI_UDEV */
 	
 #ifdef CONFIG_DEVFS_FS
-	dev->devfs_handle = devfs_register(zaptel_devfs_dir, dev->name, DEVFS_FL_DEFAULT, DAHDI_MAJOR, dev->minor, mode, &dahdi_fops, NULL);
+	dev->devfs_handle = devfs_register(dahdi_devfs_dir, dev->name, DEVFS_FL_DEFAULT, DAHDI_MAJOR, dev->minor, mode, &dahdi_fops, NULL);
 #endif /* CONFIG_DEVFS_FS */
 
 	return 0;
@@ -7718,11 +7718,11 @@ static int __init dahdi_init(void) {
 	int res = 0;
 
 #ifdef CONFIG_PROC_FS
-	proc_entries[0] = proc_mkdir("zaptel", NULL);
+	proc_entries[0] = proc_mkdir("dahdi", NULL);
 #endif
 
 #ifdef CONFIG_DAHDI_UDEV /* udev support functions */
-	dahdi_class = class_create(THIS_MODULE, "zaptel");
+	dahdi_class = class_create(THIS_MODULE, "dahdi");
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 253), NULL, "zaptimer");
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 254), NULL, "zapchannel");
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 255), NULL, "zappseudo");
@@ -7733,22 +7733,22 @@ static int __init dahdi_init(void) {
 	{
 		umode_t mode = S_IFCHR|S_IRUGO|S_IWUGO;
 
-		devfs_register_chrdev(DAHDI_MAJOR, "zaptel", &dahdi_fops);
-		if (!(zaptel_devfs_dir = devfs_mk_dir(NULL, "zap", NULL)))
+		devfs_register_chrdev(DAHDI_MAJOR, "dahdi", &dahdi_fops);
+		if (!(dahdi_devfs_dir = devfs_mk_dir(NULL, "zap", NULL)))
 			return -EBUSY; /* This would be bad */
-		timer = devfs_register(zaptel_devfs_dir, "timer", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 253, mode, &dahdi_fops, NULL);
-		channel = devfs_register(zaptel_devfs_dir, "channel", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 254, mode, &dahdi_fops, NULL);
-		pseudo = devfs_register(zaptel_devfs_dir, "pseudo", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 255, mode, &dahdi_fops, NULL);
-		ctl = devfs_register(zaptel_devfs_dir, "ctl", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 0, mode, &dahdi_fops, NULL);
+		timer = devfs_register(dahdi_devfs_dir, "timer", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 253, mode, &dahdi_fops, NULL);
+		channel = devfs_register(dahdi_devfs_dir, "channel", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 254, mode, &dahdi_fops, NULL);
+		pseudo = devfs_register(dahdi_devfs_dir, "pseudo", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 255, mode, &dahdi_fops, NULL);
+		ctl = devfs_register(dahdi_devfs_dir, "ctl", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 0, mode, &dahdi_fops, NULL);
 	}
 #else
-	if ((res = register_chrdev(DAHDI_MAJOR, "zaptel", &dahdi_fops))) {
+	if ((res = register_chrdev(DAHDI_MAJOR, "dahdi", &dahdi_fops))) {
 		printk(KERN_ERR "Unable to register DAHDI character device handler on %d\n", DAHDI_MAJOR);
 		return res;
 	}
 #endif /* CONFIG_DEVFS_FS */
 
-	printk(KERN_INFO "Zapata Telephony Interface Registered on major %d\n", DAHDI_MAJOR);
+	printk(KERN_INFO "DAHDI Telephony Interface Registered on major %d\n", DAHDI_MAJOR);
 	printk(KERN_INFO "DAHDI Version: %s\n", DAHDI_VERSION);
 	echo_can_init();
 	dahdi_conv_init();
@@ -7765,10 +7765,10 @@ static void __exit dahdi_cleanup(void) {
 	int x;
 
 #ifdef CONFIG_PROC_FS
-	remove_proc_entry("zaptel", NULL);
+	remove_proc_entry("dahdi", NULL);
 #endif
 
-	printk(KERN_INFO "Zapata Telephony Interface Unloaded\n");
+	printk(KERN_INFO "DAHDI Telephony Interface Unloaded\n");
 	for (x = 0; x < DAHDI_TONE_ZONE_MAX; x++) {
 		if (tone_zones[x])
 			kfree(tone_zones[x]);
@@ -7779,8 +7779,8 @@ static void __exit dahdi_cleanup(void) {
 	devfs_unregister(channel);
 	devfs_unregister(pseudo);
 	devfs_unregister(ctl);
-	devfs_unregister(zaptel_devfs_dir);
-	devfs_unregister_chrdev(DAHDI_MAJOR, "zaptel");
+	devfs_unregister(dahdi_devfs_dir);
+	devfs_unregister_chrdev(DAHDI_MAJOR, "dahdi");
 #else
 #ifdef CONFIG_DAHDI_UDEV
 	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
@@ -7789,7 +7789,7 @@ static void __exit dahdi_cleanup(void) {
 	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
 	class_destroy(dahdi_class);
 #endif /* CONFIG_DAHDI_UDEV */
-	unregister_chrdev(DAHDI_MAJOR, "zaptel");
+	unregister_chrdev(DAHDI_MAJOR, "dahdi");
 #endif
 #ifdef CONFIG_DAHDI_WATCHDOG
 	watchdog_cleanup();

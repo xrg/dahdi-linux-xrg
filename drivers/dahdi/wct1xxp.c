@@ -1,5 +1,5 @@
 /*
- * Linux Support Services, Inc.  Wildcard T100P T1/PRI card Driver
+ * Digium, Inc.  Wildcard T100P T1/PRI card Driver
  *
  * Written by Mark Spencer <markster@digium.com>
  *            Matthew Fredrickson <creslin@digium.com>
@@ -798,7 +798,7 @@ static int t1xxp_software_init(struct t1xxp *wc)
 		wc->chans[x].chanpos = x + 1;
 	}
 	if (dahdi_register(&wc->span, 0)) {
-		printk("Unable to register span with zaptel\n");
+		printk("Unable to register span with DAHDI\n");
 		return -1;
 	}
 	return 0;

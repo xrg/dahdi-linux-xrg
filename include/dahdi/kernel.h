@@ -1,12 +1,12 @@
 /*
- * Zapata Telephony Interface
+ * DAHDI Telephony Interface
  *
  * Written by Mark Spencer <markster@linux-suppot.net>
  * Based on previous works, designs, and architectures conceived and
  * written by Jim Dixon <jim@lambdatel.com>.
  *
  * Copyright (C) 2001 Jim Dixon / Zapata Telephony.
- * Copyright (C) 2001 - 2006 Digium, Inc.
+ * Copyright (C) 2001 - 2008 Digium, Inc.
  *
  * All rights reserved.
  *
@@ -85,7 +85,7 @@
 #include <linux/devfs_fs_kernel.h>
 #else
 #undef CONFIG_DEVFS_FS
-//#warning "DAHDI doesn't support DEVFS in post 2.4 kernels.  Disabling DEVFS in zaptel"
+//#warning "DAHDI doesn't support DEVFS in post 2.4 kernels.  Disabling DEVFS in DAHDI"
 #endif
 #endif /* CONFIG_DEVFS_FS */
 #endif /* __KERNEL__ */
@@ -382,7 +382,7 @@ typedef struct dahdi_dynamic_span {
 	char addr[40];		/* Destination address */
 	int numchans;		/* Number of channels */
 	int timing;		/* Timing source preference */
-	int spanno;		/* Span number (filled in by zaptel) */
+	int spanno;		/* Span number (filled in by DAHDI) */
 } DAHDI_DYNAMIC_SPAN;
 
 /* Define the max # of outgoing DTMF, MFR1 or MFR2 digits to queue in-kernel */
@@ -1314,7 +1314,7 @@ struct dahdi_chan {
 #endif
 	spinlock_t lock;
 	char name[40];		/* Name */
-	/* Specified by zaptel */
+	/* Specified by DAHDI */
 	int channo;			/* DAHDI Channel number */
 	int chanpos;
 	unsigned long flags;
@@ -1347,7 +1347,7 @@ struct dahdi_chan {
 	/* Whether or not we have allocated gains or are using the default */
 	int gainalloc;
 
-	/* Specified by driver, readable by zaptel */
+	/* Specified by driver, readable by DAHDI */
 	void *pvt;			/* Private channel data */
 	struct file *file;	/* File structure */
 	
@@ -1357,7 +1357,7 @@ struct dahdi_chan {
 	int		sigcap;			/* Capability for signalling */
 	__u32		chan_alarms;		/* alarms status */
 
-	/* Used only by zaptel -- NO DRIVER SERVICEABLE PARTS BELOW */
+	/* Used only by DAHDI -- NO DRIVER SERVICEABLE PARTS BELOW */
 	/* Buffer declarations */
 	u_char		*readbuf[DAHDI_MAX_NUM_BUFS];	/* read buffer */
 	int		inreadbuf;
@@ -1427,7 +1427,7 @@ struct dahdi_chan {
 	int		confmute; /* conference mute mode */
 
 	/* Incoming and outgoing conference chunk queues for
-	   communicating between zaptel master time and
+	   communicating between DAHDI master time and
 	   other boards */
 	struct confq confin;
 	struct confq confout;
@@ -1681,8 +1681,8 @@ struct dahdi_span {
 	/* Opt: Used to tell an onboard HDLC controller that there is data ready to transmit */
 	void (*hdlc_hard_xmit)(struct dahdi_chan *chan);
 
-	/* Used by zaptel only -- no user servicable parts inside */
-	int spanno;			/* Span number for zaptel */
+	/* Used by DAHDI only -- no user servicable parts inside */
+	int spanno;			/* Span number for DAHDI */
 	int offset;			/* Offset within a given card */
 	int lastalarms;		/* Previous alarms */
 
@@ -1768,7 +1768,7 @@ int dahdi_dynamic_register(struct dahdi_dynamic_driver *driver);
 /* Unregister a dynamic driver */
 void dahdi_dynamic_unregister(struct dahdi_dynamic_driver *driver);
 
-/* Receive on a span.  The zaptel interface will handle all the calculations for
+/* Receive on a span.  The DAHDI interface will handle all the calculations for
    all member channels of the span, pulling the data from the readchunk buffer */
 int dahdi_receive(struct dahdi_span *span);
 
@@ -1778,7 +1778,7 @@ int dahdi_transmit(struct dahdi_span *span);
 /* Abort the buffer currently being receive with event "event" */
 void dahdi_hdlc_abort(struct dahdi_chan *ss, int event);
 
-/* Indicate to zaptel that the end of frame was received and rotate buffers */
+/* Indicate to DAHDI that the end of frame was received and rotate buffers */
 void dahdi_hdlc_finish(struct dahdi_chan *ss);
 
 /* Put a chunk of data into the current receive buffer */
@@ -1860,10 +1860,10 @@ extern u_char __dahdi_lin2mu[16384];
 extern u_char __dahdi_lin2a[16384];
 #endif
 
-/* Used by dynamic zaptel -- don't use directly */
+/* Used by dynamic DAHDI -- don't use directly */
 void dahdi_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data));
 
-/* Used privately by zaptel.  Avoid touching directly */
+/* Used privately by DAHDI.  Avoid touching directly */
 struct dahdi_tone {
 	int fac1;
 	int init_v2_1;

@@ -1,5 +1,5 @@
 /*
- * Wildcard TDM2400P TDM FXS/FXO Interface Driver for Zapata Telephony interface
+ * Wildcard TDM2400P TDM FXS/FXO Interface Driver for DAHDI Telephony interface
  *
  * Written by Mark Spencer <markster@digium.com>
  * Support for TDM800P and VPM150M by Matthew Fredrickson <creslin@digium.com>

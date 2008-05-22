@@ -1,5 +1,5 @@
 /*
- * Zapata Telephony Interface to Digium High-Performance Echo Canceller
+ * DAHDI Telephony Interface to Digium High-Performance Echo Canceller
  *
  * Copyright (C) 2006 Digium, Inc.
  *

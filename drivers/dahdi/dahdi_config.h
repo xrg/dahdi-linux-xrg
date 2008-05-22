@@ -46,7 +46,7 @@
 /* #define CONFIG_CALC_XLAW */
 
 /*
- * Define if you want MMX optimizations in zaptel
+ * Define if you want MMX optimizations in DAHDI
  *
  * Note: CONFIG_DAHDI_MMX is generally incompatible with AMD 
  * processors and can cause system instability!
@@ -82,7 +82,7 @@
 #endif /* ifndef ECHO_CAN_FROMENV */
 /*
  * Define to turn off the echo canceler disable tone detector,
- * which will cause zaptel to ignore the 2100 Hz echo cancel disable
+ * which will cause dahdi to ignore the 2100 Hz echo cancel disable
  * tone.
  */
 /* #define NO_ECHOCAN_DISABLE */
@@ -185,7 +185,7 @@
 
 /*
  * Enable sync_tick() calls. Allows low-level drivers to synchronize
- * their internal clocks to the zaptel master clock.
+ * their internal clocks to the dahdi master clock.
  */
 #define DAHDI_SYNC_TICK
 

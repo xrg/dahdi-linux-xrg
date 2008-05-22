@@ -3124,13 +3124,13 @@ static void t4_vpm450_init(struct t4 *wc)
 	struct firmware embedded_firmware;
 	const struct firmware *firmware = &embedded_firmware;
 #if !defined(HOTPLUG_FIRMWARE)
-	extern void _binary_zaptel_fw_oct6114_064_bin_size;
-	extern void _binary_zaptel_fw_oct6114_128_bin_size;
-	extern u8 _binary_zaptel_fw_oct6114_064_bin_start[];
-	extern u8 _binary_zaptel_fw_oct6114_128_bin_start[];
+	extern void _binary_dahdi_fw_oct6114_064_bin_size;
+	extern void _binary_dahdi_fw_oct6114_128_bin_size;
+	extern u8 _binary_dahdi_fw_oct6114_064_bin_start[];
+	extern u8 _binary_dahdi_fw_oct6114_128_bin_start[];
 #else
-	static const char oct064_firmware[] = "zaptel-fw-oct6114-064.bin";
-	static const char oct128_firmware[] = "zaptel-fw-oct6114-128.bin";
+	static const char oct064_firmware[] = "dahdi-fw-oct6114-064.bin";
+	static const char oct128_firmware[] = "dahdi-fw-oct6114-128.bin";
 #endif
 
 	if (!vpmsupport) {
@@ -3166,14 +3166,14 @@ static void t4_vpm450_init(struct t4 *wc)
 			return;
 		}
 #else
-		embedded_firmware.data = _binary_zaptel_fw_oct6114_064_bin_start;
+		embedded_firmware.data = _binary_dahdi_fw_oct6114_064_bin_start;
 		/* Yes... this is weird. objcopy gives us a symbol containing
 		   the size of the firmware, not a pointer a variable containing
 		   the size. The only way we can get the value of the symbol
 		   is to take its address, so we define it as a pointer and
 		   then cast that value to the proper type.
 	      */
-		embedded_firmware.size = (size_t) &_binary_zaptel_fw_oct6114_064_bin_size;
+		embedded_firmware.size = (size_t) &_binary_dahdi_fw_oct6114_064_bin_size;
 #endif
 		break;
 	case 128:
@@ -3184,14 +3184,14 @@ static void t4_vpm450_init(struct t4 *wc)
 			return;
 		}
 #else
-		embedded_firmware.data = _binary_zaptel_fw_oct6114_128_bin_start;
+		embedded_firmware.data = _binary_dahdi_fw_oct6114_128_bin_start;
 		/* Yes... this is weird. objcopy gives us a symbol containing
 		   the size of the firmware, not a pointer a variable containing
 		   the size. The only way we can get the value of the symbol
 		   is to take its address, so we define it as a pointer and
 		   then cast that value to the proper type.
 		*/
-		embedded_firmware.size = (size_t) &_binary_zaptel_fw_oct6114_128_bin_size;
+		embedded_firmware.size = (size_t) &_binary_dahdi_fw_oct6114_128_bin_size;
 #endif
 		break;
 	default:

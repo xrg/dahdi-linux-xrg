@@ -1,5 +1,5 @@
 /*
- * PCI RADIO Card  Zapata Telephony PCI Quad Radio Interface driver
+ * PCI RADIO Card DAHDI Telephony PCI Quad Radio Interface driver
  *
  * Written by Jim Dixon <jim@lambdatel.com>
  * Based on previous work by Mark Spencer <markster@digium.com>
@@ -106,8 +106,8 @@ With driver:	303826  (1.5 %)
 #define RAD_CTCSS_ACQUIRE_TIME 10
 #define RAD_CTCSS_TALKOFF_TIME 1000
 
-#define DAHDI_RADPAR_CTCSSACQUIRETIME 18 /* DEBUG only, this belongs in zaptel.h */
-#define DAHDI_RADPAR_CTCSSTALKOFFTIME 19 /* DEBUG only, this belongs in zaptel.h */
+#define DAHDI_RADPAR_CTCSSACQUIRETIME 18 /* DEBUG only, this belongs in dahdi.h */
+#define DAHDI_RADPAR_CTCSSTALKOFFTIME 19 /* DEBUG only, this belongs in dahdi.h */
 
 /*
 * MX828 Commands
@@ -1494,7 +1494,7 @@ static int pciradio_initialize(struct pciradio *rad)
 {
 	int x;
 
-	/* Zapata stuff */
+	/* DAHDI stuff */
 	sprintf(rad->span.name, "PCIRADIO/%d", rad->pos);
 	sprintf(rad->span.desc, "Board %d", rad->pos + 1);
 	rad->span.deflaw = DAHDI_LAW_MULAW;
@@ -1519,7 +1519,7 @@ static int pciradio_initialize(struct pciradio *rad)
 
 	rad->span.pvt = rad;
 	if (dahdi_register(&rad->span, 0)) {
-		printk("Unable to register span with zaptel\n");
+		printk("Unable to register span with DAHDI\n");
 		return -1;
 	}
 	return 0;
@@ -1922,7 +1922,7 @@ module_param(debug, int, 0600);
 MODULE_PARM(debug, "i");
 #endif
 
-MODULE_DESCRIPTION("Zapata Telephony PCI Radio Card DAHDI Driver");
+MODULE_DESCRIPTION("DAHDI Telephony PCI Radio Card DAHDI Driver");
 MODULE_AUTHOR("Jim Dixon <jim@lambdatel.com>");
 
 #ifdef MODULE_LICENSE

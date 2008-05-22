@@ -697,10 +697,10 @@ void t1_vpm150m_init(struct t1 *wc) {
 	struct firmware embedded_firmware;
 	const struct firmware *firmware = &embedded_firmware;
 #if !defined(HOTPLUG_FIRMWARE)
-	extern void _binary_zaptel_fw_vpmadt032_bin_size;
-	extern u8 _binary_zaptel_fw_vpmadt032_bin_start[];
+	extern void _binary_dahdi_fw_vpmadt032_bin_size;
+	extern u8 _binary_dahdi_fw_vpmadt032_bin_start[];
 #else
-	static const char vpmadt032_firmware[] = "zaptel-fw-vpmadt032.bin";
+	static const char vpmadt032_firmware[] = "dahdi-fw-vpmadt032.bin";
 	struct pci_dev* pdev = voicebus_get_pci_dev(wc->vb);
 #endif
 
@@ -840,8 +840,8 @@ void t1_vpm150m_init(struct t1 *wc) {
 			goto failed_exit;
 		}
 #else
-		embedded_firmware.data = _binary_zaptel_fw_vpmadt032_bin_start;
-		embedded_firmware.size = (size_t) &_binary_zaptel_fw_vpmadt032_bin_size;
+		embedded_firmware.data = _binary_dahdi_fw_vpmadt032_bin_start;
+		embedded_firmware.size = (size_t) &_binary_dahdi_fw_vpmadt032_bin_size;
 #endif
 		fw.fw = firmware;
 		fw.offset = 0;

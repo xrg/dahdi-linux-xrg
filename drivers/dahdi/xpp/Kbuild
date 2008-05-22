@@ -14,7 +14,7 @@ EXTRA_CFLAGS	=	$(XPP_LOCAL_CFLAGS)	\
 			-g
 			#
 
-ifneq	(,$(shell grep -w echo_can_state_t $(ZAP_KERNEL)/zaptel.h))
+ifneq	(,$(shell grep -w echo_can_state_t $(ZAP_KERNEL)/dahdi.h))
 EXTRA_CFLAGS	+= -DZAPTEL_EC_TYPEDEF
 endif
 

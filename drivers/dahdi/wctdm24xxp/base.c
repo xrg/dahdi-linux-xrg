@@ -1,5 +1,5 @@
 /*
- * Wildcard TDM2400P TDM FXS/FXO Interface Driver for Zapata Telephony interface
+ * Wildcard TDM2400P TDM FXS/FXO Interface Driver for DAHDI Telephony interface
  *
  * Written by Mark Spencer <markster@digium.com>
  * Support for TDM800P and VPM150M by Matthew Fredrickson <creslin@digium.com>
@@ -2842,7 +2842,7 @@ static int wctdm_initialize(struct wctdm *wc)
 	int x;
 	struct pci_dev *pdev = voicebus_get_pci_dev(wc->vb);
 
-	/* Zapata stuff */
+	/* DAHDI stuff */
 	sprintf(wc->span.name, "WCTDM/%d", wc->pos);
 	snprintf(wc->span.desc, sizeof(wc->span.desc) - 1, "%s Board %d", wc->variety, wc->pos + 1);
 	snprintf(wc->span.location, sizeof(wc->span.location) - 1,
@@ -3306,10 +3306,10 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 	struct firmware embedded_firmware;
 	const struct firmware *firmware = &embedded_firmware;
 #if !defined(HOTPLUG_FIRMWARE)
-	extern void _binary_zaptel_fw_vpmadt032_bin_size;
-	extern u8 _binary_zaptel_fw_vpmadt032_bin_start[];
+	extern void _binary_dahdi_fw_vpmadt032_bin_size;
+	extern u8 _binary_dahdi_fw_vpmadt032_bin_start[];
 #else
-	static const char vpmadt032_firmware[] = "zaptel-fw-vpmadt032.bin";
+	static const char vpmadt032_firmware[] = "dahdi-fw-vpmadt032.bin";
 #endif
 	gpakDownloadStatus_t downloadstatus;
 	gpakPingDspStat_t pingstatus;
@@ -3410,8 +3410,8 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 			goto failed_exit;
 		}
 #else
-		embedded_firmware.data = _binary_zaptel_fw_vpmadt032_bin_start;
-		embedded_firmware.size = (size_t) &_binary_zaptel_fw_vpmadt032_bin_size;
+		embedded_firmware.data = _binary_dahdi_fw_vpmadt032_bin_start;
+		embedded_firmware.size = (size_t) &_binary_dahdi_fw_vpmadt032_bin_size;
 #endif
 		fw.fw = firmware;
 		fw.offset = 0;
@@ -3843,9 +3843,9 @@ retry:
 	/* Final initialization */
 	wctdm_post_initialize(wc);
 	
-	/* We should be ready for zaptel to come in now. */
+	/* We should be ready for DAHDI to come in now. */
 	if (dahdi_register(&wc->span, 0)) {
-		printk("Unable to register span with zaptel\n");
+		printk("Unable to register span with DAHDI\n");
 		return -1;
 	}
 

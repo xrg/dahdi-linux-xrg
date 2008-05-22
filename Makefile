@@ -255,38 +255,13 @@ update:
 	fi
 
 clean:
-	-@$(MAKE) -C menuselect clean
-	rm -f torisatool
-	rm -f $(BINS)
-	rm -f *.o ztcfg tzdriver sethdlc sethdlc-new
-	rm -f $(LTZ_SO) $(LTZ_A) *.lo
-ifeq (yes,$(HAS_KSRC))
 	$(KMAKE) clean
-else
-	rm -f kernel/*.o kernel/*.ko kernel/*/*.o kernel/*/*.ko
-endif
-	@for dir in $(SUBDIRS_UTILS_ALL); do \
-		$(MAKE) -C $$dir clean; \
-	done
 	$(MAKE) -C firmware clean
-	rm -rf .tmp_versions
-	rm -f gendigits tones.h
-	rm -f libtonezone*
-	rm -f fxotune
-	rm -f core
-	rm -f ztcfg-shared fxstest
-	rm -rf misdn*
-	rm -rf mISDNuser*
-	rm -rf $(GROFF_HTML)
-	rm -rf README.html xpp/README.Astribank.html zaptel.conf.asciidoc
 
 distclean: dist-clean
 
 dist-clean: clean
-	@$(MAKE) -C menuselect dist-clean
 	@$(MAKE) -C firmware dist-clean
-	rm -f makeopts menuselect.makeopts menuselect-tree
-	rm -f config.log config.status
 
 .PHONY: distclean dist-clean clean version.h all _all install b410p devices programs modules tests devel data stackcheck install-udev config update install-programs install-modules install-include install-libs install-utils-subdirs utils-subdirs uninstall-modules
 

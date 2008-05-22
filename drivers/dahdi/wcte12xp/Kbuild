@@ -11,8 +11,8 @@ endif
 wcte12xp-objs := base.o vpmadt032.o GpakApi.o ../voicebus.o
 
 ifneq ($(HOTPLUG_FIRMWARE),yes)
-wcte12xp-objs += $(FIRM_DIR)/zaptel-fw-vpmadt032.o
+wcte12xp-objs += $(FIRM_DIR)/dahdi-fw-vpmadt032.o
 endif
 
-$(obj)/$(FIRM_DIR)/zaptel-fw-vpmadt032.o: $(obj)/base.o
-	$(MAKE) -C $(obj)/$(FIRM_DIR) zaptel-fw-vpmadt032.o
+$(obj)/$(FIRM_DIR)/dahdi-fw-vpmadt032.o: $(obj)/base.o
+	$(MAKE) -C $(obj)/$(FIRM_DIR) dahdi-fw-vpmadt032.o

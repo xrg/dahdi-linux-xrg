@@ -1,5 +1,5 @@
 /*
- * Dummy DAHDI Driver for Zapata Telephony interface
+ * Dummy DAHDI Driver for DAHDI Telephony interface
  *
  * Required: usb-uhci module and kernel > 2.4.4 OR kernel > 2.6.0
  *
@@ -263,9 +263,9 @@ extern uhci_t **uhci_devices;
 #endif
 
 
-#define DAHDI_RATE 1000                     /* zaptel ticks per second */
-#define DAHDI_TIME (1000000 / DAHDI_RATE)  /* zaptel tick time in us */
-#define DAHDI_TIME_NS (DAHDI_TIME * 1000)  /* zaptel tick time in ns */
+#define DAHDI_RATE 1000                     /* DAHDI ticks per second */
+#define DAHDI_TIME (1000000 / DAHDI_RATE)  /* DAHDI tick time in us */
+#define DAHDI_TIME_NS (DAHDI_TIME * 1000)  /* DAHDI tick time in ns */
 
 /* Different bits of the debug variable: */
 #define DEBUG_GENERAL (1 << 0)
@@ -386,7 +386,7 @@ static void ztdummy_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 
 static int ztdummy_initialize(struct ztdummy *ztd)
 {
-	/* Zapata stuff */
+	/* DAHDI stuff */
 	sprintf(ztd->span.name, "ZTDUMMY/1");
 	snprintf(ztd->span.desc, sizeof(ztd->span.desc) - 1, "%s (source: " CLOCK_SRC ") %d", ztd->span.name, 1);
 	sprintf(ztd->chan.name, "ZTDUMMY/%d/%d", 1, 0);
@@ -438,7 +438,7 @@ int init_module(void)
 	memset(ztd, 0x0, sizeof(struct ztdummy));
 
 	if (ztdummy_initialize(ztd)) {
-		printk(KERN_ERR "ztdummy: Unable to intialize zaptel driver\n");
+		printk(KERN_ERR "ztdummy: Unable to intialize DAHDI driver\n");
 		kfree(ztd);
 		return -ENODEV;
 	}
@@ -451,7 +451,7 @@ int init_module(void)
 	ztd->rtc_task.private_data = ztd;
 	err = rtc_register(&ztd->rtc_task);
 	if (err < 0) {
-		printk(KERN_ERR "ztdummy: Unable to register zaptel rtc driver\n");
+		printk(KERN_ERR "ztdummy: Unable to register DAHDI rtc driver\n");
 		dahdi_unregister(&ztd->span);
 		kfree(ztd);
 		return err;

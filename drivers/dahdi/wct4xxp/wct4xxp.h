@@ -1,5 +1,5 @@
 /*
- * Wilcard T400P FXS Interface Driver for Zapata Telephony interface
+ * Wilcard T400P FXS Interface Driver for DAHDI Telephony interface
  *
  * Written by Mark Spencer <markster@linux-support.net>
  *

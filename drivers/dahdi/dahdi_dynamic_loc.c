@@ -22,7 +22,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  *
- * Note : a zaptel source must exist prior to loading this driver
+ * Note : a DAHDI timing source must exist prior to loading this driver
  *
  * Address syntax : 
  * <key>:<id>[:<monitor id>]

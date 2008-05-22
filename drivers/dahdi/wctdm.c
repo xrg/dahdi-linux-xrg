@@ -1,5 +1,5 @@
 /*
- * Wilcard TDM400P TDM FXS/FXO Interface Driver for Zapata Telephony interface
+ * Wilcard TDM400P TDM FXS/FXO Interface Driver for DAHDI Telephony interface
  *
  * Written by Mark Spencer <markster@digium.com>
  *            Matthew Fredrickson <creslin@digium.com>
@@ -2036,7 +2036,7 @@ static int wctdm_initialize(struct wctdm *wc)
 {
 	int x;
 
-	/* Zapata stuff */
+	/* DAHDI stuff */
 	sprintf(wc->span.name, "WCTDM/%d", wc->pos);
 	snprintf(wc->span.desc, sizeof(wc->span.desc) - 1, "%s Board %d", wc->variety, wc->pos + 1);
 	snprintf(wc->span.location, sizeof(wc->span.location) - 1,
@@ -2068,7 +2068,7 @@ static int wctdm_initialize(struct wctdm *wc)
 
 	wc->span.pvt = wc;
 	if (dahdi_register(&wc->span, 0)) {
-		printk("Unable to register span with zaptel\n");
+		printk("Unable to register span with DAHDI\n");
 		return -1;
 	}
 	return 0;

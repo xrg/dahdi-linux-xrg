@@ -1,5 +1,5 @@
 /*
- * Wilcard X100P FXO Interface Driver for Zapata Telephony interface
+ * Wildcard X100P FXO Interface Driver for DAHDI Telephony interface
  *
  * Written by Mark Spencer <markster@digium.com>
  *            Matthew Fredrickson <creslin@digium.com>
@@ -658,7 +658,7 @@ static int wcfxo_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
 
 static int wcfxo_initialize(struct wcfxo *wc)
 {
-	/* Zapata stuff */
+	/* DAHDI stuff */
 	sprintf(wc->span.name, "WCFXO/%d", wc->pos);
 	snprintf(wc->span.desc, sizeof(wc->span.desc) - 1, "%s Board %d", wc->variety, wc->pos + 1);
 	sprintf(wc->chan.name, "WCFXO/%d/%d", wc->pos, 0);
@@ -685,7 +685,7 @@ static int wcfxo_initialize(struct wcfxo *wc)
 	wc->span.pvt = wc;
 	wc->chan.pvt = wc;
 	if (dahdi_register(&wc->span, 0)) {
-		printk("Unable to register span with zaptel\n");
+		printk("Unable to register span with DAHDI\n");
 		return -1;
 	}
 	return 0;

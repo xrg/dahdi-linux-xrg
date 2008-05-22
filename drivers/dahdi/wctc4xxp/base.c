@@ -1664,10 +1664,10 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 	struct firmware embedded_firmware;
 	const struct firmware *firmware = &embedded_firmware;
 #if !defined(HOTPLUG_FIRMWARE)
-	extern void _binary_zaptel_fw_tc400m_bin_size;
-	extern u8 _binary_zaptel_fw_tc400m_bin_start[];
+	extern void _binary_dahdi_fw_tc400m_bin_size;
+	extern u8 _binary_dahdi_fw_tc400m_bin_start[];
 #else
-	static const char tc400m_firmware[] = "zaptel-fw-tc400m.bin";
+	static const char tc400m_firmware[] = "dahdi-fw-tc400m.bin";
 #endif
 
 	if (!initd_ifaces) {
@@ -1754,8 +1754,8 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 				return -EIO;
 			}
 #else
-			embedded_firmware.data = _binary_zaptel_fw_tc400m_bin_start;
-			embedded_firmware.size = (size_t) &_binary_zaptel_fw_tc400m_bin_size;
+			embedded_firmware.data = _binary_dahdi_fw_tc400m_bin_start;
+			embedded_firmware.size = (size_t) &_binary_dahdi_fw_tc400m_bin_size;
 #endif
 
 			dte_firmware_ver = firmware->data[0];

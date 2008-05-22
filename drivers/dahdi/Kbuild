@@ -54,7 +54,7 @@ $(obj)/makefw: $(src)/makefw.c
 
 # set CONFIG_DAHDI_MMX for a number of CPU types.
 # Right now this part is not enabled, unless you build with
-# ZAPTEL_MMX_AUTO=something .
+# DAHDI_MMX_AUTO=something .
 ZAPMMX_WHITELIST_i386 = M586MMX M686 MPENTIUMII MPENTIUMIII MPENTIUMM \
 			    MPENTIUM4 MVIAC3_2
 
@@ -65,7 +65,7 @@ ZAPMMX_CONFIG_VARS := $(ZAPMMX_WHITELIST_$(ARCH):%=CONFIG_%)
 
 # expand them:
 ZAPMMX_CONFIG_VALS := $(strip  $(foreach var,$(ZAPMMX_CONFIG_VARS),$(var))  )
-ifneq (,$(ZAPTEL_MMX_AUTO))
+ifneq (,$(DAHDI_MMX_AUTO))
   ifneq (,$(ZAPMMX_CONFIG_VALS))
     # TODO: make that 
     CFLAGS_dahdi-base.o += -DCONFIG_DAHDI_MMX
