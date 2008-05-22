@@ -35,11 +35,8 @@
 #include <linux/vmalloc.h>
 #include <linux/mm.h>
 #include <linux/page-flags.h>
-#include <asm/io.h>
-
-#ifdef LINUX26
 #include <linux/moduleparam.h>
-#endif
+#include <asm/io.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
@@ -472,11 +469,8 @@ void zttranscode_cleanup(void)
 	printk("DAHDI Transcoder support unloaded\n");
 }
 
-#ifdef LINUX26
 module_param(debug, int, S_IRUGO | S_IWUSR);
-#else
-MODULE_PARM(debug, "i");
-#endif
+
 MODULE_DESCRIPTION("DAHDI Transcoder Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE

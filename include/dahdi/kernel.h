@@ -47,24 +47,16 @@
 #include <linux/interrupt.h>
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-#define LINUX26
-#endif
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,10)
 #define dahdi_pci_module pci_register_driver
 #else
 #define dahdi_pci_module pci_module_init
 #endif
 
-#ifdef LINUX26
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
 #define DAHDI_IRQ_HANDLER(a) static irqreturn_t a(int irq, void *dev_id)
 #else
 #define DAHDI_IRQ_HANDLER(a) static irqreturn_t a(int irq, void *dev_id, struct pt_regs *regs)
-#endif
-#else
-#define DAHDI_IRQ_HANDLER(a) static void a(int irq, void *dev_id, struct pt_regs *regs)
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,18)
@@ -1246,11 +1238,7 @@ int dahdi_unregister_chardev(struct dahdi_chardev *dev);
 
 #ifdef CONFIG_DAHDI_NET
 struct dahdi_hdlc {
-#ifdef LINUX26	
 	struct net_device *netdev;
-#else
-	hdlc_device netdev;
-#endif
 	struct dahdi_chan *chan;
 };
 #endif

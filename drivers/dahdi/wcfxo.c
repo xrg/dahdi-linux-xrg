@@ -32,13 +32,10 @@
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <asm/io.h>
+#include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
-
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
 
 /* Uncomment to enable tasklet handling in the FXO driver.  Not recommended
    in general, but may improve interactive performance */
@@ -445,11 +442,7 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 
 
 	if (!ints)
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 
 	outb(ints, wc->ioaddr + WC_INTSTAT);
 
@@ -474,20 +467,12 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 		printk("FXO PCI Master abort\n");
 		/* Stop DMA andlet the watchdog start it again */
 		wcfxo_stop_dma(wc);
-#ifdef LINUX26
 		return IRQ_RETVAL(1);
-#else
-		return;
-#endif		
 	}
 
 	if (ints & 0x20) {
 		printk("PCI Target abort\n");
-#ifdef LINUX26
 		return IRQ_RETVAL(1);
-#else
-		return;
-#endif		
 	}
 	if (1 /* !(wc->report % 0xf) */) {
 		/* Check for BATTERY from register and debounce for 8 ms */
@@ -561,9 +546,8 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 #endif
 
 	}
-#ifdef LINUX26
+
 	return IRQ_RETVAL(1);
-#endif		
 }
 
 static int wcfxo_setreg(struct wcfxo *wc, unsigned char reg, unsigned char value)
@@ -587,9 +571,6 @@ static int wcfxo_open(struct dahdi_chan *chan)
 	if (wc->dead)
 		return -ENODEV;
 	wc->usecount++;
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#endif	
 	return 0;
 }
 
@@ -604,9 +585,6 @@ static int wcfxo_close(struct dahdi_chan *chan)
 {
 	struct wcfxo *wc = chan->pvt;
 	wc->usecount--;
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#endif
 	/* If we're dead, release us now */
 	if (!wc->usecount && wc->dead)
 		wcfxo_release(wc);
@@ -1050,11 +1028,7 @@ MODULE_DEVICE_TABLE (pci, wcfxo_pci_tbl);
 static struct pci_driver wcfxo_driver = {
 	name: 	"wcfxo",
 	probe: 	wcfxo_init_one,
-#ifdef LINUX26
 	remove:	__devexit_p(wcfxo_remove_one),
-#else
-	remove:	wcfxo_remove_one,
-#endif
 	id_table: wcfxo_pci_tbl,
 };
 
@@ -1079,19 +1053,12 @@ static void __exit wcfxo_cleanup(void)
 	pci_unregister_driver(&wcfxo_driver);
 }
 
-#ifdef LINUX26
 module_param(debug, int, 0644);
 module_param(quiet, int, 0444);
 module_param(boost, int, 0444);
 module_param(monitor, int, 0444);
 module_param(opermode, int, 0444);
-#else
-MODULE_PARM(debug, "i");
-MODULE_PARM(quiet, "i");
-MODULE_PARM(boost, "i");
-MODULE_PARM(monitor, "i");
-MODULE_PARM(opermode, "i");
-#endif
+
 MODULE_DESCRIPTION("Wildcard X100P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE

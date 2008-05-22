@@ -32,12 +32,10 @@
 #include <linux/init.h>
 #include <linux/sched.h>
 #include <linux/interrupt.h>
+#include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
 #define NEED_PCI_IDS
 #include "tor2-hw.h"
 #include "tor2fw.h"
@@ -251,17 +249,11 @@ static int tor2_chanconfig(struct dahdi_chan *chan, int sigtype)
 
 static int tor2_open(struct dahdi_chan *chan)
 {
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#endif
 	return 0;
 }
 
 static int tor2_close(struct dahdi_chan *chan)
 {
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#endif	
 	return 0;
 }
 
@@ -629,11 +621,7 @@ static void __devexit tor2_remove(struct pci_dev *pdev)
 static struct pci_driver tor2_driver = {
 	name: "tormenta2",
 	probe: tor2_probe,
-#ifdef LINUX26
 	remove: __devexit_p(tor2_remove),
-#else
-	remove: tor2_remove,
-#endif
 	id_table: tor2_pci_ids,
 };
 
@@ -1192,11 +1180,7 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 	  /* make sure its a real interrupt for us */
 	if (!(tor->mem8[STATREG] & INTACTIVE)) /* if not, just return */
 	   {
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return; 
-#endif		
 	   }
 
 	if (tor->cardtype == TYPE_E1)
@@ -1484,9 +1468,7 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 	else
 		/* clear OUTBIT and enable interrupts */
 		tor->mem8[CTLREG] = INTENA | tor->master;
-#ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif
 }
 
 
@@ -1505,17 +1487,10 @@ MODULE_DESCRIPTION("Tormenta 2 PCI Quad T1 or E1 DAHDI Driver");
 MODULE_LICENSE("GPL");
 #endif
 
-#ifdef LINUX26
 module_param(debug, int, 0600);
 module_param(loopback, int, 0600);
 module_param(timingcable, int, 0600);
 module_param(japan, int, 0600);
-#else
-MODULE_PARM(debug, "i");
-MODULE_PARM(loopback, "i");
-MODULE_PARM(timingcable, "i");
-MODULE_PARM(japan, "i");
-#endif
 
 MODULE_DEVICE_TABLE(pci, tor2_pci_ids);
 

@@ -44,11 +44,8 @@ Tx Gain - W/Pre-Emphasis: -23.99 to 0.00 db
 #include <linux/interrupt.h>
 #include <linux/workqueue.h>
 #include <linux/delay.h>
-#include <asm/semaphore.h>
-
-#ifdef LINUX26
 #include <linux/moduleparam.h>
-#endif
+#include <asm/semaphore.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
@@ -2606,11 +2603,7 @@ static int wctdm_open(struct dahdi_chan *chan)
 	if (wc->dead)
 		return -ENODEV;
 	wc->usecount++;
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#else
 	try_module_get(THIS_MODULE);
-#endif	
 	return 0;
 }
 
@@ -2626,11 +2619,7 @@ static int wctdm_close(struct dahdi_chan *chan)
 	int x;
 	signed char reg;
 	wc->usecount--;
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#else
 	module_put(THIS_MODULE);
-#endif
 	for (x=0;x<wc->cards;x++) {
 		if (wc->modtype[x] == MOD_TYPE_FXS)
 			wc->mods[x].fxs.idletxhookstate = 1;
@@ -3933,11 +3922,7 @@ MODULE_DEVICE_TABLE(pci, wctdm_pci_tbl);
 static struct pci_driver wctdm_driver = {
 	name: 	"wctdm24xxp",
 	probe: 	wctdm_init_one,
-#ifdef LINUX26
 	remove:	__devexit_p(wctdm_remove_one),
-#else
-	remove:	wctdm_remove_one,
-#endif
 	suspend: NULL,
 	resume:	NULL,
 	id_table: wctdm_pci_tbl,
@@ -3992,7 +3977,6 @@ static void __exit wctdm_cleanup(void)
 	pci_unregister_driver(&wctdm_driver);
 }
 
-#ifdef LINUX26
 module_param(debug, int, 0600);
 module_param(fxovoltage, int, 0600);
 module_param(loopcurrent, int, 0600);
@@ -4022,36 +4006,7 @@ module_param(vpmnlptype, int, 0600);
 module_param(vpmnlpthresh, int, 0600);
 module_param(vpmnlpmaxsupp, int, 0600);
 #endif
-#else
-MODULE_PARM(debug, "i");
-MODULE_PARM(fxovoltage, "i");
-MODULE_PARM(loopcurrent, "i");
-MODULE_PARM(robust, "i");
-MODULE_PARM(opermode, "s");
-MODULE_PARM(lowpower, "i");
-MODULE_PARM(boostringer, "i");
-MODULE_PARM(fastringer, "i");
-MODULE_PARM(fxshonormode, "i");
-MODULE_PARM(battdebounce, "i");
-MODULE_PARM(battalarm, "i");
-MODULE_PARM(battthresh, "i");
-MODULE_PARM(alawoverride, "i");
-MODULE_PARM(nativebridge, "i");
-MODULE_PARM(fxotxgain, "i");
-MODULE_PARM(fxorxgain, "i");
-MODULE_PARM(fxstxgain, "i");
-MODULE_PARM(fxsrxgain, "i");
-MODULE_PARM(ringdebounce, "i");
-MODULE_PARM(fwringdetect, "i");
-#ifdef VPM_SUPPORT
-MODULE_PARM(vpmsupport, "i");
-MODULE_PARM(vpmdtmfsupport, "i");
-MODULE_PARM(dtmfthreshold, "i");
-MODULE_PARM(vpmnlptype, "i");
-MODULE_PARM(vpmnlpthresh, "i");
-MODULE_PARM(vpmnlpmaxsupp, "i");
-#endif
-#endif
+
 MODULE_DESCRIPTION("Wildcard TDM2400P/TDM800P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #if defined(MODULE_ALIAS)

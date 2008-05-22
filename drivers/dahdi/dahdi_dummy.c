@@ -74,23 +74,16 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/errno.h>
+#include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
 
-#ifndef LINUX26
-#include <linux/usb.h>
-#include <linux/pci.h>
-#include <asm/io.h>
-#endif
-#ifdef LINUX26
 #ifdef USE_HIGHRESTIMER
 #include <linux/hrtimer.h>
 #endif
 #ifdef USE_RTC
 #include <linux/rtc.h>
-#endif
-#include <linux/moduleparam.h>
 #endif
 
 #include <linux/version.h>
@@ -101,130 +94,17 @@
 struct ztdummy {
 	struct dahdi_span span;
 	struct dahdi_chan chan;
-#ifdef LINUX26
 	unsigned int counter;
 #ifdef USE_RTC
 	spinlock_t rtclock;
 	rtc_task_t rtc_task;
 #endif
-#endif
 };
-
-
-#ifndef LINUX26
-/* Uhci definitions and structures - from file usb-uhci.h */
-#define TD_CTRL_IOC		(1 << 24)	/* Interrupt on Complete */
-#define USBSTS 2
-
-typedef enum {
-	TD_TYPE, QH_TYPE
-} uhci_desc_type_t;
-
-typedef struct {
-	__u32 link;
-	__u32 status;
-	__u32 info;
-	__u32 buffer;
-} uhci_td_t, *puhci_td_t;
-
-
-typedef struct {
-	__u32 head;
-	__u32 element;		/* Queue element pointer */
-} uhci_qh_t, *puhci_qh_t;
-
-typedef struct {
-	union {
-		uhci_td_t td;
-		uhci_qh_t qh;
-	} hw;
-	uhci_desc_type_t type;
-	dma_addr_t dma_addr;
-	struct list_head horizontal;
-	struct list_head vertical;
-	struct list_head desc_list;
-	int last_used;
-} uhci_desc_t, *puhci_desc_t;
-
-typedef struct {
-	struct list_head desc_list;	// list pointer to all corresponding TDs/QHs associated with this request
-	dma_addr_t setup_packet_dma;
-	dma_addr_t transfer_buffer_dma;
-	unsigned long started;
-#ifdef USB2420
-        struct urb *next_queued_urb;    // next queued urb for this EP
-        struct urb *prev_queued_urb;
-#else
-        urb_t *next_queued_urb;         
-        urb_t *prev_queued_urb;
-#endif
-	uhci_desc_t *bottom_qh;
-	uhci_desc_t *next_qh;       	// next helper QH
-	char use_loop;
-	char flags;
-} urb_priv_t, *purb_priv_t;
-
-struct virt_root_hub {
-	int devnum;		/* Address of Root Hub endpoint */
-	void *urb;
-	void *int_addr;
-	int send;
-	int interval;
-	int numports;
-	int c_p_r[8];
-	struct timer_list rh_int_timer;
-};
-
-typedef struct uhci {
-	int irq;
-	unsigned int io_addr;
-	unsigned int io_size;
-	unsigned int maxports;
-	int running;
-
-	int apm_state;
-
-	struct uhci *next;	// chain of uhci device contexts
-
-	struct list_head urb_list;	// list of all pending urbs
-
-	spinlock_t urb_list_lock;	// lock to keep consistency
-
-	int unlink_urb_done;
-	atomic_t avoid_bulk;
-
-	struct usb_bus *bus;	// our bus
-
-	__u32 *framelist;
-	dma_addr_t framelist_dma;
-	uhci_desc_t **iso_td;
-	uhci_desc_t *int_chain[8];
-	uhci_desc_t *ls_control_chain;
-	uhci_desc_t *control_chain;
-	uhci_desc_t *bulk_chain;
-	uhci_desc_t *chain_end;
-	uhci_desc_t *td1ms;
-	uhci_desc_t *td32ms;
-	struct list_head free_desc;
-	spinlock_t qh_lock;
-	spinlock_t td_lock;
-	struct virt_root_hub rh;	//private data of the virtual root hub
-	int loop_usage;            // URBs using bandwidth reclamation
-
-	struct list_head urb_unlinked;	// list of all unlinked  urbs
-	long timeout_check;
-	int timeout_urbs;
-	struct pci_dev *uhci_pci;
-	struct pci_pool *desc_pool;
-	long last_error_time;          // last error output in uhci_interrupt()
-} uhci_t, *puhci_t;
-#endif
 
 static struct ztdummy *ztd;
 
 static int debug = 0;
 
-#ifdef LINUX26
 #ifdef USE_HIGHRESTIMER
 #define CLOCK_SRC "HRtimer"
 struct hrtimer zaptimer;
@@ -240,28 +120,6 @@ static void ztd_tasklet(unsigned long data);
 /* 2.6 kernel timer stuff */
 static struct timer_list timer;
 #endif
-#else
-#if LINUX_VERSION_CODE < VERSION_CODE(2,4,5)
-#  error "This kernel is too old: not supported by this file"
-#endif
-#define CLOCK_SRC "UHCI"
-/* Old UCHI stuff */
-static    uhci_desc_t  *td;
-static    uhci_t *s;
-static int monitor = 0;
-
-/* exported kernel symbols */
-extern int insert_td (uhci_t *s, uhci_desc_t *qh, uhci_desc_t* new, int flags);
-extern int alloc_td (uhci_t *s, uhci_desc_t ** new, int flags);
-extern  int insert_td_horizontal (uhci_t *s, uhci_desc_t *td, uhci_desc_t* new);
-extern int unlink_td (uhci_t *s, uhci_desc_t *element, int phys_unlink);
-extern void fill_td (uhci_desc_t *td, int status, int info, __u32 buffer);
-extern void uhci_interrupt (int irq, void *__uhci, struct pt_regs *regs);
-extern int delete_desc (uhci_t *s, uhci_desc_t *element);
-extern uhci_t **uhci_devices;
-
-#endif
-
 
 #define DAHDI_RATE 1000                     /* DAHDI ticks per second */
 #define DAHDI_TIME (1000000 / DAHDI_RATE)  /* DAHDI tick time in us */
@@ -272,7 +130,6 @@ extern uhci_t **uhci_devices;
 #define DEBUG_TICKS   (1 << 1)
 
 
-#ifdef LINUX26
 #ifdef USE_RTC
 static void update_rtc_rate(struct ztdummy *ztd)
 {
@@ -362,27 +219,6 @@ static void ztdummy_timer(unsigned long param)
 	}
 }
 #endif
-#else
-static void ztdummy_interrupt(int irq, void *dev_id, struct pt_regs *regs)
-{
-	unsigned short status;
-	unsigned int io_addr = s->io_addr;
-
-	status = inw (io_addr + USBSTS);
-	if (status != 0)  {	/* interrupt from our USB port */
-		static int check_int = 0;
-		dahdi_receive(&ztd->span);
-		dahdi_transmit(&ztd->span);
-		/* TODO: What's the relation between monitor and
-		 * DEBUG_TICKS */
-		if (monitor && check_int) {
-			check_int = 1;
-			printk(KERN_NOTICE "ztdummy: interrupt triggered \n");     
-		}   
-	}
-	return;
-}
-#endif
 
 static int ztdummy_initialize(struct ztdummy *ztd)
 {
@@ -406,27 +242,8 @@ static int ztdummy_initialize(struct ztdummy *ztd)
 
 int init_module(void)
 {
-#ifdef LINUX26
 #ifdef USE_RTC
 	int err;
-#endif
-#else
-	int irq;
-#ifdef DEFINE_SPINLOCK
-	DEFINE_SPINLOCK(mylock);
-#else
-	spinlock_t mylock = SPIN_LOCK_UNLOCKED;
-#endif
-	
-	if (uhci_devices==NULL) {
-		printk (KERN_ERR "ztdummy: Uhci_devices pointer error.\n");
-		return -ENODEV;
-	}
-	s=*uhci_devices;	/* uhci device */
-	if (s==NULL) {
-		printk (KERN_ERR "ztdummy: No uhci_device found.\n");
-		return -ENODEV;
-	}
 #endif
 
 	ztd = kmalloc(sizeof(struct ztdummy), GFP_KERNEL);
@@ -443,7 +260,6 @@ int init_module(void)
 		return -ENODEV;
 	}
 
-#ifdef LINUX26
 	ztd->counter = 0;
 #ifdef USE_RTC
 	ztd->rtclock = SPIN_LOCK_UNLOCKED;
@@ -479,27 +295,6 @@ int init_module(void)
 	timer.expires = jiffies + 1;
 	add_timer(&timer);
 #endif
-#else
-	irq=s->irq;
-	spin_lock_irq(&mylock);
-	free_irq(s->irq, s);	/* remove uhci_interrupt temporaly */
-	if (request_irq (irq, ztdummy_interrupt, DAHDI_IRQ_SHARED, "ztdummy", ztd)) {
-		spin_unlock_irq(&mylock);
-		err("Our request_irq %d failed!",irq);
-		kfree(ztd);
-		return -EIO;
-	}		/* we add our handler first, to assure, that our handler gets called first */
-	if (request_irq (irq, uhci_interrupt, DAHDI_IRQ_SHARED, s->uhci_pci->driver->name, s)) {
-		spin_unlock_irq(&mylock);
-		err("Original request_irq %d failed!",irq);
-	}
-	spin_unlock_irq(&mylock);
-
-	/* add td to usb host controller interrupt queue */
-	alloc_td(s, &td, 0);
-	fill_td(td, TD_CTRL_IOC, 0, 0);
-	insert_td_horizontal(s, s->int_chain[0], td);	/* use int_chain[0] to get 1ms interrupts */
-#endif	
 
 	if (debug)
 		printk(KERN_DEBUG "ztdummy: init() finished\n");
@@ -509,7 +304,6 @@ int init_module(void)
 
 void cleanup_module(void)
 {
-#ifdef LINUX26
 #ifdef USE_RTC
 	if (taskletpending) {
 		tasklet_disable(&ztd_tlet);
@@ -523,33 +317,19 @@ void cleanup_module(void)
 #else
 	del_timer(&timer);
 #endif
-#else
-	free_irq(s->irq, ztd);  /* disable interrupts */
-#endif
 	dahdi_unregister(&ztd->span);
 	kfree(ztd);
-#ifndef LINUX26
-	unlink_td(s, td, 1);
-	delete_desc(s, td);
-#endif
 	if (debug)
 		printk("ztdummy: cleanup() finished\n");
 }
 
 
 
-#ifdef LINUX26
 module_param(debug, int, 0600);
 #ifdef USE_RTC
 module_param(rtc_rate, int, 0600);
 #endif
-#else
-MODULE_PARM(debug, "i");
-#endif
 
-#ifndef LINUX26
-MODULE_PARM(monitor, "i");
-#endif
 MODULE_DESCRIPTION("Dummy DAHDI Driver");
 MODULE_AUTHOR("Robert Pleh <robert.pleh@hermes.si>");
 #ifdef MODULE_LICENSE

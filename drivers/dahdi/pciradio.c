@@ -50,16 +50,12 @@ With driver:	303826  (1.5 %)
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <linux/interrupt.h>
+#include <linux/moduleparam.h>
 #include <asm/io.h>
 #include <asm/delay.h> 
 
-
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
-
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
 
 #define RAD_MAX_IFACES 128
 
@@ -732,11 +728,7 @@ static void pciradio_reset_serial(struct pciradio *rad);
 static void pciradio_restart_dma(struct pciradio *rad);
 
 #ifdef	LEAVE_THIS_COMMENTED_OUT
-#ifdef LINUX26
 static irqreturn_t pciradio_interrupt(int irq, void *dev_id, struct pt_regs *regs)
-#else
-static void pciradio_interrupt(int irq, void *dev_id, struct pt_regs *regs)
-#endif
 #endif
 
 DAHDI_IRQ_HANDLER(pciradio_interrupt)
@@ -749,30 +741,18 @@ DAHDI_IRQ_HANDLER(pciradio_interrupt)
 	outb(ints, rad->ioaddr + RAD_INTSTAT);
 
 	if (!ints)
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 
 	if (ints & 0x10) {
 		/* Stop DMA, wait for watchdog */
 		printk("RADIO PCI Master abort\n");
 		pciradio_stop_dma(rad);
-#ifdef LINUX26
 		return IRQ_RETVAL(1);
-#else
-		return;
-#endif		
 	}
 	
 	if (ints & 0x20) {
 		printk("RADIO PCI Target abort\n");
-#ifdef LINUX26
 		return IRQ_RETVAL(1);
-#else
-		return;
-#endif		
 	}
 
 	if (ints & 0x0f) {
@@ -975,10 +955,8 @@ DAHDI_IRQ_HANDLER(pciradio_interrupt)
 		/* output LED's */
 		__pciradio_setcreg(rad, 9, i);
 	}
-#ifdef LINUX26
+
 	return IRQ_RETVAL(1);
-#endif		
-	
 }
 
 static int pciradio_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long data)
@@ -1443,9 +1421,6 @@ static int pciradio_open(struct dahdi_chan *chan)
 	if (rad->dead)
 		return -ENODEV;
 	rad->usecount++;
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#endif
 	return 0;
 }
 
@@ -1460,9 +1435,6 @@ static int pciradio_close(struct dahdi_chan *chan)
 {
 	struct pciradio *rad = chan->pvt;
 	rad->usecount--;
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#endif
 	/* If we're dead, release us now */
 	if (!rad->usecount && rad->dead) 
 		pciradio_release(rad);
@@ -1891,11 +1863,7 @@ MODULE_DEVICE_TABLE(pci, pciradio_pci_tbl);
 static struct pci_driver pciradio_driver = {
 	name: 	"pciradio",
 	probe: 	pciradio_init_one,
-#ifdef LINUX26
 	remove:	__devexit_p(pciradio_remove_one),
-#else
-	remove:	pciradio_remove_one,
-#endif
 	suspend: NULL,
 	resume:	NULL,
 	id_table: pciradio_pci_tbl,
@@ -1916,13 +1884,9 @@ static void __exit pciradio_cleanup(void)
 	pci_unregister_driver(&pciradio_driver);
 }
 
-#ifdef LINUX26
 module_param(debug, int, 0600);
-#else
-MODULE_PARM(debug, "i");
-#endif
 
-MODULE_DESCRIPTION("DAHDI Telephony PCI Radio Card DAHDI Driver");
+MODULE_DESCRIPTION("DAHDI Telephony PCI Radio Card Driver");
 MODULE_AUTHOR("Jim Dixon <jim@lambdatel.com>");
 
 #ifdef MODULE_LICENSE

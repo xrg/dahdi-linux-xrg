@@ -33,13 +33,10 @@
 #include <linux/sched.h>
 #include <linux/interrupt.h>
 #include <linux/vmalloc.h>
+#include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
-
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
 
 /*
  * Tasklets provide better system interactive response at the cost of the
@@ -515,12 +512,8 @@ static int ztd_open(struct dahdi_chan *chan)
 			return -ENODEV;
 		z->usecount++;
 	}
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#else
 	if(!try_module_get(THIS_MODULE))
 		printk("TDMoX: Unable to increment module use count\n");
-#endif	
 	return 0;
 }
 
@@ -537,11 +530,7 @@ static int ztd_close(struct dahdi_chan *chan)
 		z->usecount--;
 	if (z->dead && !z->usecount)
 		dynamic_destroy(z);
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#else
 	module_put(THIS_MODULE);
-#endif	
 	return 0;
 }
 
@@ -851,11 +840,8 @@ void ztdynamic_cleanup(void)
 	printk("DAHDI Dynamic Span support unloaded\n");
 }
 
-#ifdef LINUX26
 module_param(debug, int, 0600);
-#else
-MODULE_PARM(debug, "i");
-#endif
+
 MODULE_DESCRIPTION("DAHDI Dynamic Span Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE

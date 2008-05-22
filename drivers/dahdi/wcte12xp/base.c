@@ -35,10 +35,7 @@
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <linux/proc_fs.h>
-
-#ifdef LINUX26
 #include <linux/moduleparam.h>
-#endif
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
@@ -981,11 +978,7 @@ static int t1xxp_open(struct dahdi_chan *chan)
 		return -ENODEV;
 	wc->usecount++;
 
-#ifndef LINUX26	
-	MOD_INC_USE_COUNT;
-#else
 	try_module_get(THIS_MODULE);
-#endif	
 
 	return 0;
 }
@@ -996,11 +989,7 @@ static int t1xxp_close(struct dahdi_chan *chan)
 
 	wc->usecount--;
 
-#ifndef LINUX26	
-	MOD_DEC_USE_COUNT;
-#else
 	module_put(THIS_MODULE);
-#endif
 
 	/* If we're dead, release us now */
 	if (!wc->usecount && wc->dead) 
@@ -1703,11 +1692,7 @@ MODULE_DEVICE_TABLE(pci, te12xp_pci_tbl);
 struct pci_driver te12xp_driver = {
 	name: 	"wcte12xp",
 	probe: 	te12xp_init_one,
-#ifdef LINUX26
 	remove:	__devexit_p(te12xp_remove_one),
-#else
-	remove:	te12xp_remove_one,
-#endif
 	suspend: NULL,
 	resume:	NULL,
 	id_table: te12xp_pci_tbl,
@@ -1728,7 +1713,6 @@ static void __exit te12xp_cleanup(void)
 	pci_unregister_driver(&te12xp_driver);
 }
 
-#ifdef LINUX26
 module_param(debug, int, S_IRUGO | S_IWUSR);
 module_param(loopback, int, S_IRUGO | S_IWUSR);
 module_param(t1e1override, int, S_IRUGO | S_IWUSR);
@@ -1739,21 +1723,6 @@ module_param(latency, int, S_IRUGO | S_IWUSR);
 module_param(vpmsupport, int, S_IRUGO | S_IWUSR);
 module_param(vpmdtmfsupport, int, S_IRUGO | S_IWUSR);
 module_param(vpmtsisupport, int, S_IRUGO | S_IWUSR);
-#endif
-#else
-MODULE_PARM(debug, "i");
-MODULE_PARM(loopback, "i");
-MODULE_PARM(t1e1override, "i");
-MODULE_PARM(j1mode, "i");
-MODULE_PARM(alarmdebounce, "i");
-#ifdef VPM_SUPPORT
-MODULE_PARM(vpmsupport, "i");
-MODULE_PARM(vpmdtmfsupport, "i");
-MODULE_PARM(vpmtsisupport, "i");
-MODULE_PARM(vpmnlptype, "i");
-MODULE_PARM(vpmnlpthresh, "i");
-MODULE_PARM(vpmnlpmaxsupp, "i");
-#endif
 #endif
 
 #ifdef MODULE_LICENSE

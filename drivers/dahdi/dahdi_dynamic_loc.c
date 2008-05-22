@@ -154,11 +154,7 @@ static int digit2int(char d)
 	spin_unlock_irqrestore(&zlock, flags);
 	if (cur == z) {
 		printk("TDMoL: Removed interface for %s, key %d id %d\n", z->span->name, z->key, z->id);
-#ifndef LINUX26
-		MOD_DEC_USE_COUNT;
-#else
 		module_put(THIS_MODULE);
-#endif
 		kfree(z);
 	}
 }
@@ -223,12 +219,8 @@ static int digit2int(char d)
 		z->next = zdevs;
 		zdevs = z;
 		spin_unlock_irqrestore(&zlock, flags);
-#ifndef LINUX26
-		MOD_INC_USE_COUNT;
-#else
 		if(!try_module_get(THIS_MODULE))
 			printk("TDMoL: Unable to increment module use count\n");
-#endif
 
 		printk("TDMoL: Added new interface for %s, key %d id %d\n", span->name, z->key, z->id);
 	}

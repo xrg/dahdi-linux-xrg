@@ -288,11 +288,7 @@ static void ztdeth_destroy(void *pvt)
 	if (cur == z) {	/* Successfully removed */
 		printk("TDMoE: Removed interface for %s\n", z->span->name);
 		kfree(z);
-#ifndef LINUX26
-		MOD_DEC_USE_COUNT;
-#else
 		module_put(THIS_MODULE);
-#endif
 	}
 }
 
@@ -394,12 +390,8 @@ static void *ztdeth_create(struct dahdi_span *span, char *addr)
 		z->next = zdevs;
 		zdevs = z;
 		spin_unlock_irqrestore(&zlock, flags);
-#ifndef LINUX26
-		MOD_INC_USE_COUNT;
-#else
 		if(!try_module_get(THIS_MODULE))
 			printk("TDMoE: Unable to increment module use count\n");
-#endif
 	}
 	return z;
 }

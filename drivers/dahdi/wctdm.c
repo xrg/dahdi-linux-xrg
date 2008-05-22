@@ -31,6 +31,7 @@
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <linux/interrupt.h>
+#include <linux/moduleparam.h>
 #include <asm/io.h>
 #include "proslic.h"
 #include "wctdm.h"
@@ -113,10 +114,6 @@ static alpha  indirect_regs[] =
 #include <dahdi/user.h>
 
 #include "fxo_modes.h"
-
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
 
 #define NUM_FXO_REGS 60
 
@@ -1013,11 +1010,7 @@ DAHDI_IRQ_HANDLER(wctdm_interrupt)
 	ints = inb(wc->ioaddr + WC_INTSTAT);
 
 	if (!ints)
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 
 	outb(ints, wc->ioaddr + WC_INTSTAT);
 
@@ -1025,20 +1018,12 @@ DAHDI_IRQ_HANDLER(wctdm_interrupt)
 		/* Stop DMA, wait for watchdog */
 		printk("TDM PCI Master abort\n");
 		wctdm_stop_dma(wc);
-#ifdef LINUX26
 		return IRQ_RETVAL(1);
-#else
-		return;
-#endif		
 	}
 	
 	if (ints & 0x20) {
 		printk("PCI Target abort\n");
-#ifdef LINUX26
 		return IRQ_RETVAL(1);
-#else
-		return;
-#endif		
 	}
 
 	for (x=0;x<4;x++) {
@@ -1119,10 +1104,8 @@ DAHDI_IRQ_HANDLER(wctdm_interrupt)
 		wctdm_receiveprep(wc, ints);
 		wctdm_transmitprep(wc, ints);
 	}
-#ifdef LINUX26
+
 	return IRQ_RETVAL(1);
-#endif		
-	
 }
 
 static int wctdm_voicedaa_insane(struct wctdm *wc, int card)
@@ -1934,11 +1917,7 @@ static int wctdm_open(struct dahdi_chan *chan)
 	if (wc->dead)
 		return -ENODEV;
 	wc->usecount++;
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#else
 	try_module_get(THIS_MODULE);
-#endif	
 	return 0;
 }
 
@@ -1953,11 +1932,7 @@ static int wctdm_close(struct dahdi_chan *chan)
 {
 	struct wctdm *wc = chan->pvt;
 	wc->usecount--;
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#else
 	module_put(THIS_MODULE);
-#endif
 	if (wc->modtype[chan->chanpos - 1] == MOD_TYPE_FXS) {
 		if (reversepolarity)
 			wc->mod[chan->chanpos - 1].fxs.idletxhookstate = 5;
@@ -2444,11 +2419,7 @@ MODULE_DEVICE_TABLE(pci, wctdm_pci_tbl);
 static struct pci_driver wctdm_driver = {
 	name: 	"wctdm",
 	probe: 	wctdm_init_one,
-#ifdef LINUX26
 	remove:	__devexit_p(wctdm_remove_one),
-#else
-	remove:	wctdm_remove_one,
-#endif
 	suspend: NULL,
 	resume:	NULL,
 	id_table: wctdm_pci_tbl,
@@ -2503,7 +2474,6 @@ static void __exit wctdm_cleanup(void)
 	pci_unregister_driver(&wctdm_driver);
 }
 
-#ifdef LINUX26
 module_param(debug, int, 0600);
 module_param(loopcurrent, int, 0600);
 module_param(reversepolarity, int, 0600);
@@ -2525,29 +2495,7 @@ module_param(fxotxgain, int, 0600);
 module_param(fxorxgain, int, 0600);
 module_param(fxstxgain, int, 0600);
 module_param(fxsrxgain, int, 0600);
-#else
-MODULE_PARM(debug, "i");
-MODULE_PARM(loopcurrent, "i");
-MODULE_PARM(reversepolarity, "i");
-MODULE_PARM(robust, "i");
-MODULE_PARM(opermode, "s");
-MODULE_PARM(timingonly, "i");
-MODULE_PARM(lowpower, "i");
-MODULE_PARM(boostringer, "i");
-MODULE_PARM(fastringer, "i");
-MODULE_PARM(fxshonormode, "i");
-MODULE_PARM(battdebounce, "i");
-MODULE_PARM(battalarm, "i");
-MODULE_PARM(battthresh, "i");
-MODULE_PARM(ringdebounce, "i");
-MODULE_PARM(fwringdetect, "i");
-MODULE_PARM(alawoverride, "i");
-MODULE_PARM(fastpickup, "i");
-MODULE_PARM(fxotxgain, "i");
-MODULE_PARM(fxorxgain, "i");
-MODULE_PARM(fxstxgain, "i");
-MODULE_PARM(fxsrxgain, "i");
-#endif
+
 MODULE_DESCRIPTION("Wildcard TDM400P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #if defined(MODULE_ALIAS)

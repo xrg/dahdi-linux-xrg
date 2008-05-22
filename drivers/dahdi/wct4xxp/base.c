@@ -37,19 +37,16 @@
 #include <asm/io.h>
 #include <linux/version.h>
 #include <linux/delay.h>
+#include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
-
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
 
 #include "wct4xxp.h"
 #include "vpm450m.h"
 
 /* Work queues are a way to better distribute load on SMP systems */
-#if defined(LINUX26) && (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20))
 /*
  * Work queues can significantly improve performance and scalability
  * on multi-processor machines, but requires bypassing some kernel
@@ -1521,22 +1518,15 @@ static int t4_chanconfig(struct dahdi_chan *chan, int sigtype)
 
 static int t4_open(struct dahdi_chan *chan)
 {
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#else
 	try_module_get(THIS_MODULE);
-#endif	
 
 	return 0;
 }
 
 static int t4_close(struct dahdi_chan *chan)
 {
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#else
 	module_put(THIS_MODULE);
-#endif
+
 	return 0;
 }
 
@@ -2812,21 +2802,13 @@ DAHDI_IRQ_HANDLER(t4_interrupt)
 
 	/* Ignore if it's not for us */
 	if (!status)
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 
 	__t4_pci_out(wc, WC_INTR, 0);
 
 	if (!wc->spansstarted) {
 		printk("Not prepped yet!\n");
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 	}
 
 	wc->intcount++;
@@ -2876,9 +2858,8 @@ DAHDI_IRQ_HANDLER(t4_interrupt)
 		__t4_set_timing_source_auto(wc);
 
 	spin_unlock_irqrestore(&wc->reglock, flags);
-#ifdef LINUX26
+
 	return IRQ_RETVAL(1);
-#endif		
 }
 #endif
 
@@ -2924,11 +2905,7 @@ DAHDI_IRQ_HANDLER(t4_interrupt_gen2)
 
 	/* Ignore if it's not for us */
 	if (!(status & 0x7)) {
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 	}
 
 #ifdef ENABLE_WORKQUEUES
@@ -2937,11 +2914,7 @@ DAHDI_IRQ_HANDLER(t4_interrupt_gen2)
 
 	if (unlikely(!wc->spansstarted)) {
 		printk("Not prepped yet!\n");
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 	}
 
 	wc->intcount++;
@@ -3024,9 +2997,8 @@ DAHDI_IRQ_HANDLER(t4_interrupt_gen2)
 #ifndef ENABLE_WORKQUEUES
 	__t4_pci_out(wc, WC_INTR, 0);
 #endif	
-#ifdef LINUX26
+
 	return IRQ_RETVAL(1);
-#endif		
 }
 
 #ifdef SUPPORT_GEN1
@@ -3821,11 +3793,7 @@ static struct pci_device_id t4_pci_tbl[] __devinitdata =
 static struct pci_driver t4_driver = {
 	name: 	"wct4xxp",
 	probe: 	t4_init_one,
-#ifdef LINUX26
 	remove:	__devexit_p(t4_remove_one),
-#else
-	remove:	t4_remove_one,
-#endif
 	suspend: NULL,
 	resume:	NULL,
 	id_table: t4_pci_tbl,
@@ -3854,7 +3822,6 @@ MODULE_ALIAS("wct2xxp");
 #ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");
 #endif
-#ifdef LINUX26
 module_param(pedanticpci, int, 0600);
 module_param(debug, int, 0600);
 module_param(loopback, int, 0600);
@@ -3869,24 +3836,6 @@ module_param(vpmsupport, int, 0600);
 module_param(vpmdtmfsupport, int, 0600);
 module_param(vpmspans, int, 0600);
 module_param(dtmfthreshold, int, 0600);
-#endif
-#else
-MODULE_PARM(pedanticpci, "i");
-MODULE_PARM(debug, "i");
-MODULE_PARM(loopback, "i");
-MODULE_PARM(noburst, "i");
-MODULE_PARM(hardhdlcmode, "i");
-MODULE_PARM(timingcable, "i");
-MODULE_PARM(t1e1override, "i");
-MODULE_PARM(alarmdebounce, "i");
-MODULE_PARM(j1mode, "i");
-MODULE_PARM(sigmode, "i");
-#ifdef VPM_SUPPORT
-MODULE_PARM(vpmsupport, "i");
-MODULE_PARM(vpmdtmfsupport, "i");
-MODULE_PARM(vpmspans, "i");
-MODULE_PARM(dtmfthreshold, "i");
-#endif
 #endif
 
 MODULE_DEVICE_TABLE(pci, t4_pci_tbl);

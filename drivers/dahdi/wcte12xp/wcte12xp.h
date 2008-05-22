@@ -31,10 +31,8 @@
 #ifndef _WCTE12XP_H
 #define _WCTE12XP_H
 
-#ifdef LINUX26
 /* Comment to disable VPM support */
 #define VPM_SUPPORT 1
-#endif
 
 #define WC_MAX_IFACES 8
 

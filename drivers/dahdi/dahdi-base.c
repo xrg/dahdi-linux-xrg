@@ -47,6 +47,7 @@
 #include <linux/version.h>
 #include <linux/ctype.h>
 #include <linux/kmod.h>
+#include <linux/moduleparam.h>
 
 #ifdef CONFIG_DAHDI_NET
 #include <linux/netdevice.h>
@@ -82,10 +83,6 @@
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
 
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
-
 /* Get helper arithmetic */
 #include "arith.h"
 #if defined(CONFIG_DAHDI_MMX) || defined(ECHO_CAN_FP)
@@ -94,11 +91,7 @@
 
 #define hdlc_to_ztchan(h) (((struct dahdi_hdlc *)(h))->chan)
 #define dev_to_ztchan(h) (((struct dahdi_hdlc *)(dev_to_hdlc(h)->priv))->chan)
-#ifdef LINUX26
 #define ztchan_to_dev(h) ((h)->hdlcnetdev->netdev)
-#else
-#define ztchan_to_dev(h) (&((h)->hdlcnetdev->netdev.netdev))
-#endif
 
 /* macro-oni for determining a unit (channel) number */
 #define	UNIT(file) MINOR(file->f_dentry->d_inode->i_rdev)
@@ -175,49 +168,7 @@ static struct class_simple *dahdi_class = NULL;
 
 #endif /* CONFIG_DAHDI_UDEV */
 
-
-/* There is a table like this in the PPP driver, too */
-
 static int deftaps = 64;
-
-#if !defined(LINUX26)
-static 
-__u16 fcstab[256] =
-{
-	0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
-	0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
-	0x1081, 0x0108, 0x3393, 0x221a, 0x56a5, 0x472c, 0x75b7, 0x643e,
-	0x9cc9, 0x8d40, 0xbfdb, 0xae52, 0xdaed, 0xcb64, 0xf9ff, 0xe876,
-	0x2102, 0x308b, 0x0210, 0x1399, 0x6726, 0x76af, 0x4434, 0x55bd,
-	0xad4a, 0xbcc3, 0x8e58, 0x9fd1, 0xeb6e, 0xfae7, 0xc87c, 0xd9f5,
-	0x3183, 0x200a, 0x1291, 0x0318, 0x77a7, 0x662e, 0x54b5, 0x453c,
-	0xbdcb, 0xac42, 0x9ed9, 0x8f50, 0xfbef, 0xea66, 0xd8fd, 0xc974,
-	0x4204, 0x538d, 0x6116, 0x709f, 0x0420, 0x15a9, 0x2732, 0x36bb,
-	0xce4c, 0xdfc5, 0xed5e, 0xfcd7, 0x8868, 0x99e1, 0xab7a, 0xbaf3,
-	0x5285, 0x430c, 0x7197, 0x601e, 0x14a1, 0x0528, 0x37b3, 0x263a,
-	0xdecd, 0xcf44, 0xfddf, 0xec56, 0x98e9, 0x8960, 0xbbfb, 0xaa72,
-	0x6306, 0x728f, 0x4014, 0x519d, 0x2522, 0x34ab, 0x0630, 0x17b9,
-	0xef4e, 0xfec7, 0xcc5c, 0xddd5, 0xa96a, 0xb8e3, 0x8a78, 0x9bf1,
-	0x7387, 0x620e, 0x5095, 0x411c, 0x35a3, 0x242a, 0x16b1, 0x0738,
-	0xffcf, 0xee46, 0xdcdd, 0xcd54, 0xb9eb, 0xa862, 0x9af9, 0x8b70,
-	0x8408, 0x9581, 0xa71a, 0xb693, 0xc22c, 0xd3a5, 0xe13e, 0xf0b7,
-	0x0840, 0x19c9, 0x2b52, 0x3adb, 0x4e64, 0x5fed, 0x6d76, 0x7cff,
-	0x9489, 0x8500, 0xb79b, 0xa612, 0xd2ad, 0xc324, 0xf1bf, 0xe036,
-	0x18c1, 0x0948, 0x3bd3, 0x2a5a, 0x5ee5, 0x4f6c, 0x7df7, 0x6c7e,
-	0xa50a, 0xb483, 0x8618, 0x9791, 0xe32e, 0xf2a7, 0xc03c, 0xd1b5,
-	0x2942, 0x38cb, 0x0a50, 0x1bd9, 0x6f66, 0x7eef, 0x4c74, 0x5dfd,
-	0xb58b, 0xa402, 0x9699, 0x8710, 0xf3af, 0xe226, 0xd0bd, 0xc134,
-	0x39c3, 0x284a, 0x1ad1, 0x0b58, 0x7fe7, 0x6e6e, 0x5cf5, 0x4d7c,
-	0xc60c, 0xd785, 0xe51e, 0xf497, 0x8028, 0x91a1, 0xa33a, 0xb2b3,
-	0x4a44, 0x5bcd, 0x6956, 0x78df, 0x0c60, 0x1de9, 0x2f72, 0x3efb,
-	0xd68d, 0xc704, 0xf59f, 0xe416, 0x90a9, 0x8120, 0xb3bb, 0xa232,
-	0x5ac5, 0x4b4c, 0x79d7, 0x685e, 0x1ce1, 0x0d68, 0x3ff3, 0x2e7a,
-	0xe70e, 0xf687, 0xc41c, 0xd595, 0xa12a, 0xb0a3, 0x8238, 0x93b1,
-	0x6b46, 0x7acf, 0x4854, 0x59dd, 0x2d62, 0x3ceb, 0x0e70, 0x1ff9,
-	0xf78f, 0xe606, 0xd49d, 0xc514, 0xb1ab, 0xa022, 0x92b9, 0x8330,
-	0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
-};
-#endif
 
 static int debug;
 
@@ -309,34 +260,7 @@ static struct dahdi_dialparams global_dialparams = {
 static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long data, int unit);
 
 #if defined(CONFIG_DAHDI_MMX) || defined(ECHO_CAN_FP)
-/* XXX kernel_fpu_begin() is NOT exported properly (in 2.4), so we have to make
-       a local version.  Somebody fix this! XXX */
-
-#ifndef LINUX26
-static inline void __save_init_fpu( struct task_struct *tsk )
-{
-	if ( cpu_has_fxsr ) {
-		asm volatile( "fxsave %0 ; fnclex"
-			      : "=m" (tsk->thread.i387.fxsave) );
-	} else {
-		asm volatile( "fnsave %0 ; fwait"
-			      : "=m" (tsk->thread.i387.fsave) );
-	}
-	tsk->flags &= ~PF_USEDFPU;
-}
-
-static inline void dahdi_kernel_fpu_begin(void)
-{
-	struct task_struct *tsk = current;
-	if (tsk->flags & PF_USEDFPU) {
-		__save_init_fpu(tsk);
-		return;
-	}
-	clts();
-}
-#else
 #define dahdi_kernel_fpu_begin kernel_fpu_begin
-#endif /* LINUX26 */
 #endif	
 
 static struct dahdi_timer {
@@ -1368,15 +1292,9 @@ char *dahdi_lboname(int x)
 #ifdef NEW_HDLC_INTERFACE
 static int dahdi_net_open(struct net_device *dev)
 {
-#ifdef LINUX26
 	int res = hdlc_open(dev);
 	struct dahdi_chan *ms = dev_to_ztchan(dev);
-#else
-	hdlc_device *hdlc = dev_to_hdlc(dev);
-	struct dahdi_chan *ms = hdlc_to_ztchan(hdlc);
-	int res = hdlc_open(hdlc);
-#endif	
-	                                                                                                                             
+                                                                                                                            
 /*	if (!dev->hard_start_xmit) return res; is this really necessary? --byg */
 	if (res) /* this is necessary to avoid kernel panic when UNSPEC link encap, proven --byg */
 		return res;
@@ -1411,16 +1329,12 @@ static int dahdi_net_open(hdlc_device *hdlc)
 
 	netif_start_queue(ztchan_to_dev(ms));
 
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#endif	
 #ifdef CONFIG_DAHDI_DEBUG
 	printk("ZAPNET: Opened channel %d name %s\n", ms->channo, ms->name);
 #endif
 	return 0;
 }
 
-#ifdef LINUX26
 static int dahdi_register_hdlc_device(struct net_device *dev, const char *dev_name)
 {
 	int result;
@@ -1438,17 +1352,12 @@ static int dahdi_register_hdlc_device(struct net_device *dev, const char *dev_na
 #endif
 	return 0;
 }
-#endif
 
 #ifdef NEW_HDLC_INTERFACE
 static int dahdi_net_stop(struct net_device *dev)
 {
-#ifdef LINUX26
     hdlc_device *h = dev_to_hdlc(dev);
     struct dahdi_hdlc *hdlc = h->priv;
-#else
-    hdlc_device *hdlc = dev_to_hdlc(dev);
-#endif
 
 #else
 static void dahdi_net_close(hdlc_device *hdlc)
@@ -1476,16 +1385,7 @@ static void dahdi_net_close(hdlc_device *hdlc)
 	/* Not much to do here.  Just deallocate the buffers */
         netif_stop_queue(ztchan_to_dev(ms));
 	dahdi_reallocbufs(ms, 0, 0);
-#ifdef LINUX26
 	hdlc_close(dev);
-#else
-#ifndef CONFIG_OLD_HDLC_API
-	hdlc_close(hdlc);
-#endif
-#endif	
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#endif	
 #ifdef NEW_HDLC_INTERFACE
 	return 0;
 #else
@@ -1497,13 +1397,8 @@ static void dahdi_net_close(hdlc_device *hdlc)
 /* kernel 2.4.20+ has introduced attach function, dunno what to do,
  just copy sources from dscc4 to be sure and ready for further mastering,
  NOOP right now (i.e. really a stub)  --byg */
-#ifdef LINUX26
 static int dahdi_net_attach(struct net_device *dev, unsigned short encoding,
         unsigned short parity)
-#else		
-static int dahdi_net_attach(hdlc_device *hdlc, unsigned short encoding,
-        unsigned short parity)
-#endif
 {
 /*        struct net_device *dev = hdlc_to_dev(hdlc);
         struct dscc4_dev_priv *dpriv = dscc4_priv(dev);
@@ -1543,13 +1438,8 @@ static int dahdi_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	/* FIXME: this construction seems to be not very optimal for me but I could find nothing better at the moment (Friday, 10PM :( )  --byg */
 /*	struct dahdi_chan *ss = hdlc_to_ztchan(list_entry(dev, struct dahdi_hdlc, netdev.netdev));*/
-#ifdef LINUX26
 	struct dahdi_chan *ss = dev_to_ztchan(dev);
 	struct net_device_stats *stats = hdlc_stats(dev);
-#else
-	struct dahdi_chan *ss = (list_entry(dev, struct dahdi_hdlc, netdev.netdev)->chan);
-	struct net_device_stats *stats = &ss->hdlcnetdev->netdev.stats;
-#endif	
 
 #else
 static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
@@ -1741,12 +1631,8 @@ static void dahdi_chan_unreg(struct dahdi_chan *chan)
 	unsigned long flags;
 #ifdef CONFIG_DAHDI_NET
 	if (chan->flags & DAHDI_FLAG_NETDEV) {
-#ifdef LINUX26
 		unregister_hdlc_device(chan->hdlcnetdev->netdev);
 		free_netdev(chan->hdlcnetdev->netdev);
-#else
-		unregister_hdlc_device(&chan->hdlcnetdev->netdev);
-#endif
 		kfree(chan->hdlcnetdev);
 		chan->hdlcnetdev = NULL;
 	}
@@ -2000,36 +1886,24 @@ static ssize_t dahdi_chan_write(struct file *file, const char *usrbuf, size_t co
 static int dahdi_ctl_open(struct inode *inode, struct file *file)
 {
 	/* Nothing to do, really */
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#endif
 	return 0;
 }
 
 static int dahdi_chan_open(struct inode *inode, struct file *file)
 {
 	/* Nothing to do here for now either */
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#endif
 	return 0;
 }
 
 static int dahdi_ctl_release(struct inode *inode, struct file *file)
 {
 	/* Nothing to do */
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#endif
 	return 0;
 }
 
 static int dahdi_chan_release(struct inode *inode, struct file *file)
 {
 	/* Nothing to do for now */
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#endif
 	return 0;
 }
 
@@ -2359,9 +2233,6 @@ static int dahdi_timing_open(struct inode *inode, struct file *file)
 	memset(t, 0, sizeof(struct dahdi_timer));
 	init_waitqueue_head(&t->sel);
 	file->private_data = t;
-#ifndef LINUX26
-	MOD_INC_USE_COUNT;
-#endif
 	spin_lock_irqsave(&zaptimerlock, flags);
 	t->next = zaptimers;
 	zaptimers = t;
@@ -2396,9 +2267,6 @@ static int dahdi_timer_release(struct inode *inode, struct file *file)
 			return 0;
 		}
 		kfree(t);
-#ifndef LINUX26
-		MOD_DEC_USE_COUNT;
-#endif		
 	}
 	return 0;
 }
@@ -2431,10 +2299,6 @@ static int dahdi_specchan_open(struct inode *inode, struct file *file, int unit,
 			}
 			if (!res) {
 				chans[unit]->file = file;
-#ifndef LINUX26
-				if (inc)
-					MOD_INC_USE_COUNT;
-#endif					
 				spin_unlock_irqrestore(&chans[unit]->lock, flags);
 			} else {
 				spin_unlock_irqrestore(&chans[unit]->lock, flags);
@@ -2465,9 +2329,6 @@ static int dahdi_specchan_release(struct inode *node, struct file *file, int uni
 		clear_bit(DAHDI_FLAGBIT_OPEN, &chans[unit]->flags);
 	} else
 		res = -ENXIO;
-#ifndef LINUX26
-	MOD_DEC_USE_COUNT;
-#endif
 	return res;
 }
 
@@ -3665,14 +3526,10 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 				printk(KERN_WARNING "Can't switch HDLC net mode on channel %s, since current interface is up\n", chans[ch.chan]->name);
 				return -EBUSY;
 			}
-#ifdef LINUX26
 			spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
 			unregister_hdlc_device(chans[ch.chan]->hdlcnetdev->netdev);
 			spin_lock_irqsave(&chans[ch.chan]->lock, flags);
 			free_netdev(chans[ch.chan]->hdlcnetdev->netdev);
-#else
-			unregister_hdlc_device(&chans[ch.chan]->hdlcnetdev->netdev);
-#endif				
 			kfree(chans[ch.chan]->hdlcnetdev);
 			chans[ch.chan]->hdlcnetdev = NULL;
 			chans[ch.chan]->flags &= ~DAHDI_FLAG_NETDEV;
@@ -3766,7 +3623,6 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			if (chans[ch.chan]->hdlcnetdev) {
 /*				struct hdlc_device *hdlc = chans[ch.chan]->hdlcnetdev;
 				struct net_device *d = hdlc_to_dev(hdlc); mmm...get it right later --byg */
-#ifdef LINUX26
 				chans[ch.chan]->hdlcnetdev->netdev = alloc_hdlcdev(chans[ch.chan]->hdlcnetdev);
 				if (chans[ch.chan]->hdlcnetdev->netdev) {
 					chans[ch.chan]->hdlcnetdev->chan = chans[ch.chan];
@@ -3788,27 +3644,6 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 					printk("Unable to allocate hdlc: *shrug*\n");
 					res = -1;
 				}
-#else /* LINUX26 */
-				chans[ch.chan]->hdlcnetdev->chan = chans[ch.chan];
-#ifndef HDLC_MAINTAINERS_ARE_MORE_STUPID_THAN_I_THOUGHT
-				chans[ch.chan]->hdlcnetdev->netdev.ioctl = dahdi_net_ioctl;
-#endif
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.do_ioctl = dahdi_net_ioctl;
-#ifdef NEW_HDLC_INTERFACE
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.open = dahdi_net_open;
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.stop = dahdi_net_stop;
-				chans[ch.chan]->hdlcnetdev->netdev.xmit = dahdi_xmit;
-				chans[ch.chan]->hdlcnetdev->netdev.attach = dahdi_net_attach;
-#else
-				chans[ch.chan]->hdlcnetdev->netdev.open = dahdi_net_open;
-				chans[ch.chan]->hdlcnetdev->netdev.close = dahdi_net_close;
-				chans[ch.chan]->hdlcnetdev->netdev.set_mode = NULL;
-				chans[ch.chan]->hdlcnetdev->netdev.xmit = dahdi_xmit;
-#endif /* NEW_HDLC_INTERFACE */
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.irq = chans[ch.chan]->span->irq;
-				chans[ch.chan]->hdlcnetdev->netdev.netdev.tx_queue_len = 50;
-				res = register_hdlc_device(&chans[ch.chan]->hdlcnetdev->netdev);
-#endif /* LINUX26 */
 				if (!res)
 					chans[ch.chan]->flags |= DAHDI_FLAG_NETDEV;
 			} else {
@@ -6710,11 +6545,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 							skb_put(skb, ms->readn[ms->inreadbuf]);
 #ifdef CONFIG_DAHDI_NET
 							if (ms->flags & DAHDI_FLAG_NETDEV) {
-#ifdef LINUX26
 								struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
-#else  /* LINUX26 */
-								struct net_device_stats *stats = &ms->hdlcnetdev->netdev.stats;
-#endif /* LINUX26 */
 								stats->rx_packets++;
 								stats->rx_bytes += ms->readn[ms->inreadbuf];
 							}
@@ -6723,11 +6554,7 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 						} else {
 #ifdef CONFIG_DAHDI_NET
 							if (ms->flags & DAHDI_FLAG_NETDEV) {
-#ifdef LINUX26
 								struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
-#else  /* LINUX26 */
-								struct net_device_stats *stats = &ms->hdlcnetdev->netdev.stats;
-#endif /* LINUX26 */
 								stats->rx_dropped++;
 							}
 #endif
@@ -6816,11 +6643,7 @@ out in the later versions, and is put back now. */
 
 #ifdef CONFIG_DAHDI_NET
 				if (ms->flags & DAHDI_FLAG_NETDEV) {
-#ifdef LINUX26
 					struct net_device_stats *stats = hdlc_stats(ms->hdlcnetdev->netdev);
-#else  /* LINUX26 */
-					struct net_device_stats *stats = &ms->hdlcnetdev->netdev.stats;
-#endif /* LINUX26 */
 					stats->rx_errors++;
 					if (abort == DAHDI_EVENT_OVERRUN)
 						stats->rx_over_errors++;
@@ -7524,13 +7347,8 @@ MODULE_LICENSE("GPL");
 MODULE_VERSION(DAHDI_VERSION);
 #endif
 
-#ifdef LINUX26
 module_param(debug, int, 0644);
 module_param(deftaps, int, 0644);
-#else
-MODULE_PARM(debug, "i");
-MODULE_PARM(deftaps, "i");
-#endif
 
 static struct file_operations dahdi_fops = {
 	owner: THIS_MODULE,

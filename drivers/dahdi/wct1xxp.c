@@ -32,12 +32,10 @@
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <linux/spinlock.h>
+#include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
-#ifdef LINUX26
-#include <linux/moduleparam.h>
-#endif
 
 #define WC_MAX_CARDS	32
 
@@ -211,9 +209,6 @@ static int t1xxp_open(struct dahdi_chan *chan)
 	if (wc->dead)
 		return -ENODEV;
 	wc->usecount++;
-#ifndef LINUX26	
-	MOD_INC_USE_COUNT;
-#endif	
 	return 0;
 }
 
@@ -286,9 +281,6 @@ static int t1xxp_close(struct dahdi_chan *chan)
 {
 	struct t1xxp *wc = chan->pvt;
 	wc->usecount--;
-#ifndef LINUX26	
-	MOD_DEC_USE_COUNT;
-#endif
 	/* If we're dead, release us now */
 	if (!wc->usecount && wc->dead) 
 		t1xxp_release(wc);
@@ -1159,11 +1151,7 @@ DAHDI_IRQ_HANDLER(t1xxp_interrupt)
 
 	ints = inb(wc->ioaddr + WC_INTSTAT);
 	if (!ints)
-#ifdef LINUX26
 		return IRQ_NONE;
-#else
-		return;
-#endif		
 
 	outb(ints, wc->ioaddr + WC_INTSTAT);
 
@@ -1211,9 +1199,7 @@ DAHDI_IRQ_HANDLER(t1xxp_interrupt)
 	if (ints & 0x20)
 		printk("PCI Target abort\n");
 
-#ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif		
 }
 
 static int t1xxp_hardware_init(struct t1xxp *wc)
@@ -1397,11 +1383,7 @@ MODULE_DEVICE_TABLE(pci,t1xxp_pci_tbl);
 static struct pci_driver t1xxp_driver = {
 	name: 	"t1xxp",
 	probe: 	t1xxp_init_one,
-#ifdef LINUX26
 	remove:	__devexit_p(t1xxp_remove_one),
-#else
-	remove:	t1xxp_remove_one,
-#endif
 	suspend: NULL,
 	resume:	NULL,
 	id_table: t1xxp_pci_tbl,
@@ -1421,11 +1403,8 @@ static void __exit t1xxp_cleanup(void)
 	pci_unregister_driver(&t1xxp_driver);
 }
 
-#ifdef LINUX26
 module_param(debug, int, 0600);
-#else
-MODULE_PARM(debug, "i");
-#endif
+
 MODULE_DESCRIPTION("Wildcard T100P/E100P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 #ifdef MODULE_LICENSE
