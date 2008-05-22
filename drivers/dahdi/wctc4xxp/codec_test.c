@@ -1,5 +1,5 @@
 /*
- * Wilcard TC400B Digium Transcoder Engine Interface Driver for DAHDI Telephony interface test tool.
+ * Wildcard TC400B Digium Transcoder Engine Interface Driver for DAHDI Telephony interface test tool.
  *
  * Written by Matt O'Gorman <mogorman@digium.com>
  *

@@ -1,5 +1,5 @@
 /*
- * Wilcard S100P FXS Interface Driver for DAHDI Telephony interface
+ * Wildcard S100P FXS Interface Driver for DAHDI Telephony interface
  *
  * Written by Mark Spencer <markster@linux-support.net>
  *

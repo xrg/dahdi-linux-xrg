@@ -1,5 +1,5 @@
 /*
- * Wilcard TDM400P TDM FXS/FXO Interface Driver for DAHDI Telephony interface
+ * Wildcard TDM400P TDM FXS/FXO Interface Driver for DAHDI Telephony interface
  *
  * Written by Mark Spencer <markster@digium.com>
  *            Matthew Fredrickson <creslin@digium.com>
