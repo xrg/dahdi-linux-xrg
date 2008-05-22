@@ -1,20 +1,11 @@
 #
-# Makefile for Zaptel driver modules
+# Makefile for DAHDI driver modules
 #
-# Copyright (C) 2001-2007 Digium, Inc.
+# Copyright (C) 2001-2008 Digium, Inc.
 #
 #
 
-ifneq ($(KBUILD_EXTMOD),)
-# We only get in here if we're from kernel 2.6 <= 2.6.9 and going through 
-# Kbuild. Later versions will include Kbuild instead of Makefile.
-include $(src)/Kbuild
-
-else
-
-ifeq ($(MAKELEVEL),0)
 PWD:=$(shell pwd)
-endif
 
 ifeq ($(ARCH),)
 ARCH:=$(shell uname -m | sed -e s/i.86/i386/)
@@ -65,32 +56,12 @@ ifeq (yes,$(HAS_KSRC))
   HOTPLUG_FIRMWARE:=$(shell if grep -q '^CONFIG_FW_LOADER=[ym]' $(KCONFIG); then echo "yes"; else echo "no"; fi)
 endif
 
-#NOTE NOTE NOTE
-#
-# all variables set before the include of Makefile.kernel26 are needed by the 2.6 kernel module build process
-
-ifneq ($(KBUILD_EXTMOD),)
-
-include $(src)/Makefile.kernel26
-
-else
-
-#
-# Features are now configured in zconfig.h
-#
-
 MODULE_ALIASES=wcfxs wctdm8xxp wct2xxp
 
 KMAKE = $(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 KMAKE_INST = $(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 
 ROOT_PREFIX=
-
-CONFIG_FILE=/etc/zaptel.conf
-CFLAGS+=-DZAPTEL_CONFIG=\"$(CONFIG_FILE)\"
-
-# sample makefile "trace print"
-#tracedummy=$(shell echo ====== GOT HERE ===== >&2; echo >&2)
 
 CHKCONFIG	:= $(wildcard /sbin/chkconfig)
 UPDATE_RCD	:= $(wildcard /usr/sbin/update-rc.d)
@@ -149,14 +120,13 @@ stackcheck: checkstack modules
 install: all devices install-modules install-firmware install-include
 	@echo "###################################################"
 	@echo "###"
-	@echo "### Zaptel installed successfully."
+	@echo "### DAHDI installed successfully."
 	@echo "### If you have not done so before, install init scripts with:"
 	@echo "###"
 	@echo "###   make config"
 	@echo "###"
 	@echo "###################################################"
 
-# Pushing those two to a separate target that is not used by default:
 install-modconf:
 	build_tools/genmodconf $(BUILDVER) "$(ROOT_PREFIX)" "$(filter-out zaptel ztdummy xpp zttranscode ztdynamic,$(BUILD_MODULES)) $(MODULE_ALIASES)"
 	@if [ -d /etc/modutils ]; then \
@@ -231,13 +201,13 @@ endif
 ifneq (,$(ADD_INITD))
 	$(ADD_INITD)
 endif
-	@echo "Zaptel has been configured."
+	@echo "DAHDI has been configured."
 	@echo ""
-	@echo "If you have any zaptel hardware it is now recommended to "
-	@echo "edit /etc/default/zaptel or /etc/sysconfig/zaptel and set there an "
-	@echo "optimal value for the variable MODULES ."
+	@echo "If you have any DAHDI hardware it is now recommended to "
+	@echo "edit /etc/default/dahdi or /etc/sysconfig/dahdi and set there an "
+	@echo "optimal value for the variable MODULES."
 	@echo ""
-	@echo "I think that the zaptel hardware you have on your system is:"
+	@echo "I think that the DAHDI hardware you have on your system is:"
 	@kernel/xpp/utils/zaptel_hardware || true
 
 update:
@@ -263,9 +233,4 @@ distclean: dist-clean
 dist-clean: clean
 	@$(MAKE) -C firmware dist-clean
 
-.PHONY: distclean dist-clean clean version.h all _all install b410p devices programs modules tests devel data stackcheck install-udev config update install-programs install-modules install-include install-libs install-utils-subdirs utils-subdirs uninstall-modules
-
-endif
-
-#end of: ifneq ($(KBUILD_EXTMOD),)
-endif
+.PHONY: distclean dist-clean clean version.h all install devices modules stackcheck install-udev config update install-modules install-include uninstall-modules
