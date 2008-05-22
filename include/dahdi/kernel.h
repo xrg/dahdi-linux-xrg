@@ -80,14 +80,6 @@
 #include "ecdis.h"
 #include "fasthdlc.h"
 
-#ifdef CONFIG_DEVFS_FS
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-#include <linux/devfs_fs_kernel.h>
-#else
-#undef CONFIG_DEVFS_FS
-//#warning "DAHDI doesn't support DEVFS in post 2.4 kernels.  Disabling DEVFS in DAHDI"
-#endif
-#endif /* CONFIG_DEVFS_FS */
 #endif /* __KERNEL__ */
 
 #include <linux/types.h>
@@ -1247,9 +1239,6 @@ struct dahdi_tone_state {
 struct dahdi_chardev {
 	const char *name;
 	__u8 minor;
-#ifdef CONFIG_DEVFS_FS
-	devfs_handle_t devfs_handle;
-#endif
 };
 
 int dahdi_register_chardev(struct dahdi_chardev *dev);
@@ -1505,11 +1494,6 @@ struct dahdi_chan {
 #else
 	unsigned char *lin2x;
 #endif
-
-#ifdef CONFIG_DEVFS_FS
-	devfs_handle_t fhandle;  /* File handle in devfs for the channel */
-	devfs_handle_t fhandle_symlink;
-#endif /* CONFIG_DEVFS_FS */
 };
 
 /* defines for transmit signalling */
@@ -1685,10 +1669,6 @@ struct dahdi_span {
 	int spanno;			/* Span number for DAHDI */
 	int offset;			/* Offset within a given card */
 	int lastalarms;		/* Previous alarms */
-
-#ifdef CONFIG_DEVFS_FS
-	devfs_handle_t dhandle;  /* Directory name */
-#endif	
 	/* If the watchdog detects no received data, it will call the
 	   watchdog routine */
 	int (*watchdog)(struct dahdi_span *span, int cause);

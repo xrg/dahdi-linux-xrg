@@ -36,9 +36,6 @@
 #include <linux/mm.h>
 #include <linux/page-flags.h>
 #include <asm/io.h>
-#ifdef CONFIG_DEVFS_FS
-#include <linux/devfs_fs_kernel.h>
-#endif
 
 #ifdef LINUX26
 #include <linux/moduleparam.h>

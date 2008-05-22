@@ -33,10 +33,6 @@
 #include <linux/netdevice.h>
 #include <linux/notifier.h>
 
-#ifdef CONFIG_DEVFS_FS
-#include <linux/devfs_fs_kernel.h>
-#endif
-
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
 

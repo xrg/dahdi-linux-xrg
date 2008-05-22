@@ -47,18 +47,18 @@
 #include <linux/version.h>
 #include <linux/ctype.h>
 #include <linux/kmod.h>
-#ifdef CONFIG_DEVFS_FS
-#include <linux/devfs_fs_kernel.h>
-#endif /* CONFIG_DEVFS_FS */
+
 #ifdef CONFIG_DAHDI_NET
 #include <linux/netdevice.h>
 #endif /* CONFIG_DAHDI_NET */
+
 #include <linux/ppp_defs.h>
 #ifdef CONFIG_DAHDI_PPP
 #include <linux/netdevice.h>
 #include <linux/if.h>
 #include <linux/if_ppp.h>
 #endif
+
 #include <asm/atomic.h>
 
 #ifndef CONFIG_OLD_HDLC_API
@@ -150,15 +150,6 @@ EXPORT_SYMBOL(dahdi_unregister_chardev);
 
 #ifdef CONFIG_PROC_FS
 static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS]; 
-#endif
-
-/* Here are a couple important little additions for devfs */
-#ifdef CONFIG_DEVFS_FS
-static devfs_handle_t dahdi_devfs_dir;
-static devfs_handle_t channel;
-static devfs_handle_t pseudo;
-static devfs_handle_t ctl;
-static devfs_handle_t timer;
 #endif
 
 /* udev necessary data structures.  Yeah! */
@@ -1327,51 +1318,6 @@ static void dahdi_set_law(struct dahdi_chan *chan, int law)
 #endif
 	}
 }
-
-#ifdef CONFIG_DEVFS_FS
-static devfs_handle_t register_devfs_channel(struct dahdi_chan *chan, devfs_handle_t dir)
-{
-	char path[100];
-	char link[100];
-	char buf[50];
-	char tmp[100];
-	int link_offset = 0;
-	int tmp_offset = 0;
-	int path_offset = 0;
-	int err = 0;
-	devfs_handle_t chan_dev;
-	umode_t mode = S_IFCHR|S_IRUGO|S_IWUGO;
-	unsigned int flags = DEVFS_FL_AUTO_OWNER;
-
-	sprintf(path, "%d", chan->chanpos);
-	chan_dev = devfs_register(dir, path, flags, DAHDI_MAJOR, chan->channo, mode, &dahdi_fops, NULL);
-	if (!chan_dev) {
-		printk("DAHDI: Something really bad happened.  Unable to register devfs entry\n");
-		return NULL;
-	}
-
-	/* Set up the path of the destination of the link */
-	link_offset = devfs_generate_path(chan_dev, link, sizeof(link) - 1);
-	/* Now we need to strip off the leading "zap/".  If we don't, then we build a broken symlink */
-	path_offset = devfs_generate_path(dahdi_devfs_dir, path, sizeof(path) - 1); /* We'll just "borrow" path for a second */
-	path_offset = strlen(path+path_offset);
-	link_offset += path_offset; /* Taking out the "zap" */
-	link_offset++; /* Add one more place for the '/'.  The path generated does not contain the '/' we need to strip */
-	
-	/* Set up the path of the file/link itself */
-	tmp_offset = devfs_generate_path(dahdi_devfs_dir, tmp, sizeof(tmp) - 1);
-	sprintf(buf, "/%d", chan->channo);
-	dahdi_copy_string(path, tmp+tmp_offset, sizeof(path));
-	strncat(path, buf, sizeof(path) - 1);
-
-	err = devfs_mk_symlink(NULL, path, DEVFS_FL_DEFAULT, link+link_offset, &chan->fhandle_symlink, NULL);
-	if (err != 0) {
-		printk("Problem with making devfs symlink: %d\n", err);
-	}
-
-	return chan_dev;
-}
-#endif /* CONFIG_DEVFS_FS */
 
 static int dahdi_chan_reg(struct dahdi_chan *chan)
 {
@@ -5211,18 +5157,6 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 			proc_entries[span->spanno] = create_proc_read_entry(tempfile, 0444, NULL , dahdi_proc_read, (int *)(long)span->spanno);
 #endif
 
-#ifdef CONFIG_DEVFS_FS
-	{
-		char span_name[50];
-		sprintf(span_name, "span%d", span->spanno);
-		span->dhandle = devfs_mk_dir(dahdi_devfs_dir, span_name, NULL);
-		for (x = 0; x < span->channels; x++) {
-			struct dahdi_chan *chan = &span->chans[x];
-			chan->fhandle = register_devfs_channel(chan, chan->span->dhandle); /* Register our stuff with devfs */
-		}
-	}
-#endif /* CONFIG_DEVFS_FS */
-
 #ifdef CONFIG_DAHDI_UDEV
 	for (x = 0; x < span->channels; x++) {
 		char chan_name[50];
@@ -5272,13 +5206,6 @@ int dahdi_unregister(struct dahdi_span *span)
 	sprintf(tempfile, "dahdi/%d", span->spanno);
         remove_proc_entry(tempfile, NULL);
 #endif /* CONFIG_PROC_FS */
-#ifdef CONFIG_DEVFS_FS
-	for (x = 0; x < span->channels; x++) {
-		devfs_unregister(span->chans[x].fhandle);
-		devfs_unregister(span->chans[x].fhandle_symlink);
-	}
-	devfs_unregister(span->dhandle);
-#endif /* CONFIG_DEVFS_FS */
 
 #ifdef CONFIG_DAHDI_UDEV
 	for (x = 0; x < span->channels; x++) {
@@ -7682,10 +7609,6 @@ static void __exit watchdog_cleanup(void)
 
 int dahdi_register_chardev(struct dahdi_chardev *dev)
 {
-#ifdef CONFIG_DEVFS_FS
-	umode_t mode = S_IFCHR|S_IRUGO|S_IWUGO;
-#endif /* CONFIG_DEVFS_FS */
-
 #ifdef CONFIG_DAHDI_UDEV
 	char udevname[strlen(dev->name) + 3];
 
@@ -7693,10 +7616,6 @@ int dahdi_register_chardev(struct dahdi_chardev *dev)
 	strcat(udevname, dev->name);
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, dev->minor), NULL, udevname);
 #endif /* CONFIG_DAHDI_UDEV */
-	
-#ifdef CONFIG_DEVFS_FS
-	dev->devfs_handle = devfs_register(dahdi_devfs_dir, dev->name, DEVFS_FL_DEFAULT, DAHDI_MAJOR, dev->minor, mode, &dahdi_fops, NULL);
-#endif /* CONFIG_DEVFS_FS */
 
 	return 0;
 }
@@ -7706,10 +7625,6 @@ int dahdi_unregister_chardev(struct dahdi_chardev *dev)
 #ifdef CONFIG_DAHDI_UDEV
 	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, dev->minor));
 #endif /* CONFIG_DAHDI_UDEV */
-
-#ifdef CONFIG_DEVFS_FS
-	devfs_unregister(dev->devfs_handle);
-#endif /* CONFIG_DEVFS_FS */
 
 	return 0;
 }
@@ -7729,24 +7644,10 @@ static int __init dahdi_init(void) {
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 0), NULL, "zapctl");
 #endif /* CONFIG_DAHDI_UDEV */
 
-#ifdef CONFIG_DEVFS_FS
-	{
-		umode_t mode = S_IFCHR|S_IRUGO|S_IWUGO;
-
-		devfs_register_chrdev(DAHDI_MAJOR, "dahdi", &dahdi_fops);
-		if (!(dahdi_devfs_dir = devfs_mk_dir(NULL, "zap", NULL)))
-			return -EBUSY; /* This would be bad */
-		timer = devfs_register(dahdi_devfs_dir, "timer", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 253, mode, &dahdi_fops, NULL);
-		channel = devfs_register(dahdi_devfs_dir, "channel", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 254, mode, &dahdi_fops, NULL);
-		pseudo = devfs_register(dahdi_devfs_dir, "pseudo", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 255, mode, &dahdi_fops, NULL);
-		ctl = devfs_register(dahdi_devfs_dir, "ctl", DEVFS_FL_DEFAULT, DAHDI_MAJOR, 0, mode, &dahdi_fops, NULL);
-	}
-#else
 	if ((res = register_chrdev(DAHDI_MAJOR, "dahdi", &dahdi_fops))) {
 		printk(KERN_ERR "Unable to register DAHDI character device handler on %d\n", DAHDI_MAJOR);
 		return res;
 	}
-#endif /* CONFIG_DEVFS_FS */
 
 	printk(KERN_INFO "DAHDI Telephony Interface Registered on major %d\n", DAHDI_MAJOR);
 	printk(KERN_INFO "DAHDI Version: %s\n", DAHDI_VERSION);
@@ -7774,14 +7675,6 @@ static void __exit dahdi_cleanup(void) {
 			kfree(tone_zones[x]);
 	}
 
-#ifdef CONFIG_DEVFS_FS
-	devfs_unregister(timer);
-	devfs_unregister(channel);
-	devfs_unregister(pseudo);
-	devfs_unregister(ctl);
-	devfs_unregister(dahdi_devfs_dir);
-	devfs_unregister_chrdev(DAHDI_MAJOR, "dahdi");
-#else
 #ifdef CONFIG_DAHDI_UDEV
 	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
 	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
@@ -7789,8 +7682,9 @@ static void __exit dahdi_cleanup(void) {
 	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
 	class_destroy(dahdi_class);
 #endif /* CONFIG_DAHDI_UDEV */
+
 	unregister_chrdev(DAHDI_MAJOR, "dahdi");
-#endif
+
 #ifdef CONFIG_DAHDI_WATCHDOG
 	watchdog_cleanup();
 #endif

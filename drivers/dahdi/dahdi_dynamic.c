@@ -33,9 +33,6 @@
 #include <linux/sched.h>
 #include <linux/interrupt.h>
 #include <linux/vmalloc.h>
-#ifdef CONFIG_DEVFS_FS
-#include <linux/devfs_fs_kernel.h>
-#endif
 
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
