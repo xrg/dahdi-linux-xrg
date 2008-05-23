@@ -145,25 +145,25 @@ install-include:
 
 devices:
 ifneq (yes,$(DYNFS))
-	mkdir -p $(DESTDIR)/dev/zap
-	rm -f $(DESTDIR)/dev/zap/ctl
-	rm -f $(DESTDIR)/dev/zap/channel
-	rm -f $(DESTDIR)/dev/zap/pseudo
-	rm -f $(DESTDIR)/dev/zap/timer
-	rm -f $(DESTDIR)/dev/zap/transcode
-	rm -f $(DESTDIR)/dev/zap/253
-	rm -f $(DESTDIR)/dev/zap/252
-	rm -f $(DESTDIR)/dev/zap/251
-	rm -f $(DESTDIR)/dev/zap/250
-	mknod $(DESTDIR)/dev/zap/ctl c 196 0
-	mknod $(DESTDIR)/dev/zap/transcode c 196 250
-	mknod $(DESTDIR)/dev/zap/timer c 196 253
-	mknod $(DESTDIR)/dev/zap/channel c 196 254
-	mknod $(DESTDIR)/dev/zap/pseudo c 196 255
+	mkdir -p $(DESTDIR)/dev/dahdi
+	rm -f $(DESTDIR)/dev/dahdi/ctl
+	rm -f $(DESTDIR)/dev/dahdi/channel
+	rm -f $(DESTDIR)/dev/dahdi/pseudo
+	rm -f $(DESTDIR)/dev/dahdi/timer
+	rm -f $(DESTDIR)/dev/dahdi/transcode
+	rm -f $(DESTDIR)/dev/dahdi/253
+	rm -f $(DESTDIR)/dev/dahdi/252
+	rm -f $(DESTDIR)/dev/dahdi/251
+	rm -f $(DESTDIR)/dev/dahdi/250
+	mknod $(DESTDIR)/dev/dahdi/ctl c 196 0
+	mknod $(DESTDIR)/dev/dahdi/transcode c 196 250
+	mknod $(DESTDIR)/dev/dahdi/timer c 196 253
+	mknod $(DESTDIR)/dev/dahdi/channel c 196 254
+	mknod $(DESTDIR)/dev/dahdi/pseudo c 196 255
 	N=1; \
 	while [ $$N -lt 250 ]; do \
-		rm -f $(DESTDIR)/dev/zap/$$N; \
-		mknod $(DESTDIR)/dev/zap/$$N c 196 $$N; \
+		rm -f $(DESTDIR)/dev/dahdi/$$N; \
+		mknod $(DESTDIR)/dev/dahdi/$$N c 196 $$N; \
 		N=$$[$$N+1]; \
 	done
 else # DYNFS
