@@ -10,7 +10,7 @@
  * For non-GPL licensing, please contact Mark Spencer at 
  * the below e-mail address.
  *
- * Copyright (C) 2001, Linux Support Services, Inc.
+ * Copyright (C) 2001-2008, Digium, Inc.
  *
  * Written by Mark Spencer <markster@linux-support.net>
  * 

@@ -4,7 +4,7 @@
  * Written by Jim Dixon <jim@lambdatel.com>.
  *
  * Copyright (C) 2001 Jim Dixon / Zapata Telephony.
- * Copyright (C) 2001 Linux Support Services, Inc.
+ * Copyright (C) 2001-2008 Digium, Inc.
  *
  * All rights reserved.
  *
