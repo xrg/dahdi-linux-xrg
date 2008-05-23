@@ -34,7 +34,7 @@
 #include <linux/moduleparam.h>
 #include <asm/io.h>
 #include "proslic.h"
-#include "wctdm.h"
+
 /*
  *  Define for audio vs. register based ring detection
  *  
@@ -109,9 +109,9 @@ static alpha  indirect_regs[] =
 {43,66,"LOOP_CLOSE_TRES_LOW",0x1000},
 };
 
-
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
+#include <dahdi/wctdm_user.h>
 
 #include "fxo_modes.h"
 
