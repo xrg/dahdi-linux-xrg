@@ -156,7 +156,7 @@ int dahdi_transcoder_unregister(struct dahdi_transcoder *tc)
 int dahdi_transcoder_alert(struct dahdi_transcoder_channel *ztc)
 {
 	if (debug)
-		printk("ZT Transcoder Alert!\n");
+		printk("DAHDI Transcoder Alert!\n");
 	if (ztc->tch)
 		ztc->tch->status &= ~DAHDI_TC_FLAG_BUSY;
 	wake_up_interruptible(&ztc->ready);
@@ -328,7 +328,7 @@ static int dahdi_tc_ioctl(struct inode *inode, struct file *file, unsigned int c
 		return -EFAULT;
 
 	if (debug)
-		printk("ZT Transcode ioctl op = %d!\n", op);
+		printk("DAHDI Transcode ioctl op = %d!\n", op);
 
 	switch(op) {
 	case DAHDI_TCOP_GETINFO:

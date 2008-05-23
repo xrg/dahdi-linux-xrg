@@ -36,7 +36,7 @@
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
 
-#define ETH_P_ZTDETH	0xd00d
+#define ETH_P_DAHDI_DETH	0xd00d
 
 struct ztdeth_header {
 	unsigned short subaddr;
@@ -170,7 +170,7 @@ static int ztdeth_transmit(void *pvt, unsigned char *msg, int msglen)
 			zh->subaddr = subaddr;
 
 			/* Setup protocol and such */
-			skb->protocol = __constant_htons(ETH_P_ZTDETH);
+			skb->protocol = __constant_htons(ETH_P_DAHDI_DETH);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22)
 			skb_set_network_header(skb, 0);
 #else
@@ -178,10 +178,10 @@ static int ztdeth_transmit(void *pvt, unsigned char *msg, int msglen)
 #endif
 			skb->dev = dev;
 #if  LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
-			dev_hard_header(skb, dev, ETH_P_ZTDETH, addr, dev->dev_addr, skb->len);
+			dev_hard_header(skb, dev, ETH_P_DAHDI_DETH, addr, dev->dev_addr, skb->len);
 #else
 			if (dev->hard_header)
-				dev->hard_header(skb, dev, ETH_P_ZTDETH, addr, dev->dev_addr, skb->len);
+				dev->hard_header(skb, dev, ETH_P_DAHDI_DETH, addr, dev->dev_addr, skb->len);
 #endif
 			skb_queue_tail(&skbs, skb);
 		}
@@ -204,7 +204,7 @@ static int ztdeth_flush(void)
 }
 
 static struct packet_type ztdeth_ptype = {
-	type: __constant_htons(ETH_P_ZTDETH),		/* Protocol */
+	type: __constant_htons(ETH_P_DAHDI_DETH),		/* Protocol */
 	dev: NULL,					/* Device (NULL = wildcard) */
 	func: ztdeth_rcv,				/* Receiver */
 };

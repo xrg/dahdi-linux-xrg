@@ -223,9 +223,9 @@ static void ztdummy_timer(unsigned long param)
 static int ztdummy_initialize(struct ztdummy *ztd)
 {
 	/* DAHDI stuff */
-	sprintf(ztd->span.name, "ZTDUMMY/1");
+	sprintf(ztd->span.name, "DAHDI_DUMMY/1");
 	snprintf(ztd->span.desc, sizeof(ztd->span.desc) - 1, "%s (source: " CLOCK_SRC ") %d", ztd->span.name, 1);
-	sprintf(ztd->chan.name, "ZTDUMMY/%d/%d", 1, 0);
+	sprintf(ztd->chan.name, "DAHDI_DUMMY/%d/%d", 1, 0);
 	dahdi_copy_string(ztd->span.devicetype, "DAHDI Dummy Timing Driver", sizeof(ztd->span.devicetype));
 	ztd->chan.chanpos = 1;
 	ztd->span.chans = &ztd->chan;
