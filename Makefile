@@ -93,7 +93,7 @@ ifneq ($(wildcard .version),)
   DAHDIVERSION:=$(shell cat .version)
 else
 ifneq ($(wildcard .svn),)
-  DAHDIVERSION=SVN-$(shell build_tools/make_svn_branch_name)
+  DAHDIVERSION=$(shell build_tools/make_version . dahdi/linux)
 endif
 endif
 
@@ -142,6 +142,8 @@ endif
 install-include:
 	install -D -m 644 include/dahdi/kernel.h $(DESTDIR)/usr/include/dahdi/kernel.h
 	install -D -m 644 include/dahdi/user.h $(DESTDIR)/usr/include/dahdi/user.h
+# Include any driver-specific header files here
+	install -D -m 644 include/dahdi/wctdm_user.h $(DESTDIR)/usr/include/dahdi/wctdm_user.h
 
 devices:
 ifneq (yes,$(DYNFS))
