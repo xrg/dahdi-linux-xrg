@@ -164,10 +164,6 @@
 
 #define DAHDI_GET_PARAMS_RETURN_MASTER 0x40000000
 
-/* Extended attributes in lineconfig structure */
-#define DAHDI_SPANINFO_HAS_LINECONFIG
-#define DAHDI_SPANINFO_HAS_LBONAME
-
 typedef struct dahdi_params
 {
 	int channo;		/* Channel number */
