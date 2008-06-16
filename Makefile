@@ -25,7 +25,7 @@ ifndef KSRC
   ifneq (,$(wildcard /lib/modules/$(KVERS)/build))
     KSRC:=/lib/modules/$(KVERS)/build
   else
-    KSRC_SEARCH_PATH:=/usr/src/linux-2.4 /usr/src/linux
+    KSRC_SEARCH_PATH:=/usr/src/linux
     KSRC:=$(shell for dir in $(KSRC_SEARCH_PATH); do if [ -d $$dir ]; then echo $$dir; break; fi; done)
   endif
 endif
