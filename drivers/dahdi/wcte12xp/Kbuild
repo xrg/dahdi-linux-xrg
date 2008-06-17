@@ -1,6 +1,6 @@
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTE12XP) += wcte12xp.o
 
-FIRM_DIR	:= ../../firmware
+FIRM_DIR	:= ../firmware
 
 EXTRA_CFLAGS := -I$(src)/.. -Wno-undef
 

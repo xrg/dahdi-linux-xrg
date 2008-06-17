@@ -13,8 +13,6 @@
 
 .PHONY: dist-clean all uninstall have_download install
 
--include ../menuselect.makeopts ../makeopts
-
 PWD:=$(shell pwd)
 
 OCT6114_064_VERSION:=1.05.01
@@ -24,20 +22,22 @@ VPMADT032_VERSION:=1.07
 
 FIRMWARE_URL:=http://downloads.digium.com/pub/telephony/firmware/releases
 
+ALL_FIRMWARE="FIRMWARE-OCT6114-064 FIRMWARE-OCT6114-128 FIRMWARE-TC400M FIRMWARE-VPMADT032"
+
 # Firmware files should use the naming convention: dahdi-fw-<base name>-<sub name>-<version> or dahdi-fw-<base name>-<version>
 # First example: dahdi-fw-oct6114-064-1.05.01
-# This means this is version 1.05.01 of the oct6114 64 firmware
+# This means this is version 1.05.01 of the oct6114-064 firmware
 # Second example: dahdi-fw-tc400m-MR5.6
 # This means this is version MR5.6 of the tc400m firmware
 
 # Build a list of firmware package filenames we need
-FIRMWARE:=$(MENUSELECT_FIRMWARE:FIRMWARE-OCT6114-064=dahdi-fw-oct6114-064-$(OCT6114_064_VERSION).tar.gz)
+FIRMWARE:=$(ALL_FIRMWARE:FIRMWARE-OCT6114-064=dahdi-fw-oct6114-064-$(OCT6114_064_VERSION).tar.gz)
 FIRMWARE:=$(FIRMWARE:FIRMWARE-OCT6114-128=dahdi-fw-oct6114-128-$(OCT6114_128_VERSION).tar.gz)
 FIRMWARE:=$(FIRMWARE:FIRMWARE-TC400M=dahdi-fw-tc400m-$(TC400M_VERSION).tar.gz)
 FIRMWARE:=$(FIRMWARE:FIRMWARE-VPMADT032=dahdi-fw-vpmadt032-$(VPMADT032_VERSION).tar.gz)
 
 # Build a list of object files if hotplug will not be used
-OBJECT_FILES:=$(MENUSELECT_FIRMWARE:FIRMWARE-OCT6114-064=dahdi-fw-oct6114-064.o)
+OBJECT_FILES:=$(ALL_FIRMWARE:FIRMWARE-OCT6114-064=dahdi-fw-oct6114-064.o)
 OBJECT_FILES:=$(OBJECT_FILES:FIRMWARE-OCT6114-128=dahdi-fw-oct6114-128.o)
 OBJECT_FILES:=$(OBJECT_FILES:FIRMWARE-TC400M=dahdi-fw-tc400m.o)
 OBJECT_FILES:=$(OBJECT_FILES:FIRMWARE-VPMADT032=dahdi-fw-vpmadt032.o)
@@ -158,6 +158,7 @@ endif
 dist-clean: clean
 	rm -f dahdi-fw-*.bin
 	rm -f dahdi-fw-*.tar.gz
+	rm -f make_firmware_object
 
 # Clean up anything we built
 clean:
@@ -180,22 +181,28 @@ hotplug-uninstall:
 		rm -f $(DESTDIR)/lib/firmware/.dahdi-fw*; \
 	fi
 
+make_firmware_object: make_firmware_object.in ../dahdi-base.o
+	@export BFDNAME=`LANG=C objdump -f ../dahdi-base.o | grep -e "dahdi-base.o:" | sed "s/.*file format \(.*\)/\1/"`; \
+	 export BFDARCH=`LANG=C objdump -f ../dahdi-base.o | grep -e "architecture:" | sed "s/.*ture: \(.*\),.*/\1/"`; \
+	 sed -e s/BFDNAME/$${BFDNAME}/ -e s/BFDARCH/$${BFDARCH}/ $< > $@
+	@chmod +x $@
+
 # Build object file of an oct6114 064 firmware image for linking
-dahdi-fw-oct6114-064.o: dahdi-fw-oct6114-064-$(OCT6114_064_VERSION).tar.gz dahdi-fw-oct6114-064.bin
+dahdi-fw-oct6114-064.o: dahdi-fw-oct6114-064-$(OCT6114_064_VERSION).tar.gz dahdi-fw-oct6114-064.bin make_firmware_object
 	@echo Making firmware object file for dahdi-fw-oct6114-064.bin
-	../build_tools/make_firmware_object dahdi-fw-oct6114-064.bin $@
+	./make_firmware_object dahdi-fw-oct6114-064.bin $@
 
 # Build object file of an oct6114 128 firmware image for linking
-dahdi-fw-oct6114-128.o: dahdi-fw-oct6114-128-$(OCT6114_128_VERSION).tar.gz dahdi-fw-oct6114-128.bin
+dahdi-fw-oct6114-128.o: dahdi-fw-oct6114-128-$(OCT6114_128_VERSION).tar.gz dahdi-fw-oct6114-128.bin make_firmware_object
 	@echo Making firmware object file for dahdi-fw-oct6114-128.bin
-	../build_tools/make_firmware_object dahdi-fw-oct6114-128.bin $@
+	./make_firmware_object dahdi-fw-oct6114-128.bin $@
 
 # Build object file of a TC400M firmware image for linking
-dahdi-fw-tc400m.o: dahdi-fw-tc400m-$(TC400M_VERSION).tar.gz dahdi-fw-tc400m.bin
+dahdi-fw-tc400m.o: dahdi-fw-tc400m-$(TC400M_VERSION).tar.gz dahdi-fw-tc400m.bin make_firmware_object
 	@echo Making firmware object file for dahdi-fw-tc400m.bin
-	../build_tools/make_firmware_object dahdi-fw-tc400m.bin $@
+	./make_firmware_object dahdi-fw-tc400m.bin $@
 
 # Build object file of a VPMADT032 firmware image for linking
-dahdi-fw-vpmadt032.o: dahdi-fw-vpmadt032-$(VPMADT032_VERSION).tar.gz dahdi-fw-vpmadt032.bin
+dahdi-fw-vpmadt032.o: dahdi-fw-vpmadt032-$(VPMADT032_VERSION).tar.gz dahdi-fw-vpmadt032.bin make_firmware_object
 	@echo Making firmware object file for dahdi-fw-vpmadt032.bin
-	../build_tools/make_firmware_object dahdi-fw-vpmadt032.bin $@
+	./make_firmware_object dahdi-fw-vpmadt032.bin $@
