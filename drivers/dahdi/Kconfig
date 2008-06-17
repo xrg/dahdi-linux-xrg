@@ -4,6 +4,7 @@
 
 menuconfig DAHDI
 	tristate "DAHDI support"
+	select CRC_CCITT
 	default m
 	---help---
 	  DAHDI basic infrastructure.
