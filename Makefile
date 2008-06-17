@@ -204,7 +204,7 @@ ifdef COPY_INITD
 endif
 ifdef RCCONF_DIR
   ifeq (,$(wildcard $(DESTDIR)$(RCCONF_DIR)/dahdi))
-	$(INSTALL) -D -m 644 dahdi.sysconfig $(DESTDIR)$(RCCONF_DIR)/dahdi
+	install -D -m 644 dahdi.sysconfig $(DESTDIR)$(RCCONF_DIR)/dahdi
   endif
 endif
 ifdef COPY_NETSCR

@@ -22,7 +22,7 @@ VPMADT032_VERSION:=1.07
 
 FIRMWARE_URL:=http://downloads.digium.com/pub/telephony/firmware/releases
 
-ALL_FIRMWARE="FIRMWARE-OCT6114-064 FIRMWARE-OCT6114-128 FIRMWARE-TC400M FIRMWARE-VPMADT032"
+ALL_FIRMWARE=FIRMWARE-OCT6114-064 FIRMWARE-OCT6114-128 FIRMWARE-TC400M FIRMWARE-VPMADT032
 
 # Firmware files should use the naming convention: dahdi-fw-<base name>-<sub name>-<version> or dahdi-fw-<base name>-<version>
 # First example: dahdi-fw-oct6114-064-1.05.01
@@ -63,7 +63,6 @@ have_download:
 
 # Download and extract firmware tarballs
 dahdi-fw-oct6114-064-%.tar.gz: have_download
-	echo "FOO"
 ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Attempting to download $@"
 	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
@@ -114,12 +113,12 @@ ifeq ($(HOTPLUG_FIRMWARE),yes)
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-oct6114-064.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-oct6114-064.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
+		install -m 644 dahdi-fw-oct6114-064.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-oct6114-064.bin $(DESTDIR)/lib/firmware && \
+		install -m 644 dahdi-fw-oct6114-064.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION)); \
 	fi
@@ -129,12 +128,12 @@ endif
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-oct6114-128.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-oct6114-128.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
+		install -m 644 dahdi-fw-oct6114-128.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-128-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-oct6114-128.bin $(DESTDIR)/lib/firmware && \
+		install -m 644 dahdi-fw-oct6114-128.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-128-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION)); \
 	fi
@@ -144,12 +143,12 @@ endif
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-tc400m.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-tc400m.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
+		install -m 644 dahdi-fw-tc400m.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-tc400m-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-tc400m.bin $(DESTDIR)/lib/firmware && \
+		install -m 644 dahdi-fw-tc400m.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-tc400m-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION)); \
 	fi
@@ -159,12 +158,12 @@ endif
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-vpmadt032.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-vpmadt032.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
+		install -m 644 dahdi-fw-vpmadt032.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-vpmadt032-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		$(INSTALL) -m 644 dahdi-fw-vpmadt032.bin $(DESTDIR)/lib/firmware && \
+		install -m 644 dahdi-fw-vpmadt032.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-vpmadt032-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION)); \
 	fi
