@@ -132,18 +132,18 @@ typedef union {
 #define	DCHAN_LOST	15000	/* in ticks */
 
 #define	BRI_DCHAN_SIGCAP	(			  \
-					ZT_SIG_EM	| \
-					ZT_SIG_CLEAR	| \
-					ZT_SIG_FXSLS	| \
-					ZT_SIG_FXSGS	| \
-					ZT_SIG_FXSKS	| \
-					ZT_SIG_FXOLS	| \
-					ZT_SIG_FXOGS	| \
-					ZT_SIG_FXOKS	| \
-					ZT_SIG_CAS	| \
-					ZT_SIG_SF	  \
+					DAHDI_SIG_EM	| \
+					DAHDI_SIG_CLEAR	| \
+					DAHDI_SIG_FXSLS	| \
+					DAHDI_SIG_FXSGS	| \
+					DAHDI_SIG_FXSKS	| \
+					DAHDI_SIG_FXOLS	| \
+					DAHDI_SIG_FXOGS	| \
+					DAHDI_SIG_FXOKS	| \
+					DAHDI_SIG_CAS	| \
+					DAHDI_SIG_SF	  \
 				)
-#define	BRI_BCHAN_SIGCAP	(ZT_SIG_CLEAR | ZT_SIG_DACS)
+#define	BRI_BCHAN_SIGCAP	(DAHDI_SIG_CLEAR | DAHDI_SIG_DACS)
 
 #define	IS_NT(xpd)		((xpd)->direction == TO_PHONE)
 #define	BRI_PORT(xpd)		((xpd)->addr.subunit)
@@ -158,10 +158,10 @@ static int write_state_register(xpd_t *xpd, byte value);
 static bool bri_packet_is_valid(xpacket_t *pack);
 static void bri_packet_dump(const char *msg, xpacket_t *pack);
 static int proc_bri_info_read(char *page, char **start, off_t off, int count, int *eof, void *data);
-static int bri_spanconfig(struct zt_span *span, struct zt_lineconfig *lc);
-static int bri_chanconfig(struct zt_chan *chan, int sigtype);
-static int bri_startup(struct zt_span *span);
-static int bri_shutdown(struct zt_span *span);
+static int bri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc);
+static int bri_chanconfig(struct dahdi_chan *chan, int sigtype);
+static int bri_startup(struct dahdi_span *span);
+static int bri_shutdown(struct dahdi_span *span);
 
 #define	PROC_REGISTER_FNAME	"slics"
 #define	PROC_BRI_INFO_FNAME	"bri_info"
@@ -440,7 +440,7 @@ static int rx_dchan(xpd_t *xpd, reg_cmd_t *regcmd)
 	byte			*src;
 	byte			*dst;
 	byte			*dchan_buf;
-	struct zt_chan		*dchan;
+	struct dahdi_chan		*dchan;
 	uint			len;
 	bool			eoframe;
 	int			idx;
@@ -525,14 +525,14 @@ out:
 static int tx_dchan(xpd_t *xpd)
 {
 	struct BRI_priv_data	*priv;
-	struct zt_chan		*dchan;
+	struct dahdi_chan		*dchan;
 	int			len;
 	int			eoframe;
 	int			ret;
 
 	priv = xpd->priv;
 	BUG_ON(!priv);
-	if(!SPAN_REGISTERED(xpd) || !(xpd->span.flags & ZT_FLAG_RUNNING))
+	if(!SPAN_REGISTERED(xpd) || !(xpd->span.flags & DAHDI_FLAG_RUNNING))
 		return 0;
 	dchan = &xpd->chans[2];
 	len = dchan->bytes2transmit;	/* dchan's hdlc package len */
@@ -673,14 +673,14 @@ static int BRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
 		/* Nothing to do yet */
 		return 0;
 	}
-#ifdef ZT_SPANSTAT_V2 
+#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = "BRI";
 #endif 
-	xpd->span.linecompat = ZT_CONFIG_AMI | ZT_CONFIG_CCS;
-	xpd->span.deflaw = ZT_LAW_ALAW;
+	xpd->span.linecompat = DAHDI_CONFIG_AMI | DAHDI_CONFIG_CCS;
+	xpd->span.deflaw = DAHDI_LAW_ALAW;
 	BIT_SET(xpd->digital_signalling, 2);	/* D-Channel */
 	for_each_line(xpd, i) {
-		struct zt_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = &xpd->chans[i];
 
 		XPD_DBG(GENERAL, xpd, "setting BRI channel %d\n", i);
 		snprintf(cur_chan->name, MAX_CHANNAME, "XPP_%s/%02d/%1d%1d/%d",
@@ -690,8 +690,8 @@ static int BRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
 		cur_chan->pvt = xpd;
 		if(i == 2) {	/* D-CHAN */
 			cur_chan->sigcap = BRI_DCHAN_SIGCAP;
-			cur_chan->flags |= ZT_FLAG_BRIDCHAN;
-			cur_chan->flags &= ~ZT_FLAG_HDLC;
+			cur_chan->flags |= DAHDI_FLAG_BRIDCHAN;
+			cur_chan->flags &= ~DAHDI_FLAG_HDLC;
 
 			/* Setup big buffers for D-Channel rx/tx */
 			cur_chan->readchunk = priv->dchan_rbuf;
@@ -722,7 +722,7 @@ static int BRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
 				line_count += 2;
 			}
 		}
-		tmp_pcm_len = RPACKET_HEADERSIZE + sizeof(xpp_line_t)  +  line_count * ZT_CHUNKSIZE;
+		tmp_pcm_len = RPACKET_HEADERSIZE + sizeof(xpp_line_t)  +  line_count * DAHDI_CHUNKSIZE;
 	} else
 		tmp_pcm_len = 0;
 	spin_lock_irqsave(&xpd->lock, flags);
@@ -750,7 +750,7 @@ static int BRI_card_zaptel_postregistration(xpd_t *xpd, bool on)
 	return(0);
 }
 
-static int BRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
+static int BRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
 {
 	LINE_DBG(SIGNAL, xpd, pos, "%s\n", txsig2str(txsig));
 	return 0;
@@ -929,7 +929,7 @@ static int BRI_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 	if(!TRANSPORT_RUNNING(xpd->xbus))
 		return -ENODEV;
 	switch (cmd) {
-		case ZT_TONEDETECT:
+		case DAHDI_TONEDETECT:
 			/*
 			 * Asterisk call all span types with this (FXS specific)
 			 * call. Silently ignore it.
@@ -945,7 +945,7 @@ static int BRI_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 
 static int BRI_card_close(xpd_t *xpd, lineno_t pos)
 {
-	struct zt_chan	*chan = &xpd->span.chans[pos];
+	struct dahdi_chan	*chan = &xpd->span.chans[pos];
 
 	/* Clear D-Channel pending data */
 	chan->bytes2receive = 0;
@@ -958,7 +958,7 @@ static int BRI_card_close(xpd_t *xpd, lineno_t pos)
 /*
  * Called only for 'span' keyword in /etc/zaptel.conf
  */
-static int bri_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
+static int bri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 {
 	xpd_t		*xpd = span->pvt;
 	const char	*framingstr = "";
@@ -966,21 +966,21 @@ static int bri_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
 	const char	*crcstr = "";
 
 	/* framing first */
-	if (lc->lineconfig & ZT_CONFIG_B8ZS)
+	if (lc->lineconfig & DAHDI_CONFIG_B8ZS)
 		framingstr = "B8ZS";
-	else if (lc->lineconfig & ZT_CONFIG_AMI)
+	else if (lc->lineconfig & DAHDI_CONFIG_AMI)
 		framingstr = "AMI";
-	else if (lc->lineconfig & ZT_CONFIG_HDB3)
+	else if (lc->lineconfig & DAHDI_CONFIG_HDB3)
 		framingstr = "HDB3";
 	/* then coding */
-	if (lc->lineconfig & ZT_CONFIG_ESF)
+	if (lc->lineconfig & DAHDI_CONFIG_ESF)
 		codingstr = "ESF";
-	else if (lc->lineconfig & ZT_CONFIG_D4)
+	else if (lc->lineconfig & DAHDI_CONFIG_D4)
 		codingstr = "D4";
-	else if (lc->lineconfig & ZT_CONFIG_CCS)
+	else if (lc->lineconfig & DAHDI_CONFIG_CCS)
 		codingstr = "CCS";
 	/* E1's can enable CRC checking */
-	if (lc->lineconfig & ZT_CONFIG_CRC4)
+	if (lc->lineconfig & DAHDI_CONFIG_CRC4)
 		crcstr = "CRC4";
 	XPD_DBG(GENERAL, xpd, "[%s]: span=%d (%s) lbo=%d lineconfig=%s/%s/%s (0x%X) sync=%d\n",
 		IS_NT(xpd)?"NT":"TE",
@@ -1002,7 +1002,7 @@ static int bri_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
  * Called from zaptel with spinlock held on chan. Must not call back
  * zaptel functions.
  */
-static int bri_chanconfig(struct zt_chan *chan, int sigtype)
+static int bri_chanconfig(struct dahdi_chan *chan, int sigtype)
 {
 	DBG(GENERAL, "channel %d (%s) -> %s\n", chan->channo, chan->name, sig2str(sigtype));
 	// FIXME: sanity checks:
@@ -1014,11 +1014,11 @@ static int bri_chanconfig(struct zt_chan *chan, int sigtype)
 /*
  * Called only for 'span' keyword in /etc/zaptel.conf
  */
-static int bri_startup(struct zt_span *span)
+static int bri_startup(struct dahdi_span *span)
 {
 	xpd_t			*xpd = span->pvt;
 	struct BRI_priv_data	*priv;
-	struct zt_chan		*dchan;
+	struct dahdi_chan		*dchan;
 
 	BUG_ON(!xpd);
 	priv = xpd->priv;
@@ -1032,15 +1032,15 @@ static int bri_startup(struct zt_span *span)
 	CALL_XMETHOD(XPD_STATE, xpd->xbus, xpd, 1);
 	if(SPAN_REGISTERED(xpd)) {
 		dchan = &span->chans[2];
-		span->flags |= ZT_FLAG_RUNNING;
+		span->flags |= DAHDI_FLAG_RUNNING;
 		/*
 		 * Zaptel (wrongly) assume that D-Channel need HDLC decoding
 		 * and during zaptel registration override our flags.
 		 *
 		 * Don't Get Mad, Get Even:  Now we override zaptel :-)
 		 */
-		dchan->flags |= ZT_FLAG_BRIDCHAN;
-		dchan->flags &= ~ZT_FLAG_HDLC;
+		dchan->flags |= DAHDI_FLAG_BRIDCHAN;
+		dchan->flags &= ~DAHDI_FLAG_HDLC;
 	}
 	return 0;
 }
@@ -1048,7 +1048,7 @@ static int bri_startup(struct zt_span *span)
 /*
  * Called only for 'span' keyword in /etc/zaptel.conf
  */
-static int bri_shutdown(struct zt_span *span)
+static int bri_shutdown(struct dahdi_span *span)
 {
 	xpd_t			*xpd = span->pvt;
 	struct BRI_priv_data	*priv;
@@ -1069,7 +1069,7 @@ static int bri_shutdown(struct zt_span *span)
 static void BRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t wanted_lines, xpacket_t *pack)
 {
 	byte		*pcm;
-	struct zt_chan	*chans;
+	struct dahdi_chan	*chans;
 	unsigned long	flags;
 	int		i;
 	int		subunit;
@@ -1093,14 +1093,14 @@ static void BRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t wanted_li
 				if(SPAN_REGISTERED(tmp_xpd)) {
 #ifdef	DEBUG_PCMTX
 					if(pcmtx >= 0 && pcmtx_chan == i)
-						memset((u_char *)pcm, pcmtx, ZT_CHUNKSIZE);
+						memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 					else
 #endif
-						memcpy((u_char *)pcm, chans[i].writechunk, ZT_CHUNKSIZE);
+						memcpy((u_char *)pcm, chans[i].writechunk, DAHDI_CHUNKSIZE);
 					// fill_beep((u_char *)pcm, tmp_xpd->addr.subunit, 2);
 				} else
-					memset((u_char *)pcm, 0x7F, ZT_CHUNKSIZE);
-				pcm += ZT_CHUNKSIZE;
+					memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
+				pcm += DAHDI_CHUNKSIZE;
 			}
 		}
 		pcm_mask |= PCM_SHIFT(wanted_lines, subunit);
@@ -1142,10 +1142,10 @@ static void BRI_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 
 			if(IS_SET(tmp_mask, i)) {
 				r = tmp_xpd->span.chans[i].readchunk;
-				// memset((u_char *)r, 0x5A, ZT_CHUNKSIZE);	// DEBUG
+				// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
 				// fill_beep((u_char *)r, 1, 1);	// DEBUG: BEEP
-				memcpy((u_char *)r, pcm, ZT_CHUNKSIZE);
-				pcm += ZT_CHUNKSIZE;
+				memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);
+				pcm += DAHDI_CHUNKSIZE;
 			}
 		}
 		XPD_COUNTER(tmp_xpd, PCM_READ)++;
@@ -1271,7 +1271,7 @@ static void su_new_state(xpd_t *xpd, byte reg_x30)
 				clear_bit(HFC_L1_ACTIVATING, &priv->l1_flags);
 				set_bit(HFC_L1_ACTIVATED, &priv->l1_flags);
 				layer1_state(xpd, 1);
-				update_xpd_status(xpd, ZT_ALARM_NONE);
+				update_xpd_status(xpd, DAHDI_ALARM_NONE);
 				break;
 			case ST_TE_LOST_FRAMING:	/* F8 */
 				XPD_DBG(SIGNAL, xpd, "State ST_TE_LOST_FRAMING (F8)\n");
@@ -1302,7 +1302,7 @@ static void su_new_state(xpd_t *xpd, byte reg_x30)
 				set_bit(HFC_L1_ACTIVATED, &priv->l1_flags);
 				set_bri_timer(xpd, "T1", &priv->t1, HFC_TIMER_OFF);
 				layer1_state(xpd, 1);
-				update_xpd_status(xpd, ZT_ALARM_NONE);
+				update_xpd_status(xpd, DAHDI_ALARM_NONE);
 				break;
 			case ST_NT_DEACTIVTING:		/* G4 */
 				XPD_DBG(SIGNAL, xpd, "State ST_NT_DEACTIVTING (G4)\n");

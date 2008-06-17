@@ -38,7 +38,7 @@
 #include <linux/delay.h>	/* for udelay */
 #include <linux/interrupt.h>
 #include <linux/proc_fs.h>
-#include <zaptel.h>
+#include <dahdi/kernel.h>
 #include "xbus-core.h"
 #include "xproto.h"
 #include "xpp_zap.h"
@@ -49,7 +49,7 @@ static const char rcsid[] = "$Id$";
 #ifdef CONFIG_PROC_FS
 struct proc_dir_entry *xpp_proc_toplevel = NULL;
 #define	PROC_DIR		"xpp"
-#define	PROC_XPD_ZTREGISTER	"zt_registration"
+#define	PROC_XPD_ZTREGISTER	"dahdi_registration"
 #define	PROC_XPD_BLINK		"blink"
 #define	PROC_XPD_SUMMARY	"summary"
 #endif
@@ -350,9 +350,9 @@ static int xpd_read_proc(char *page, char **start, off_t off, int count, int *eo
 	if(SPAN_REGISTERED(xpd)) {
 		len += sprintf(page + len, "\nPCM:\n            |         [readchunk]       |         [writechunk]      | W D");
 		for_each_line(xpd, i) {
-			struct zt_chan	*chans = xpd->span.chans;
-			byte	rchunk[ZT_CHUNKSIZE];
-			byte	wchunk[ZT_CHUNKSIZE];
+			struct dahdi_chan	*chans = xpd->span.chans;
+			byte	rchunk[DAHDI_CHUNKSIZE];
+			byte	wchunk[DAHDI_CHUNKSIZE];
 			byte	*rp;
 			byte	*wp;
 			int j;
@@ -365,14 +365,14 @@ static int xpd_read_proc(char *page, char **start, off_t off, int count, int *eo
 				continue;
 			rp = chans[i].readchunk;
 			wp = chans[i].writechunk;
-			memcpy(rchunk, rp, ZT_CHUNKSIZE);
-			memcpy(wchunk, wp, ZT_CHUNKSIZE);
+			memcpy(rchunk, rp, DAHDI_CHUNKSIZE);
+			memcpy(wchunk, wp, DAHDI_CHUNKSIZE);
 			len += sprintf(page + len, "\n  port %2d>  |  ", i);
-			for(j = 0; j < ZT_CHUNKSIZE; j++) {
+			for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
 				len += sprintf(page + len, "%02X ", rchunk[j]);
 			}
 			len += sprintf(page + len, " |  ");
-			for(j = 0; j < ZT_CHUNKSIZE; j++) {
+			for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
 				len += sprintf(page + len, "%02X ", wchunk[j]);
 			}
 			len += sprintf(page + len, " | %c",
@@ -386,7 +386,7 @@ static int xpd_read_proc(char *page, char **start, off_t off, int count, int *eo
 	if(SPAN_REGISTERED(xpd)) {
 		len += sprintf(page + len, "\nSignalling:\n");
 		for_each_line(xpd, i) {
-			struct zt_chan *chan = &xpd->span.chans[i];
+			struct dahdi_chan *chan = &xpd->span.chans[i];
 			len += sprintf(page + len, "\t%2d> sigcap=0x%04X sig=0x%04X\n", i, chan->sigcap, chan->sig);
 		}
 	}
@@ -450,10 +450,10 @@ xpd_t *xpd_alloc(size_t privsize, const xproto_table_t *proto_table, int channel
 	xpd->digital_outputs = 0;
 	xpd->digital_inputs = 0;
 
-	atomic_set(&xpd->zt_registered, 0);
+	atomic_set(&xpd->dahdi_registered, 0);
 	atomic_set(&xpd->open_counter, 0);
 
-	xpd->chans = kmalloc(sizeof(struct zt_chan)*xpd->channels, GFP_KERNEL);
+	xpd->chans = kmalloc(sizeof(struct dahdi_chan)*xpd->channels, GFP_KERNEL);
 	if (xpd->chans == NULL) {
 		ERR("%s: Unable to allocate channels\n", __FUNCTION__);
 		goto err;
@@ -472,8 +472,8 @@ err:
 /* FIXME: this should be removed once digium patch their zaptel.h
  * I simply wish to avoid changing zaptel.h in the xpp patches.
  */
-#ifndef ZT_EVENT_REMOVED
-#define ZT_EVENT_REMOVED (20)
+#ifndef DAHDI_EVENT_REMOVED
+#define DAHDI_EVENT_REMOVED (20)
 #endif
 
 void xpd_disconnect(xpd_t *xpd)
@@ -490,11 +490,11 @@ void xpd_disconnect(xpd_t *xpd)
 	if(SPAN_REGISTERED(xpd)) {
 		int i;
 
-		update_xpd_status(xpd, ZT_ALARM_NOTOPEN);
+		update_xpd_status(xpd, DAHDI_ALARM_NOTOPEN);
 		/* TODO: Should this be done before releasing the spinlock? */
-		XPD_DBG(DEVICES, xpd, "Queuing ZT_EVENT_REMOVED on all channels to ask user to release them\n");
+		XPD_DBG(DEVICES, xpd, "Queuing DAHDI_EVENT_REMOVED on all channels to ask user to release them\n");
 		for (i=0; i<xpd->span.channels; i++)
-			zt_qevent_lock(&xpd->chans[i],ZT_EVENT_REMOVED);
+			dahdi_qevent_lock(&xpd->chans[i],DAHDI_EVENT_REMOVED);
 	}
 out:
 	spin_unlock_irqrestore(&xpd->lock, flags);
@@ -514,14 +514,14 @@ void xpd_remove(xpd_t *xpd)
 
 void update_xpd_status(xpd_t *xpd, int alarm_flag)
 {
-	struct zt_span *span = &xpd->span;
+	struct dahdi_span *span = &xpd->span;
 
 	if(!SPAN_REGISTERED(xpd)) {
 		// XPD_NOTICE(xpd, "%s: XPD is not registered. Skipping.\n", __FUNCTION__);
 		return;
 	}
 	switch (alarm_flag) {
-		case ZT_ALARM_NONE:
+		case DAHDI_ALARM_NONE:
 			xpd->last_response = jiffies;
 			break;
 		default:
@@ -531,22 +531,22 @@ void update_xpd_status(xpd_t *xpd, int alarm_flag)
 	if(span->alarms == alarm_flag)
 		return;
 	span->alarms = alarm_flag;
-	zt_alarm_notify(span);
+	dahdi_alarm_notify(span);
 	XPD_DBG(GENERAL, xpd, "Update XPD alarms: %s -> %02X\n", xpd->span.name, alarm_flag);
 }
 
 void update_line_status(xpd_t *xpd, int pos, bool to_offhook)
 {
-	zt_rxsig_t	rxsig;
+	dahdi_rxsig_t	rxsig;
 
 	BUG_ON(!xpd);
 	if(to_offhook) {
 		BIT_SET(xpd->offhook, pos);
-		rxsig = ZT_RXSIG_OFFHOOK;
+		rxsig = DAHDI_RXSIG_OFFHOOK;
 	} else {
 		BIT_CLR(xpd->offhook, pos);
 		BIT_CLR(xpd->cid_on, pos);
-		rxsig = ZT_RXSIG_ONHOOK;
+		rxsig = DAHDI_RXSIG_ONHOOK;
 		/*
 		 * To prevent latest PCM to stay in buffers
 		 * indefinitely, mark this channel for a
@@ -557,13 +557,13 @@ void update_line_status(xpd_t *xpd, int pos, bool to_offhook)
 		BIT_SET(xpd->silence_pcm, pos);
 	}
 	/*
-	 * We should not spinlock before calling zt_hooksig() as
+	 * We should not spinlock before calling dahdi_hooksig() as
 	 * it may call back into our xpp_hooksig() and cause
 	 * a nested spinlock scenario
 	 */
-	LINE_DBG(SIGNAL, xpd, pos, "rxsig=%s\n", (rxsig == ZT_RXSIG_ONHOOK) ? "ONHOOK" : "OFFHOOK");
+	LINE_DBG(SIGNAL, xpd, pos, "rxsig=%s\n", (rxsig == DAHDI_RXSIG_ONHOOK) ? "ONHOOK" : "OFFHOOK");
 	if(SPAN_REGISTERED(xpd))
-		zt_hooksig(&xpd->chans[pos], rxsig);
+		dahdi_hooksig(&xpd->chans[pos], rxsig);
 }
 
 #ifdef CONFIG_PROC_FS
@@ -593,7 +593,7 @@ static int proc_xpd_ztregister_write(struct file *file, const char __user *buffe
 {
 	xpd_t		*xpd = data;
 	char		buf[MAX_PROC_WRITE];
-	int		zt_reg;
+	int		dahdi_reg;
 	int		ret;
 
 	BUG_ON(!xpd);
@@ -602,11 +602,11 @@ static int proc_xpd_ztregister_write(struct file *file, const char __user *buffe
 	if(copy_from_user(buf, buffer, count))
 		return -EFAULT;
 	buf[count] = '\0';
-	ret = sscanf(buf, "%d", &zt_reg);
+	ret = sscanf(buf, "%d", &dahdi_reg);
 	if(ret != 1)
 		return -EINVAL;
-	XPD_DBG(GENERAL, xpd, "%s\n", (zt_reg) ? "register" : "unregister");
-	if(zt_reg)
+	XPD_DBG(GENERAL, xpd, "%s\n", (dahdi_reg) ? "register" : "unregister");
+	if(dahdi_reg)
 		ret = zaptel_register_xpd(xpd);
 	else
 		ret = zaptel_unregister_xpd(xpd);
@@ -671,7 +671,7 @@ static int proc_xpd_blink_write(struct file *file, const char __user *buffer, un
  * Called from zaptel with spinlock held on chan. Must not call back
  * zaptel functions.
  */
-int xpp_open(struct zt_chan *chan)
+int xpp_open(struct dahdi_chan *chan)
 {
 #if 0
 	xpd_t		*xpd = chan->pvt;
@@ -714,7 +714,7 @@ int xpp_open(struct zt_chan *chan)
 	return 0;
 }
 
-int xpp_close(struct zt_chan *chan)
+int xpp_close(struct dahdi_chan *chan)
 {
 	xpd_t		*xpd = chan->pvt;
 	xbus_t		*xbus = xpd->xbus;
@@ -745,7 +745,7 @@ void report_bad_ioctl(const char *msg, xpd_t *xpd, int pos, unsigned int cmd)
 	XPD_NOTICE(xpd, "        IOC_SIZE=0x%02X\n", _IOC_SIZE(cmd));
 }
 
-int xpp_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long arg)
+int xpp_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long arg)
 {
 	xpd_t	*xpd = chan->pvt;
 	int	pos = chan->chanpos - 1;
@@ -767,7 +767,7 @@ int xpp_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long arg)
 	return 0;
 }
 
-static int xpp_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
+static int xpp_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
 {
 	xpd_t	*xpd = chan->pvt;
 	xbus_t	*xbus;
@@ -786,10 +786,10 @@ static int xpp_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 
 /* Req: Set the requested chunk size.  This is the unit in which you must
    report results for conferencing, etc */
-int xpp_setchunksize(struct zt_span *span, int chunksize);
+int xpp_setchunksize(struct dahdi_span *span, int chunksize);
 
 /* Enable maintenance modes */
-int xpp_maint(struct zt_span *span, int cmd)
+int xpp_maint(struct dahdi_span *span, int cmd)
 {
 	xpd_t		*xpd = span->pvt;
 	int		ret = 0;
@@ -799,23 +799,23 @@ int xpp_maint(struct zt_span *span, int cmd)
 
 	DBG(GENERAL, "span->mainttimer=%d\n", span->mainttimer);
 	switch(cmd) {
-		case ZT_MAINT_NONE:
+		case DAHDI_MAINT_NONE:
 			printk("XXX Turn off local and remote loops XXX\n");
 			break;
-		case ZT_MAINT_LOCALLOOP:
+		case DAHDI_MAINT_LOCALLOOP:
 			printk("XXX Turn on local loopback XXX\n");
 			break;
-		case ZT_MAINT_REMOTELOOP:
+		case DAHDI_MAINT_REMOTELOOP:
 			printk("XXX Turn on remote loopback XXX\n");
 			break;
-		case ZT_MAINT_LOOPUP:
+		case DAHDI_MAINT_LOOPUP:
 			printk("XXX Send loopup code XXX\n");
 			// CALL_XMETHOD(LOOPBACK_AX, xpd->xbus, xpd, loopback_data, ARRAY_SIZE(loopback_data));
 			break;
-		case ZT_MAINT_LOOPDOWN:
+		case DAHDI_MAINT_LOOPDOWN:
 			printk("XXX Send loopdown code XXX\n");
 			break;
-		case ZT_MAINT_LOOPSTOP:
+		case DAHDI_MAINT_LOOPSTOP:
 			printk("XXX Stop sending loop codes XXX\n");
 			break;
 		default:
@@ -824,7 +824,7 @@ int xpp_maint(struct zt_span *span, int cmd)
 			break;
 	}
 	if (span->mainttimer || span->maintstat) 
-		update_xpd_status(xpd, ZT_ALARM_LOOPBACK);
+		update_xpd_status(xpd, DAHDI_ALARM_LOOPBACK);
 	return ret;
 }
 
@@ -833,7 +833,7 @@ int xpp_maint(struct zt_span *span, int cmd)
  * If the watchdog detects no received data, it will call the
  * watchdog routine
  */
-static int xpp_watchdog(struct zt_span *span, int cause)
+static int xpp_watchdog(struct dahdi_span *span, int cause)
 {
 	static	int rate_limit = 0;
 
@@ -866,7 +866,7 @@ static int zaptel_unregister_xpd(xpd_t *xpd)
 		spin_unlock_irqrestore(&xpd->lock, flags);
 		return -EIDRM;
 	}
-	update_xpd_status(xpd, ZT_ALARM_NOTOPEN);
+	update_xpd_status(xpd, DAHDI_ALARM_NOTOPEN);
 	if(atomic_read(&xpd->open_counter)) {
 		XPD_NOTICE(xpd, "Busy (open_counter=%d). Skipping.\n", atomic_read(&xpd->open_counter));
 		spin_unlock_irqrestore(&xpd->lock, flags);
@@ -876,9 +876,9 @@ static int zaptel_unregister_xpd(xpd_t *xpd)
 	spin_unlock_irqrestore(&xpd->lock, flags);
 	if(xpd->card_present)
 		xpd->xops->card_zaptel_preregistration(xpd, 0);
-	atomic_dec(&xpd->zt_registered);
+	atomic_dec(&xpd->dahdi_registered);
 	atomic_dec(&num_registered_spans);
-	zt_unregister(&xpd->span);
+	dahdi_unregister(&xpd->span);
 	if(xpd->card_present)
 		xpd->xops->card_zaptel_postregistration(xpd, 0);
 	return 0;
@@ -886,7 +886,7 @@ static int zaptel_unregister_xpd(xpd_t *xpd)
 
 static int zaptel_register_xpd(xpd_t *xpd)
 {
-	struct zt_span	*span;
+	struct dahdi_span	*span;
 	xbus_t		*xbus;
 	int		cn;
 	const xops_t	*xops;
@@ -901,12 +901,12 @@ static int zaptel_register_xpd(xpd_t *xpd)
 	}
 	cn = xpd->channels;
 	XPD_DBG(DEVICES, xpd, "Initializing span: %d channels.\n", cn);
-	memset(xpd->chans, 0, sizeof(struct zt_chan)*cn);
-	memset(&xpd->span, 0, sizeof(struct zt_span));
+	memset(xpd->chans, 0, sizeof(struct dahdi_chan)*cn);
+	memset(&xpd->span, 0, sizeof(struct dahdi_span));
 
 	span = &xpd->span;
 	snprintf(span->name, MAX_SPANNAME, "%s/%s", xbus->busname, xpd->xpdname);
-	span->deflaw = ZT_LAW_MULAW;	/* default, may be overriden by card_* drivers */
+	span->deflaw = DAHDI_LAW_MULAW;	/* default, may be overriden by card_* drivers */
 	init_waitqueue_head(&span->maintq);
 	span->pvt = xpd;
 	span->channels = cn;
@@ -914,13 +914,13 @@ static int zaptel_register_xpd(xpd_t *xpd)
 
 	span->open = xpp_open;
 	span->close = xpp_close;
-	span->flags = ZT_FLAG_RBS;
+	span->flags = DAHDI_FLAG_RBS;
 	span->hooksig = xpp_hooksig;	/* Only with RBS bits */
 	span->ioctl = xpp_ioctl;
 	span->maint = xpp_maint;
-#ifdef ZT_SPANSTAT_V2 
+#ifdef DAHDI_SPANSTAT_V2 
 	/*
-	 * This actually describe the zt_spaninfo version 3
+	 * This actually describe the dahdi_spaninfo version 3
 	 * A bunch of unrelated data exported via a modified ioctl()
 	 * What a bummer...
 	 */
@@ -965,12 +965,12 @@ static int zaptel_register_xpd(xpd_t *xpd)
 			xbus->num, xpd->addr.unit, xpd->addr.subunit, xpd->type_name);
 	XPD_DBG(GENERAL, xpd, "Registering span '%s'\n", xpd->span.desc);
 	xpd->xops->card_zaptel_preregistration(xpd, 1);
-	if(zt_register(&xpd->span, prefmaster)) {
-		XPD_ERR(xpd, "Failed to zt_register span\n");
+	if(dahdi_register(&xpd->span, prefmaster)) {
+		XPD_ERR(xpd, "Failed to dahdi_register span\n");
 		return -ENODEV;
 	}
 	atomic_inc(&num_registered_spans);
-	atomic_inc(&xpd->zt_registered);
+	atomic_inc(&xpd->dahdi_registered);
 	xpd->xops->card_zaptel_postregistration(xpd, 1);
 	/*
 	 * Update zaptel about our state
@@ -980,16 +980,16 @@ static int zaptel_register_xpd(xpd_t *xpd)
 	 * FIXME: since asterisk didn't open the channel yet, the report
 	 * is discarded anyway. OTOH, we cannot report in xpp_open or
 	 * xpp_chanconfig since zaptel call them with a spinlock on the channel
-	 * and zt_hooksig tries to acquire the same spinlock, resulting in
+	 * and dahdi_hooksig tries to acquire the same spinlock, resulting in
 	 * double spinlock deadlock (we are lucky that RH/Fedora kernel are
 	 * compiled with spinlock debugging).... tough.
 	 */
 	for_each_line(xpd, cn) {
-		struct zt_chan	*chans = xpd->span.chans;
+		struct dahdi_chan	*chans = xpd->span.chans;
 
 		if(IS_SET(xpd->offhook, cn)) {
 			LINE_NOTICE(xpd, cn, "Report OFFHOOK to zaptel\n");
-			zt_hooksig(&chans[cn], ZT_RXSIG_OFFHOOK);
+			dahdi_hooksig(&chans[cn], DAHDI_RXSIG_OFFHOOK);
 		}
 	}
 #endif

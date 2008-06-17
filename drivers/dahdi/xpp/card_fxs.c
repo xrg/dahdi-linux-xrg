@@ -41,7 +41,7 @@ static DEF_PARM_BOOL(dtmf_detection, 1, 0644, "Do DTMF detection in hardware");
 static DEF_PARM(uint, poll_digital_inputs, 1000, 0644, "Poll Digital Inputs");
 #endif
 
-#ifdef	ZT_VMWI
+#ifdef	DAHDI_VMWI
 static DEF_PARM_BOOL(vmwi_ioctl, 0, 0644, "Asterisk support VMWI notification via ioctl");
 #else
 #define	vmwi_ioctl	0	/* not supported */
@@ -49,9 +49,9 @@ static DEF_PARM_BOOL(vmwi_ioctl, 0, 0644, "Asterisk support VMWI notification vi
 
 /* Signaling is opposite (fxo signalling for fxs card) */
 #if 1
-#define	FXS_DEFAULT_SIGCAP	(ZT_SIG_FXOKS | ZT_SIG_FXOLS | ZT_SIG_FXOGS)
+#define	FXS_DEFAULT_SIGCAP	(DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS)
 #else
-#define	FXS_DEFAULT_SIGCAP	(ZT_SIG_SF | ZT_SIG_EM)
+#define	FXS_DEFAULT_SIGCAP	(DAHDI_SIG_SF | DAHDI_SIG_EM)
 #endif
 
 #define	LINES_DIGI_OUT	2
@@ -477,11 +477,11 @@ static int FXS_card_zaptel_preregistration(xpd_t *xpd, bool on)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"on":"off");
-#ifdef ZT_SPANSTAT_V2 
+#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = "FXS";
 #endif 
 	for_each_line(xpd, i) {
-		struct zt_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = &xpd->chans[i];
 
 		XPD_DBG(GENERAL, xpd, "setting FXS channel %d\n", i);
 		if(IS_SET(xpd->digital_outputs, i)) {
@@ -637,11 +637,11 @@ static int send_ring(xpd_t *xpd, lineno_t chan, bool on)
 	return ret;
 }
 
-static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
+static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
 {
 	struct FXS_priv_data	*priv;
 	int			ret = 0;
-	struct zt_chan		*chan = NULL;
+	struct dahdi_chan		*chan = NULL;
 	enum fxs_state		txhook;
 	unsigned long		flags;
 
@@ -655,7 +655,7 @@ static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
 	if(SPAN_REGISTERED(xpd))
 		chan = &xpd->span.chans[pos];
 	switch(txsig) {
-		case ZT_TXSIG_ONHOOK:
+		case DAHDI_TXSIG_ONHOOK:
 			spin_lock_irqsave(&xpd->lock, flags);
 			xpd->ringing[pos] = 0;
 			BIT_CLR(xpd->cid_on, pos);
@@ -685,19 +685,19 @@ static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
 			txhook = priv->lasttxhook[pos];
 			if(chan) {
 				switch(chan->sig) {
-					case ZT_SIG_EM:
-					case ZT_SIG_FXOKS:
-					case ZT_SIG_FXOLS:
+					case DAHDI_SIG_EM:
+					case DAHDI_SIG_FXOKS:
+					case DAHDI_SIG_FXOLS:
 						txhook = priv->idletxhookstate[pos];
 						break;
-					case ZT_SIG_FXOGS:
+					case DAHDI_SIG_FXOGS:
 						txhook = FXS_LINE_TIPOPEN;
 						break;
 				}
 			}
 			ret = linefeed_control(xbus, xpd, pos, txhook);
 			break;
-		case ZT_TXSIG_OFFHOOK:
+		case DAHDI_TXSIG_OFFHOOK:
 			if(IS_SET(xpd->digital_outputs, pos)) {
 				LINE_NOTICE(xpd, pos, "%s -> Is digital output. Ignored\n", txsig2str(txsig));
 				return -EINVAL;
@@ -711,7 +711,7 @@ static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
 			xpd->ringing[pos] = 0;
 			if(chan) {
 				switch(chan->sig) {
-					case ZT_SIG_EM:
+					case DAHDI_SIG_EM:
 						txhook = FXS_LINE_POL_ACTIVE;
 						break;
 					default:
@@ -721,7 +721,7 @@ static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
 			}
 			ret = linefeed_control(xbus, xpd, pos, txhook);
 			break;
-		case ZT_TXSIG_START:
+		case DAHDI_TXSIG_START:
 			xpd->ringing[pos] = 1;
 			BIT_CLR(xpd->cid_on, pos);
 			BIT_CLR(priv->search_fsk_pattern, pos);
@@ -733,7 +733,7 @@ static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
 			}
 			ret = send_ring(xpd, pos, 1);			// RING on
 			break;
-		case ZT_TXSIG_KEWL:
+		case DAHDI_TXSIG_KEWL:
 			if(IS_SET(xpd->digital_outputs, pos)) {
 				LINE_DBG(SIGNAL, xpd, pos, "%s -> Is digital output. Ignored\n", txsig2str(txsig));
 				return -EINVAL;
@@ -774,10 +774,10 @@ static int FXS_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 	}
 	
 	switch (cmd) {
-		case ZT_ONHOOKTRANSFER:
+		case DAHDI_ONHOOKTRANSFER:
 			if (get_user(val, (int __user *)arg))
 				return -EFAULT;
-			LINE_DBG(SIGNAL, xpd, pos, "ZT_ONHOOKTRANSFER (%d millis)\n", val);
+			LINE_DBG(SIGNAL, xpd, pos, "DAHDI_ONHOOKTRANSFER (%d millis)\n", val);
 			if (IS_SET(xpd->digital_inputs | xpd->digital_outputs, pos))
 				return 0;	/* Nothing to do */
 			BIT_CLR(xpd->cid_on, pos);
@@ -790,12 +790,12 @@ static int FXS_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 			if(!IS_SET(xpd->offhook, pos))
 				start_stop_vm_led(xbus, xpd, pos);
 			return 0;
-		case ZT_TONEDETECT:
+		case DAHDI_TONEDETECT:
 			if (get_user(val, (int __user *)arg))
 				return -EFAULT;
-			LINE_DBG(SIGNAL, xpd, pos, "ZT_TONEDETECT: %s %s (dtmf_detection=%s)\n",
-					(val & ZT_TONEDETECT_ON) ? "ON" : "OFF",
-					(val & ZT_TONEDETECT_MUTE) ? "MUTE" : "NO-MUTE",
+			LINE_DBG(SIGNAL, xpd, pos, "DAHDI_TONEDETECT: %s %s (dtmf_detection=%s)\n",
+					(val & DAHDI_TONEDETECT_ON) ? "ON" : "OFF",
+					(val & DAHDI_TONEDETECT_MUTE) ? "MUTE" : "NO-MUTE",
 					(dtmf_detection ? "YES" : "NO"));
 			if(!dtmf_detection) {
 				spin_lock_irqsave(&xpd->lock, flags);
@@ -816,11 +816,11 @@ static int FXS_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 			 * dtmf events. Check the requested state.
 			 */
 			spin_lock_irqsave(&xpd->lock, flags);
-			if(val & ZT_TONEDETECT_ON) {
+			if(val & DAHDI_TONEDETECT_ON) {
 				if(!IS_SET(priv->want_dtmf_events, pos)) {
 					/* Detection mode changed: Enable DTMF interrupts */
 					LINE_DBG(SIGNAL, xpd, pos,
-						"ZT_TONEDETECT: Enable Hardware DTMF\n");
+						"DAHDI_TONEDETECT: Enable Hardware DTMF\n");
 					SLIC_DIRECT_REQUEST(xbus, xpd, pos, SLIC_WRITE, 0x17, 1);
 				}
 				BIT_SET(priv->want_dtmf_events, pos);
@@ -828,12 +828,12 @@ static int FXS_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 				if(IS_SET(priv->want_dtmf_events, pos)) {
 					/* Detection mode changed: Disable DTMF interrupts */
 					LINE_DBG(SIGNAL, xpd, pos,
-						"ZT_TONEDETECT: Disable Hardware DTMF\n");
+						"DAHDI_TONEDETECT: Disable Hardware DTMF\n");
 					SLIC_DIRECT_REQUEST(xbus, xpd, pos, SLIC_WRITE, 0x17, 0);
 				}
 				BIT_CLR(priv->want_dtmf_events, pos);
 			}
-			if(val & ZT_TONEDETECT_MUTE) {
+			if(val & DAHDI_TONEDETECT_MUTE) {
 				BIT_SET(priv->want_dtmf_mute, pos);
 			} else {
 				BIT_CLR(priv->want_dtmf_mute, pos);
@@ -842,28 +842,28 @@ static int FXS_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 			}
 			spin_unlock_irqrestore(&xpd->lock, flags);
 			return 0;
-		case ZT_SETPOLARITY:
+		case DAHDI_SETPOLARITY:
 			if (get_user(val, (int __user *)arg))
 				return -EFAULT;
 			/* Can't change polarity while ringing or when open */
 			if (priv->lasttxhook[pos] == FXS_LINE_RING || priv->lasttxhook[pos] == FXS_LINE_OPEN) {
-				LINE_ERR(xpd, pos, "ZT_SETPOLARITY: %s Cannot change when lasttxhook=0x%X\n",
+				LINE_ERR(xpd, pos, "DAHDI_SETPOLARITY: %s Cannot change when lasttxhook=0x%X\n",
 						(val)?"ON":"OFF", priv->lasttxhook[pos]);
 				return -EINVAL;
 			}
-			LINE_DBG(SIGNAL, xpd, pos, "ZT_SETPOLARITY: %s\n", (val)?"ON":"OFF");
+			LINE_DBG(SIGNAL, xpd, pos, "DAHDI_SETPOLARITY: %s\n", (val)?"ON":"OFF");
 			if ((val && !reversepolarity) || (!val && reversepolarity))
 				priv->lasttxhook[pos] |= FXS_LINE_RING;
 			else
 				priv->lasttxhook[pos] &= ~FXS_LINE_RING;
 			linefeed_control(xbus, xpd, pos, priv->lasttxhook[pos]);
 			return 0;
-#ifdef	ZT_VMWI
-		case ZT_VMWI:		/* message-waiting led control */
+#ifdef	DAHDI_VMWI
+		case DAHDI_VMWI:		/* message-waiting led control */
 			if (get_user(val, (int __user *)arg))
 				return -EFAULT;
 			if(!vmwi_ioctl) {
-				LINE_NOTICE(xpd, pos, "Got ZT_VMWI notification but vmwi_ioctl parameter is off. Ignoring.\n");
+				LINE_NOTICE(xpd, pos, "Got DAHDI_VMWI notification but vmwi_ioctl parameter is off. Ignoring.\n");
 				return 0;
 			}
 			/* Digital inputs/outputs don't have VM leds */
@@ -895,7 +895,7 @@ static int FXS_card_open(xpd_t *xpd, lineno_t chan)
 		LINE_DBG(SIGNAL, xpd, chan, "is onhook\n");
 	/*
 	 * Delegate updating zaptel to FXS_card_tick():
-	 *   The problem is that zt_hooksig() is spinlocking the channel and
+	 *   The problem is that dahdi_hooksig() is spinlocking the channel and
 	 *   we are called by zaptel with the spinlock already held on the
 	 *   same channel.
 	 */
@@ -1000,7 +1000,7 @@ static void detect_vmwi(xpd_t *xpd)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	for_each_line(xpd, i) {
-		struct zt_chan	*chan = &xpd->span.chans[i];
+		struct dahdi_chan	*chan = &xpd->span.chans[i];
 		byte		*writechunk = chan->writechunk;
 
 		if(IS_SET(xpd->offhook | xpd->cid_on | xpd->digital_inputs | xpd->digital_outputs, i))
@@ -1010,7 +1010,7 @@ static void detect_vmwi(xpd_t *xpd)
 			int	j;
 
 			LINE_DBG(GENERAL, xpd, pos, "MSG:");
-			for(j = 0; j < ZT_CHUNKSIZE; j++) {
+			for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
 				if(debug)
 					printk(" %02X", writechunk[j]);
 			}
@@ -1018,15 +1018,15 @@ static void detect_vmwi(xpd_t *xpd)
 				printk("\n");
 		}
 #endif
-		if(unlikely(mem_equal(writechunk, FSK_COMMON_PATTERN, ZT_CHUNKSIZE)))
+		if(unlikely(mem_equal(writechunk, FSK_COMMON_PATTERN, DAHDI_CHUNKSIZE)))
 			BIT_SET(priv->found_fsk_pattern, i);
 		else if(unlikely(IS_SET(priv->found_fsk_pattern, i))) {
 			BIT_CLR(priv->found_fsk_pattern, i);
-			if(unlikely(mem_equal(writechunk, FSK_ON_PATTERN, ZT_CHUNKSIZE))) {
+			if(unlikely(mem_equal(writechunk, FSK_ON_PATTERN, DAHDI_CHUNKSIZE))) {
 				LINE_DBG(SIGNAL, xpd, i, "MSG WAITING ON\n");
 				BIT_SET(xpd->msg_waiting, i);
 				start_stop_vm_led(xbus, xpd, i);
-			} else if(unlikely(mem_equal(writechunk, FSK_OFF_PATTERN, ZT_CHUNKSIZE))) {
+			} else if(unlikely(mem_equal(writechunk, FSK_OFF_PATTERN, DAHDI_CHUNKSIZE))) {
 				LINE_DBG(SIGNAL, xpd, i, "MSG WAITING OFF\n");
 				BIT_CLR(xpd->msg_waiting, i);
 				start_stop_vm_led(xbus, xpd, i);
@@ -1034,7 +1034,7 @@ static void detect_vmwi(xpd_t *xpd)
 				int	j;
 
 				LINE_NOTICE(xpd, i, "MSG WAITING Unexpected:");
-				for(j = 0; j < ZT_CHUNKSIZE; j++) {
+				for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
 					printk(" %02X", writechunk[j]);
 				}
 				printk("\n");
@@ -1211,7 +1211,7 @@ static void process_dtmf(xpd_t *xpd, xpp_line_t lines, byte val)
 	digit = dtmf_digits[val];
 	for_each_line(xpd, i) {
 		if(IS_SET(lines, i)) {
-			int		event = (is_down) ? ZT_EVENT_DTMFDOWN : ZT_EVENT_DTMFUP;
+			int		event = (is_down) ? DAHDI_EVENT_DTMFDOWN : DAHDI_EVENT_DTMFUP;
 			bool		want_mute = IS_SET(priv->want_dtmf_mute, i);
 			bool		want_event = IS_SET(priv->want_dtmf_events, i);
 
@@ -1236,7 +1236,7 @@ static void process_dtmf(xpd_t *xpd, xpp_line_t lines, byte val)
 				__do_mute_dtmf(xpd, i, 0);
 			__pcm_recompute(xpd, 0);	/* XPD is locked */
 			if(want_event) 
-				zt_qevent_lock(&xpd->chans[i], event | digit);
+				dahdi_qevent_lock(&xpd->chans[i], event | digit);
 			break;
 		}
 	}
@@ -1459,10 +1459,10 @@ static int __init card_fxs_startup(void)
 #else
 	INFO("FEATURE: without DIGITAL INPUTS support\n");
 #endif
-#ifdef	ZT_VMWI
-	INFO("FEATURE: ZT_VMWI\n");
+#ifdef	DAHDI_VMWI
+	INFO("FEATURE: DAHDI_VMWI\n");
 #else
-	INFO("FEATURE: NO ZT_VMWI\n");
+	INFO("FEATURE: NO DAHDI_VMWI\n");
 #endif
 #ifdef	WITH_METERING
 	INFO("FEATURE: WITH METERING Generation\n");

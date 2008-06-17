@@ -14,13 +14,9 @@ EXTRA_CFLAGS	=	$(XPP_LOCAL_CFLAGS)	\
 			-g
 			#
 
-ifneq	(,$(shell grep -w echo_can_state_t $(ZAP_KERNEL)/dahdi.h))
-EXTRA_CFLAGS	+= -DZAPTEL_EC_TYPEDEF
-endif
-
 obj-m		+= xpp.o xpd_fxs.o xpd_fxo.o xpd_pri.o
 
-HAS_BRISTUFF	:= $(shell grep '^[[:space:]]*\#[[:space:]]*define[[:space:]]\+CONFIG_ZAPATA_BRI_DCHANS\>' $(ZAP_KERNEL)/zconfig.h)
+HAS_BRISTUFF	:= $(shell grep '^[[:space:]]*\#[[:space:]]*define[[:space:]]\+CONFIG_ZAPATA_BRI_DCHANS\>' $(ZAP_KERNEL)/dahdi_config.h)
 
 # Build only supported modules
 ifneq	(,$(filter y m,$(CONFIG_USB)))

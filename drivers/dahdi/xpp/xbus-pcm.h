@@ -28,7 +28,7 @@
 
 #include "xdefs.h"
 #include <linux/proc_fs.h>
-#include <zaptel.h>
+#include <dahdi/kernel.h>
 
 #ifdef	__KERNEL__
 
@@ -112,9 +112,9 @@ void		got_new_syncer(xbus_t *xbus, enum sync_mode mode, int drift);
 int		xbus_command_queue_tick(xbus_t *xbus);
 void		xbus_reset_counters(xbus_t *xbus);
 void		elect_syncer(const char *msg);
-int		xpp_echocan(struct zt_chan *chan, int len);
+int		xpp_echocan(struct dahdi_chan *chan, int len);
 #ifdef	ZAPTEL_SYNC_TICK
-int		zaptel_sync_tick(struct zt_span *span, int is_master);
+int		zaptel_sync_tick(struct dahdi_span *span, int is_master);
 #endif
 
 #ifdef	XPP_EC_CHUNK

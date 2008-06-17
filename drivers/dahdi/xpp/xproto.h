@@ -27,7 +27,7 @@
 #ifdef	__KERNEL__
 #include <linux/list.h>
 #include <linux/proc_fs.h>
-#include <zaptel.h>
+#include <dahdi/kernel.h>
 
 /*
  * This must match the firmware protocol version
@@ -225,7 +225,7 @@ struct xops {
 	void (*card_pcm_tospan)(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack);
 	int (*card_zaptel_preregistration)(xpd_t *xpd, bool on);
 	int (*card_zaptel_postregistration)(xpd_t *xpd, bool on);
-	int (*card_hooksig)(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig);
+	int (*card_hooksig)(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig);
 	int (*card_ioctl)(xpd_t *xpd, int pos, unsigned int cmd, unsigned long arg);
 	int (*card_open)(xpd_t *xpd, lineno_t pos);
 	int (*card_close)(xpd_t *xpd, lineno_t pos);

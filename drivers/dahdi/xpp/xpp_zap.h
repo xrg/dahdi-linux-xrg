@@ -35,10 +35,10 @@ void xpd_free(xpd_t *xpd);
 void xpd_remove(xpd_t *xpd);
 void update_xpd_status(xpd_t *xpd, int alarm_flag);
 void update_line_status(xpd_t *xpd, int pos, bool good);
-int xpp_open(struct zt_chan *chan);
-int xpp_close(struct zt_chan *chan);
-int xpp_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long arg);
-int xpp_maint(struct zt_span *span, int cmd);
+int xpp_open(struct dahdi_chan *chan);
+int xpp_close(struct dahdi_chan *chan);
+int xpp_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long arg);
+int xpp_maint(struct dahdi_span *span, int cmd);
 void report_bad_ioctl(const char *msg, xpd_t *xpd, int pos, unsigned int cmd);
 int total_registered_spans(void);
 
@@ -48,6 +48,6 @@ int total_registered_spans(void);
 extern struct proc_dir_entry	*xpp_proc_toplevel;
 #endif
 
-#define	SPAN_REGISTERED(xpd)	atomic_read(&(xpd)->zt_registered)
+#define	SPAN_REGISTERED(xpd)	atomic_read(&(xpd)->dahdi_registered)
 
 #endif	/* XPP_ZAP_H */

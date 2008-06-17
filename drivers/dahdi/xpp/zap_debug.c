@@ -28,7 +28,7 @@
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/module.h>
-#include <zaptel.h>
+#include <dahdi/kernel.h>
 #include "zap_debug.h"
 #include "xdefs.h"
 

@@ -42,9 +42,9 @@ static DEF_PARM(int, ring_debounce, 50, 0644, "Number of ticks to debounce a fal
 static DEF_PARM(int, caller_id_style, 0, 0444, "Caller-Id detection style: 0 - [BELL], 1 - [BT], 2 - [PASS]");
 
 /* Backward compatibility plug */
-#ifndef ZT_GET_PARAMS_V1
-#define zt_alarm_channel(a,b) zt_qevent_lock(a,( (b)==ZT_ALARM_NONE )? \
-	ZT_EVENT_NOALARM : ZT_EVENT_ALARM)
+#ifndef DAHDI_GET_PARAMS_V1
+#define dahdi_alarm_channel(a,b) dahdi_qevent_lock(a,( (b)==DAHDI_ALARM_NONE )? \
+	DAHDI_EVENT_NOALARM : DAHDI_EVENT_ALARM)
 #endif
 
 enum cid_style {
@@ -55,9 +55,9 @@ enum cid_style {
 
 /* Signaling is opposite (fxs signalling for fxo card) */
 #if 1
-#define	FXO_DEFAULT_SIGCAP	(ZT_SIG_FXSKS | ZT_SIG_FXSLS)
+#define	FXO_DEFAULT_SIGCAP	(DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS)
 #else
-#define	FXO_DEFAULT_SIGCAP	(ZT_SIG_SF)
+#define	FXO_DEFAULT_SIGCAP	(DAHDI_SIG_SF)
 #endif
 
 enum fxo_leds {
@@ -263,7 +263,7 @@ static void handle_fxo_leds(xpd_t *xpd)
 
 static void update_zap_ring(xpd_t *xpd, int pos, bool on)
 {
-	zt_rxsig_t	rxsig;
+	dahdi_rxsig_t	rxsig;
 
 	BUG_ON(!xpd);
 	if(on) {
@@ -271,22 +271,22 @@ static void update_zap_ring(xpd_t *xpd, int pos, bool on)
 			LINE_DBG(SIGNAL, xpd, pos, "Caller-ID PCM: off\n");
 			BIT_CLR(xpd->cid_on, pos);
 		}
-		rxsig = ZT_RXSIG_RING;
+		rxsig = DAHDI_RXSIG_RING;
 	} else {
 		if(caller_id_style == CID_STYLE_BELL) {
 			LINE_DBG(SIGNAL, xpd, pos, "Caller-ID PCM: on\n");
 			BIT_SET(xpd->cid_on, pos);
 		}
-		rxsig = ZT_RXSIG_OFFHOOK;
+		rxsig = DAHDI_RXSIG_OFFHOOK;
 	}
 	pcm_recompute(xpd, 0);
 	/*
-	 * We should not spinlock before calling zt_hooksig() as
+	 * We should not spinlock before calling dahdi_hooksig() as
 	 * it may call back into our xpp_hooksig() and cause
 	 * a nested spinlock scenario
 	 */
 	if(SPAN_REGISTERED(xpd))
-		zt_hooksig(&xpd->chans[pos], rxsig);
+		dahdi_hooksig(&xpd->chans[pos], rxsig);
 }
 
 static void mark_ring(xpd_t *xpd, lineno_t pos, bool on, bool update_zap)
@@ -506,11 +506,11 @@ static int FXO_card_zaptel_preregistration(xpd_t *xpd, bool on)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"ON":"OFF");
-#ifdef ZT_SPANSTAT_V2 
+#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = "FXO";
 #endif 
 	for_each_line(xpd, i) {
-		struct zt_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = &xpd->chans[i];
 
 		XPD_DBG(GENERAL, xpd, "setting FXO channel %d\n", i);
 		snprintf(cur_chan->name, MAX_CHANNAME, "XPP_FXO/%02d/%1d%1d/%d",
@@ -549,7 +549,7 @@ static int FXO_card_zaptel_postregistration(xpd_t *xpd, bool on)
 	return 0;
 }
 
-static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
+static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
 {
 	struct FXO_priv_data	*priv;
 	int			ret = 0;
@@ -560,12 +560,12 @@ static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
 	BUG_ON(xpd->direction != TO_PSTN);
 	/* XXX Enable hooksig for FXO XXX */
 	switch(txsig) {
-		case ZT_TXSIG_START:
+		case DAHDI_TXSIG_START:
 			break;
-		case ZT_TXSIG_OFFHOOK:
+		case DAHDI_TXSIG_OFFHOOK:
 			ret = do_sethook(xpd, pos, 1);
 			break;
-		case ZT_TXSIG_ONHOOK:
+		case DAHDI_TXSIG_ONHOOK:
 			ret = do_sethook(xpd, pos, 0);
 			break;
 		default:
@@ -589,12 +589,12 @@ static void zap_report_battery(xpd_t *xpd, lineno_t chan)
 				/* no-op */
 				break;
 			case BATTERY_OFF:
-				LINE_DBG(SIGNAL, xpd, chan, "Send ZT_ALARM_RED\n");
-				zt_alarm_channel(&xpd->chans[chan], ZT_ALARM_RED);
+				LINE_DBG(SIGNAL, xpd, chan, "Send DAHDI_ALARM_RED\n");
+				dahdi_alarm_channel(&xpd->chans[chan], DAHDI_ALARM_RED);
 				break;
 			case BATTERY_ON:
-				LINE_DBG(SIGNAL, xpd, chan, "Send ZT_ALARM_NONE\n");
-				zt_alarm_channel(&xpd->chans[chan], ZT_ALARM_NONE);
+				LINE_DBG(SIGNAL, xpd, chan, "Send DAHDI_ALARM_NONE\n");
+				dahdi_alarm_channel(&xpd->chans[chan], DAHDI_ALARM_NONE);
 				break;
 		}
 	}
@@ -720,7 +720,7 @@ static int FXO_card_tick(xbus_t *xbus, xpd_t *xpd)
 }
 
 /* FIXME: based on data from from wctdm.h */
-#include <wctdm.h>
+#include <dahdi/wctdm_user.h>
 /*
  * The first register is the ACIM, the other are coefficient registers.
  * We define the array size explicitly to track possible inconsistencies
@@ -756,13 +756,13 @@ static int FXO_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 
 			XPD_DBG(GENERAL, xpd, "-- Set echo registers successfully\n");
 			break;
-		case ZT_TONEDETECT:
+		case DAHDI_TONEDETECT:
 			/*
 			 * Asterisk call all span types with this (FXS specific)
 			 * call. Silently ignore it.
 			 */
 			LINE_DBG(GENERAL, xpd, pos,
-				"ZT_TONEDETECT (FXO: NOTIMPLEMENTED)\n");
+				"DAHDI_TONEDETECT (FXO: NOTIMPLEMENTED)\n");
 			return -ENOTTY;
 		default:
 			report_bad_ioctl(THIS_MODULE->name, xpd, pos, cmd);
@@ -934,8 +934,8 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 			}
 			if(SPAN_REGISTERED(xpd)) {
 				LINE_DBG(SIGNAL, xpd, portno,
-					"Send ZT_EVENT_POLARITY: %s\n", polname);
-				zt_qevent_lock(&xpd->chans[portno], ZT_EVENT_POLARITY);
+					"Send DAHDI_EVENT_POLARITY: %s\n", polname);
+				dahdi_qevent_lock(&xpd->chans[portno], DAHDI_EVENT_POLARITY);
 			}
 		}
 		priv->polarity[portno] = pol;

@@ -64,9 +64,9 @@ struct list_head { struct list_head *next; struct list_head *prev; };
 #define	MAX_PROC_WRITE	100	/* Largest buffer we allow writing our /proc files */
 #define	CHANNELS_PERXPD	32	/* Depends on xpp_line_t and protocol fields */
 
-#define	MAX_SPANNAME	20	/* From zaptel.h */
-#define	MAX_SPANDESC	40	/* From zaptel.h */
-#define	MAX_CHANNAME	40	/* From zaptel.h */
+#define	MAX_SPANNAME	20	/* From dahdi/kernel.h */
+#define	MAX_SPANDESC	40	/* From dahdi/kernel.h */
+#define	MAX_CHANNAME	40	/* From dahdi/kernel.h */
 
 #define	XPD_NAMELEN	10	/* must be <= from maximal workqueue name */
 #define	XPD_DESCLEN	20

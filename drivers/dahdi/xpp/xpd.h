@@ -42,7 +42,7 @@
 #endif
 #endif	/* __KERNEL__ */
 
-#include <zaptel.h>
+#include <dahdi/kernel.h>
 
 #ifdef __KERNEL__
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,14)
@@ -139,8 +139,8 @@ static struct xpd_counters {
  */
 struct xpd {
 	char xpdname[XPD_NAMELEN];
-	struct zt_span	span;
-	struct zt_chan	*chans;
+	struct dahdi_span	span;
+	struct dahdi_chan	*chans;
 	int		channels;
 	xpd_type_t	type;
 	const char	*type_name;
@@ -167,7 +167,7 @@ struct xpd {
 	xbus_t *xbus;			/* The XBUS we are connected to */
 
 	spinlock_t	lock;
-	atomic_t	zt_registered;	/* Am I fully registered with zaptel */
+	atomic_t	dahdi_registered;	/* Am I fully registered with zaptel */
 	atomic_t	open_counter;	/* Number of open channels */
 
 	int		flags;
@@ -197,8 +197,8 @@ struct xpd {
 	struct list_head xpd_list;
 	unsigned int	timer_count;
 	/* Echo cancelation */
-	u_char ec_chunk1[CHANNELS_PERXPD][ZT_CHUNKSIZE];
-	u_char ec_chunk2[CHANNELS_PERXPD][ZT_CHUNKSIZE];
+	u_char ec_chunk1[CHANNELS_PERXPD][DAHDI_CHUNKSIZE];
+	u_char ec_chunk2[CHANNELS_PERXPD][DAHDI_CHUNKSIZE];
 };
 
 #define	for_each_line(xpd,i)	for((i) = 0; (i) < (xpd)->channels; (i)++)

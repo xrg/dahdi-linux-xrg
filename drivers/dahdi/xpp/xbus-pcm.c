@@ -432,7 +432,7 @@ static void global_tick(void)
 }
 
 #ifdef	ZAPTEL_SYNC_TICK
-int zaptel_sync_tick(struct zt_span *span, int is_master)
+int zaptel_sync_tick(struct dahdi_span *span, int is_master)
 {
 	xpd_t		*xpd = span->pvt;
 	static int	redundant_ticks;	/* for extra spans */
@@ -607,7 +607,7 @@ void __pcm_recompute(xpd_t *xpd, xpp_line_t pcm_mask)
 		line_count = 1;
 	}
 	xpd->pcm_len = (line_count)
-		? RPACKET_HEADERSIZE + sizeof(xpp_line_t) + line_count * ZT_CHUNKSIZE
+		? RPACKET_HEADERSIZE + sizeof(xpp_line_t) + line_count * DAHDI_CHUNKSIZE
 		: 0L;
 	xpd->wanted_pcm_mask = pcm_mask;
 }
@@ -647,14 +647,14 @@ void fill_beep(u_char *buf, int num, int duration)
 		which = num % ARRAY_SIZE(beep);
 		snd = &beep[which];
 	}
-	memcpy(buf, snd, ZT_CHUNKSIZE);
+	memcpy(buf, snd, DAHDI_CHUNKSIZE);
 }
 
 #ifdef	XPP_EC_CHUNK
 /*
  * Taken from zaptel.c
  */
-static inline void xpp_ec_chunk(struct zt_chan *chan, unsigned char *rxchunk, const unsigned char *txchunk)
+static inline void xpp_ec_chunk(struct dahdi_chan *chan, unsigned char *rxchunk, const unsigned char *txchunk)
 {
 	int16_t		rxlin;
 	int		x;
@@ -664,10 +664,10 @@ static inline void xpp_ec_chunk(struct zt_chan *chan, unsigned char *rxchunk, co
 	if (!chan->ec)
 		return;
 	spin_lock_irqsave(&chan->lock, flags);
-	for (x=0;x<ZT_CHUNKSIZE;x++) {
-		rxlin = ZT_XLAW(rxchunk[x], chan);
-		rxlin = xpp_echo_can_update(chan->ec, ZT_XLAW(txchunk[x], chan), rxlin);
-		rxchunk[x] = ZT_LIN2X((int)rxlin, chan);
+	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
+		rxlin = DAHDI_XLAW(rxchunk[x], chan);
+		rxlin = xpp_echo_can_update(chan->ec, DAHDI_XLAW(txchunk[x], chan), rxlin);
+		rxchunk[x] = DAHDI_LIN2X((int)rxlin, chan);
 	}
 	spin_unlock_irqrestore(&chan->lock, flags);
 }
@@ -676,7 +676,7 @@ static inline void xpp_ec_chunk(struct zt_chan *chan, unsigned char *rxchunk, co
 static void do_ec(xpd_t *xpd)
 {
 #ifdef WITH_ECHO_SUPPRESSION
-	struct zt_chan	*chans = xpd->span.chans;
+	struct dahdi_chan	*chans = xpd->span.chans;
 	int		i;
 
 	/* FIXME: need to Echo cancel double buffered data */
@@ -691,9 +691,9 @@ static void do_ec(xpd_t *xpd)
 			xpp_ec_chunk(&chans[i], chans[i].readchunk, xpd->ec_chunk2[i]);
 		else
 #endif
-			zt_ec_chunk(&chans[i], chans[i].readchunk, xpd->ec_chunk2[i]);
-		memcpy(xpd->ec_chunk2[i], xpd->ec_chunk1[i], ZT_CHUNKSIZE);
-		memcpy(xpd->ec_chunk1[i], chans[i].writechunk, ZT_CHUNKSIZE);
+			dahdi_ec_chunk(&chans[i], chans[i].readchunk, xpd->ec_chunk2[i]);
+		memcpy(xpd->ec_chunk2[i], xpd->ec_chunk1[i], DAHDI_CHUNKSIZE);
+		memcpy(xpd->ec_chunk1[i], chans[i].writechunk, DAHDI_CHUNKSIZE);
 	}
 #endif
 }
@@ -703,24 +703,24 @@ static void do_ec(xpd_t *xpd)
 
 /* Option 1: If you're a T1 like interface, you can just provide a
    rbsbits function and we'll assert robbed bits for you.  Be sure to 
-   set the ZT_FLAG_RBS in this case.  */
+   set the DAHDI_FLAG_RBS in this case.  */
 
 /* Opt: If the span uses A/B bits, set them here */
-int (*rbsbits)(struct zt_chan *chan, int bits);
+int (*rbsbits)(struct dahdi_chan *chan, int bits);
 
 /* Option 2: If you don't know about sig bits, but do have their
    equivalents (i.e. you can disconnect battery, detect off hook,
    generate ring, etc directly) then you can just specify a
    sethook function, and we'll call you with appropriate hook states
-   to set.  Still set the ZT_FLAG_RBS in this case as well */
-int (*hooksig)(struct zt_chan *chan, zt_txsig_t hookstate);
+   to set.  Still set the DAHDI_FLAG_RBS in this case as well */
+int (*hooksig)(struct dahdi_chan *chan, dahdi_txsig_t hookstate);
 
 /* Option 3: If you can't use sig bits, you can write a function
    which handles the individual hook states  */
-int (*sethook)(struct zt_chan *chan, int hookstate);
+int (*sethook)(struct dahdi_chan *chan, int hookstate);
 #endif
 
-int xpp_echocan(struct zt_chan *chan, int len)
+int xpp_echocan(struct dahdi_chan *chan, int len)
 {
 #ifdef	XPP_EC_CHUNK
 	if(len == 0) {	/* shut down */
@@ -824,7 +824,7 @@ dropit:
 void generic_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xpacket_t *pack)
 {
 	byte		*pcm;
-	struct zt_chan	*chans;
+	struct dahdi_chan	*chans;
 	unsigned long	flags;
 	int		i;
 
@@ -840,14 +840,14 @@ void generic_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xpack
 			if(SPAN_REGISTERED(xpd)) {
 #ifdef	DEBUG_PCMTX
 				if(pcmtx >= 0 && pcmtx_chan == i)
-					memset((u_char *)pcm, pcmtx, ZT_CHUNKSIZE);
+					memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 				else
 #endif
-					memcpy((u_char *)pcm, chans[i].writechunk, ZT_CHUNKSIZE);
+					memcpy((u_char *)pcm, chans[i].writechunk, DAHDI_CHUNKSIZE);
 				// fill_beep((u_char *)pcm, xpd->addr.subunit, 2);
 			} else
-				memset((u_char *)pcm, 0x7F, ZT_CHUNKSIZE);
-			pcm += ZT_CHUNKSIZE;
+				memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
+			pcm += DAHDI_CHUNKSIZE;
 		}
 	}
 	XPD_COUNTER(xpd, PCM_WRITE)++;
@@ -871,20 +871,20 @@ void generic_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 
 		if(!IS_SET(xpd->wanted_pcm_mask, i)) {
 			if(IS_SET(xpd->silence_pcm, i)) {
-				memset((u_char *)r, 0x7F, ZT_CHUNKSIZE);	// SILENCE
-				memset(xpd->ec_chunk2[i], 0x7F, ZT_CHUNKSIZE);
-				memset(xpd->ec_chunk1[i], 0x7F, ZT_CHUNKSIZE);
+				memset((u_char *)r, 0x7F, DAHDI_CHUNKSIZE);	// SILENCE
+				memset(xpd->ec_chunk2[i], 0x7F, DAHDI_CHUNKSIZE);
+				memset(xpd->ec_chunk1[i], 0x7F, DAHDI_CHUNKSIZE);
 			}
 			continue;
 		}
 		pcm_mask &= ~xpd->mute_dtmf;
 		if(IS_SET(pcm_mask, i)) {
-			// memset((u_char *)r, 0x5A, ZT_CHUNKSIZE);	// DEBUG
+			// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
 			// fill_beep((u_char *)r, 1, 1);	// DEBUG: BEEP
-			memcpy((u_char *)r, pcm, ZT_CHUNKSIZE);
-			pcm += ZT_CHUNKSIZE;
+			memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);
+			pcm += DAHDI_CHUNKSIZE;
 		} else {
-			memset((u_char *)r, 0x7F, ZT_CHUNKSIZE);	// SILENCE
+			memset((u_char *)r, 0x7F, DAHDI_CHUNKSIZE);	// SILENCE
 		}
 	}
 out:
@@ -987,10 +987,10 @@ static void xbus_tick(xbus_t *xbus)
 			}
 #endif
 			/*
-			 * calls to zt_transmit should be out of spinlocks, as it may call back
+			 * calls to dahdi_transmit should be out of spinlocks, as it may call back
 			 * our hook setting methods.
 			 */
-			zt_transmit(&xpd->span);
+			dahdi_transmit(&xpd->span);
 		}
 	}
 	/*
@@ -1070,7 +1070,7 @@ static void xbus_tick(xbus_t *xbus)
 			continue;
 		if(SPAN_REGISTERED(xpd)) {
 			do_ec(xpd);
-			zt_receive(&xpd->span);
+			dahdi_receive(&xpd->span);
 		}
 		xpd->silence_pcm = 0;	/* silence was injected */
 		xpd->timer_count = xbus->global_counter;

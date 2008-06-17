@@ -41,19 +41,19 @@ static DEF_PARM(uint, poll_interval, 500, 0644, "Poll channel state interval in 
 
 #define	PRI_LINES_BITMASK	BITMASK(31)
 #define	PRI_DCHAN_SIGCAP	(			  \
-					ZT_SIG_EM	| \
-					ZT_SIG_CLEAR	| \
-					ZT_SIG_FXSLS	| \
-					ZT_SIG_FXSGS	| \
-					ZT_SIG_FXSKS	| \
-					ZT_SIG_FXOLS	| \
-					ZT_SIG_FXOGS	| \
-					ZT_SIG_FXOKS	| \
-					ZT_SIG_CAS	| \
-					ZT_SIG_DACS	| \
-					ZT_SIG_SF	  \
+					DAHDI_SIG_EM	| \
+					DAHDI_SIG_CLEAR	| \
+					DAHDI_SIG_FXSLS	| \
+					DAHDI_SIG_FXSGS	| \
+					DAHDI_SIG_FXSKS	| \
+					DAHDI_SIG_FXOLS	| \
+					DAHDI_SIG_FXOGS	| \
+					DAHDI_SIG_FXOKS	| \
+					DAHDI_SIG_CAS	| \
+					DAHDI_SIG_DACS	| \
+					DAHDI_SIG_SF	  \
 				)
-#define	PRI_BCHAN_SIGCAP	(ZT_SIG_CLEAR | ZT_SIG_DACS)
+#define	PRI_BCHAN_SIGCAP	(DAHDI_SIG_CLEAR | DAHDI_SIG_DACS)
 #define	MAX_SLAVES		4		/* we have MUX of 4 clocks */
 
 #define	PRI_PORT(xpd)	((xpd)->addr.subunit)
@@ -64,8 +64,8 @@ static bool pri_packet_is_valid(xpacket_t *pack);
 static void pri_packet_dump(const char *msg, xpacket_t *pack);
 static int proc_pri_info_read(char *page, char **start, off_t off, int count, int *eof, void *data);
 static int proc_pri_info_write(struct file *file, const char __user *buffer, unsigned long count, void *data);
-static int pri_startup(struct zt_span *span);
-static int pri_shutdown(struct zt_span *span);
+static int pri_startup(struct dahdi_span *span);
+static int pri_shutdown(struct dahdi_span *span);
 static int pri_lineconfig(xpd_t *xpd, int lineconfig);
 
 #define	PROC_REGISTER_FNAME	"slics"
@@ -127,17 +127,17 @@ static int pri_linecompat(enum pri_protocol pri_protocol)
 		[PRI_PROTO_0] = 0,
 		[PRI_PROTO_E1] =
 			/* coding */
-			ZT_CONFIG_CCS |
+			DAHDI_CONFIG_CCS |
 			// CAS |
-			ZT_CONFIG_CRC4 |
+			DAHDI_CONFIG_CRC4 |
 			/* framing */
-			ZT_CONFIG_AMI | ZT_CONFIG_HDB3,
+			DAHDI_CONFIG_AMI | DAHDI_CONFIG_HDB3,
 		[PRI_PROTO_T1] =
 			/* coding */
-			// ZT_CONFIG_D4 |
-			ZT_CONFIG_ESF |
+			// DAHDI_CONFIG_D4 |
+			DAHDI_CONFIG_ESF |
 			/* framing */
-			ZT_CONFIG_AMI | ZT_CONFIG_B8ZS,
+			DAHDI_CONFIG_AMI | DAHDI_CONFIG_B8ZS,
 		[PRI_PROTO_J1] = 0
 	};
 
@@ -418,21 +418,21 @@ static int set_pri_proto(xpd_t *xpd, enum pri_protocol set_proto)
 	}
 	switch(set_proto) {
 		case PRI_PROTO_E1:
-			deflaw = ZT_LAW_ALAW;
+			deflaw = DAHDI_LAW_ALAW;
 			dchan_num = 16;
-			default_lineconfig = ZT_CONFIG_CRC4 | ZT_CONFIG_HDB3;
+			default_lineconfig = DAHDI_CONFIG_CRC4 | DAHDI_CONFIG_HDB3;
 			break;
 		case PRI_PROTO_T1:
-			deflaw = ZT_LAW_MULAW;
+			deflaw = DAHDI_LAW_MULAW;
 			dchan_num = 24;
-			default_lineconfig = ZT_CONFIG_ESF | ZT_CONFIG_B8ZS;
+			default_lineconfig = DAHDI_CONFIG_ESF | DAHDI_CONFIG_B8ZS;
 			fmr1 |= REG_FMR1_PMOD;
 			break;
 		case PRI_PROTO_J1:
 			/*
 			 * Check all assumptions
 			 */
-			deflaw = ZT_LAW_MULAW;
+			deflaw = DAHDI_LAW_MULAW;
 			dchan_num = 24;
 			fmr1 |= REG_FMR1_PMOD;
 			rc0 |= REG_RC0_SJR;
@@ -446,7 +446,7 @@ static int set_pri_proto(xpd_t *xpd, enum pri_protocol set_proto)
 	}
 	priv->pri_protocol = set_proto;
 	xpd->channels = pri_num_channels(set_proto);
-	xpd->pcm_len = RPACKET_HEADERSIZE + sizeof(xpp_line_t)  +  xpd->channels * ZT_CHUNKSIZE;
+	xpd->pcm_len = RPACKET_HEADERSIZE + sizeof(xpp_line_t)  +  xpd->channels * DAHDI_CHUNKSIZE;
 	xpd->wanted_pcm_mask = BITMASK(xpd->channels);
 	priv->deflaw = deflaw;
 	priv->dchan_num = dchan_num;
@@ -665,14 +665,14 @@ static const struct {
 	const int	flags;
 } valid_spanconfigs[sizeof(unsigned int)*8] = {
 	/* These apply to T1 */
-//	VALID_CONFIG(4, ZT_CONFIG_D4, "D4"),	FIXME: should support
-	VALID_CONFIG(5, ZT_CONFIG_ESF, "ESF"),
-	VALID_CONFIG(6, ZT_CONFIG_AMI, "AMI"),
-	VALID_CONFIG(7, ZT_CONFIG_B8ZS, "B8ZS"),
+//	VALID_CONFIG(4, DAHDI_CONFIG_D4, "D4"),	FIXME: should support
+	VALID_CONFIG(5, DAHDI_CONFIG_ESF, "ESF"),
+	VALID_CONFIG(6, DAHDI_CONFIG_AMI, "AMI"),
+	VALID_CONFIG(7, DAHDI_CONFIG_B8ZS, "B8ZS"),
 	/* These apply to E1 */
-	VALID_CONFIG(8, ZT_CONFIG_CCS, "CCS"),
-	VALID_CONFIG(9, ZT_CONFIG_HDB3, "HDB3"),
-	VALID_CONFIG(10, ZT_CONFIG_CRC4, "CRC4"),
+	VALID_CONFIG(8, DAHDI_CONFIG_CCS, "CCS"),
+	VALID_CONFIG(9, DAHDI_CONFIG_HDB3, "HDB3"),
+	VALID_CONFIG(10, DAHDI_CONFIG_CRC4, "CRC4"),
 };
 
 static int pri_lineconfig(xpd_t *xpd, int lineconfig)
@@ -733,36 +733,36 @@ static int pri_lineconfig(xpd_t *xpd, int lineconfig)
 	if(priv->local_loopback)
 		fmr2 |= REG_FMR2_E_PLB;
 	/* framing first */
-	if (lineconfig & ZT_CONFIG_B8ZS) {
+	if (lineconfig & DAHDI_CONFIG_B8ZS) {
 		framingstr = "B8ZS";
 		fmr0 = REG_FMR0_E_XC1 | REG_FMR0_E_XC0 | REG_FMR0_E_RC1 | REG_FMR0_E_RC0;
-	} else if (lineconfig & ZT_CONFIG_AMI) {
+	} else if (lineconfig & DAHDI_CONFIG_AMI) {
 		framingstr = "AMI";
 		fmr0 = REG_FMR0_E_XC1 | REG_FMR0_E_RC1;
-	} else if (lineconfig & ZT_CONFIG_HDB3) {
+	} else if (lineconfig & DAHDI_CONFIG_HDB3) {
 		framingstr = "HDB3";
 		fmr0 = REG_FMR0_E_XC1 | REG_FMR0_E_XC0 | REG_FMR0_E_RC1 | REG_FMR0_E_RC0;
 	}
 	/* then coding */
-	if (lineconfig & ZT_CONFIG_ESF) {
+	if (lineconfig & DAHDI_CONFIG_ESF) {
 		codingstr = "ESF";
 		fmr4 |= REG_FMR4_FM1;
 		fmr2 |= REG_FMR2_T_AXRA | REG_FMR2_T_MCSP | REG_FMR2_T_SSP;
-	} else if (lineconfig & ZT_CONFIG_D4) {
+	} else if (lineconfig & DAHDI_CONFIG_D4) {
 		codingstr = "D4";
-	} else if (lineconfig & ZT_CONFIG_CCS) {
+	} else if (lineconfig & DAHDI_CONFIG_CCS) {
 		codingstr = "CCS";
 		/* do nothing */
 	}
 	/* E1's can enable CRC checking */
-	if (lineconfig & ZT_CONFIG_CRC4) {
+	if (lineconfig & DAHDI_CONFIG_CRC4) {
 		crcstr = "CRC4";
 		fmr2 |= REG_FMR2_E_RFS1;
 	}
 	XPD_DBG(GENERAL, xpd, "[%s] lineconfig=%s/%s/%s %s (0x%X)\n",
 		(priv->is_nt)?"NT":"TE",
 		framingstr, codingstr, crcstr,
-		(lineconfig & ZT_CONFIG_NOTOPEN)?"YELLOW":"",
+		(lineconfig & DAHDI_CONFIG_NOTOPEN)?"YELLOW":"",
 		lineconfig);
 	if(fmr0 != 0) {
 		XPD_DBG(GENERAL, xpd, "%s: fmr0(0x%02X) = 0x%02X\n", __FUNCTION__, REG_FMR0, fmr0);
@@ -782,7 +782,7 @@ bad_lineconfig:
  * Called only for 'span' keyword in /etc/zaptel.conf
  */
 
-static int pri_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
+static int pri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 {
 	xpd_t			*xpd = span->pvt;
 	struct PRI_priv_data	*priv;
@@ -816,7 +816,7 @@ static int pri_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
  * Called from zaptel with spinlock held on chan. Must not call back
  * zaptel functions.
  */
-static int pri_chanconfig(struct zt_chan *chan, int sigtype)
+static int pri_chanconfig(struct dahdi_chan *chan, int sigtype)
 {
 	DBG(GENERAL, "channel %d (%s) -> %s\n", chan->channo, chan->name, sig2str(sigtype));
 	// FIXME: sanity checks:
@@ -838,7 +838,7 @@ static xpd_t *PRI_card_new(xbus_t *xbus, int unit, int subunit, const xproto_tab
 		return NULL;
 	priv = xpd->priv;
 	priv->pri_protocol = PRI_PROTO_0;	/* Default, changes in set_pri_proto() */
-	priv->deflaw = ZT_LAW_DEFAULT;		/* Default, changes in set_pri_proto() */
+	priv->deflaw = DAHDI_LAW_DEFAULT;		/* Default, changes in set_pri_proto() */
 	xpd->type_name =
 		type_name(priv->pri_protocol, 0);	/* Default, changes in set_nt() */
 	if(xpd_common_init(xbus, xpd, unit, subunit, subtype, subunits) < 0)
@@ -917,13 +917,13 @@ static int PRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
 		/* Nothing to do yet */
 		return 0;
 	}
-#ifdef ZT_SPANSTAT_V2 
+#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = pri_protocol_name(priv->pri_protocol);
 #endif 
 	xpd->span.linecompat = pri_linecompat(priv->pri_protocol);
 	xpd->span.deflaw = priv->deflaw;
 	for_each_line(xpd, i) {
-		struct zt_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = &xpd->chans[i];
 		bool		is_dchan = i == PRI_DCHAN_IDX(priv);
 
 		XPD_DBG(GENERAL, xpd, "setting PRI channel %d (%s)\n", i,
@@ -934,8 +934,8 @@ static int PRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
 		cur_chan->pvt = xpd;
 		if(is_dchan) {	/* D-CHAN */
 			cur_chan->sigcap = PRI_DCHAN_SIGCAP;
-			//FIXME: cur_chan->flags |= ZT_FLAG_PRIDCHAN;
-			cur_chan->flags &= ~ZT_FLAG_HDLC;
+			//FIXME: cur_chan->flags |= DAHDI_FLAG_PRIDCHAN;
+			cur_chan->flags &= ~DAHDI_FLAG_HDLC;
 		} else
 			cur_chan->sigcap = PRI_BCHAN_SIGCAP;
 	}
@@ -961,7 +961,7 @@ static int PRI_card_zaptel_postregistration(xpd_t *xpd, bool on)
 	return(0);
 }
 
-static int PRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, zt_txsig_t txsig)
+static int PRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
 {
 	LINE_DBG(SIGNAL, xpd, pos, "%s\n", txsig2str(txsig));
 	return 0;
@@ -1102,7 +1102,7 @@ static int PRI_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 	if(!TRANSPORT_RUNNING(xpd->xbus))
 		return -ENODEV;
 	switch (cmd) {
-		case ZT_TONEDETECT:
+		case DAHDI_TONEDETECT:
 			/*
 			 * Asterisk call all span types with this (FXS specific)
 			 * call. Silently ignore it.
@@ -1118,7 +1118,7 @@ static int PRI_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 
 static int PRI_card_close(xpd_t *xpd, lineno_t pos)
 {
-	//struct zt_chan	*chan = &xpd->span.chans[pos];
+	//struct dahdi_chan	*chan = &xpd->span.chans[pos];
 	dchan_state(xpd, 0);
 	return 0;
 }
@@ -1126,7 +1126,7 @@ static int PRI_card_close(xpd_t *xpd, lineno_t pos)
 /*
  * Called only for 'span' keyword in /etc/zaptel.conf
  */
-static int pri_startup(struct zt_span *span)
+static int pri_startup(struct dahdi_span *span)
 {
 	xpd_t			*xpd = span->pvt;
 	struct PRI_priv_data	*priv;
@@ -1147,7 +1147,7 @@ static int pri_startup(struct zt_span *span)
 /*
  * Called only for 'span' keyword in /etc/zaptel.conf
  */
-static int pri_shutdown(struct zt_span *span)
+static int pri_shutdown(struct dahdi_span *span)
 {
 	xpd_t			*xpd = span->pvt;
 	struct PRI_priv_data	*priv;
@@ -1180,7 +1180,7 @@ static void PRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xp
 {
 	struct PRI_priv_data	*priv;
 	byte			*pcm;
-	struct zt_chan		*chans;
+	struct dahdi_chan		*chans;
 	unsigned long		flags;
 	int			i;
 	int			physical_chan;
@@ -1219,14 +1219,14 @@ static void PRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xp
 				}
 #ifdef	DEBUG_PCMTX
 				if(pcmtx >= 0 && pcmtx_chan == i)
-					memset((u_char *)pcm, pcmtx, ZT_CHUNKSIZE);
+					memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 				else
 #endif
-					memcpy((u_char *)pcm, chans[i].writechunk, ZT_CHUNKSIZE);
+					memcpy((u_char *)pcm, chans[i].writechunk, DAHDI_CHUNKSIZE);
 				// fill_beep((u_char *)pcm, xpd->addr.subunit, 2);
 			} else
-				memset((u_char *)pcm, 0x7F, ZT_CHUNKSIZE);
-			pcm += ZT_CHUNKSIZE;
+				memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
+			pcm += DAHDI_CHUNKSIZE;
 		}
 		physical_chan++;
 	}
@@ -1249,7 +1249,7 @@ static void PRI_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 {
 	struct PRI_priv_data	*priv;
 	byte			*pcm;
-	struct zt_chan		*chans;
+	struct dahdi_chan		*chans;
 	xpp_line_t		physical_mask;
 	unsigned long		flags;
 	int			i;
@@ -1290,10 +1290,10 @@ static void PRI_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 		}
 		if(IS_SET(physical_mask, i)) {
 			r = chans[logical_chan].readchunk;
-			// memset((u_char *)r, 0x5A, ZT_CHUNKSIZE);	// DEBUG
+			// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
 			// fill_beep((u_char *)r, 1, 1);	// DEBUG: BEEP
-			memcpy((u_char *)r, pcm, ZT_CHUNKSIZE);
-			pcm += ZT_CHUNKSIZE;
+			memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);
+			pcm += DAHDI_CHUNKSIZE;
 		}
 		logical_chan++;
 	}
@@ -1345,11 +1345,11 @@ static void layer1_state(xpd_t *xpd, byte data_low)
 	BUG_ON(!priv);
 	priv->poll_noreplies = 0;
 	if(data_low & REG_FRS0_LOS)
-		alarms |=  ZT_ALARM_RED;
+		alarms |=  DAHDI_ALARM_RED;
 	if(data_low & REG_FRS0_AIS)
-		alarms |= ZT_ALARM_BLUE;
+		alarms |= DAHDI_ALARM_BLUE;
 	if(data_low & REG_FRS0_RRA)
-		alarms |= ZT_ALARM_YELLOW;
+		alarms |= DAHDI_ALARM_YELLOW;
 	priv->layer1_up = alarms == 0;
 #if 0
 	/*
@@ -1373,7 +1373,7 @@ static void layer1_state(xpd_t *xpd, byte data_low)
 				xpd->span.alarms, str1,
 				alarms, str2);
 		xpd->span.alarms = alarms;
-		zt_alarm_notify(&xpd->span);
+		dahdi_alarm_notify(&xpd->span);
 		set_clocking(xpd);
 	}
 	priv->reg_frs0 = data_low;
