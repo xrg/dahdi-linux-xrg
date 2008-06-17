@@ -42,57 +42,16 @@ OBJECT_FILES:=$(OBJECT_FILES:FIRMWARE-OCT6114-128=dahdi-fw-oct6114-128.o)
 OBJECT_FILES:=$(OBJECT_FILES:FIRMWARE-TC400M=dahdi-fw-tc400m.o)
 OBJECT_FILES:=$(OBJECT_FILES:FIRMWARE-VPMADT032=dahdi-fw-vpmadt032.o)
 
+# Force usage of wget, for now
+DOWNLOAD=wget
+WGET=wget
+
 # If "fetch" is used, --continue is not a valid option.
 ifeq ($(WGET),wget)
 WGET_ARGS:=--continue
 endif
 
 all: $(FIRMWARE)
-
-have_download:
-	@if test "$(DOWNLOAD)" = ":" ; then \
-		echo "**************************************************"; \
-		echo "***                                            ***"; \
-		echo "*** You must have either wget or fetch to be   ***"; \
-		echo "*** able to automatically download and install ***"; \
-		echo "*** the requested firmware packages.           ***"; \
-		echo "***                                            ***"; \
-		echo "**************************************************"; \
-		exit 1; \
-	fi
-
-# Download and extract firmware tarballs
-dahdi-fw-oct6114-064-%.tar.gz: have_download
-ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
-	@echo "Attempting to download $@"
-	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
-	@if test ! -f $@; then exit 1; fi; \
-	(cat $@ | gzip -d | tar -xf -)
-endif
-
-dahdi-fw-oct6114-128-%.tar.gz: have_download
-ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
-	@echo "Attempting to download $@"
-	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
-	@if test ! -f $@; then exit 1; fi; \
-	(cat $@ | gzip -d | tar -xf -)
-endif
-
-dahdi-fw-tc400m-%.tar.gz: have_download
-ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
-	@echo "Attempting to download $@"
-	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
-	@if test ! -f $@; then exit 1; fi; \
-	(cat $@ | gzip -d | tar -xf -)
-endif
-
-dahdi-fw-vpmadt032-%.tar.gz: have_download
-ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
-	@echo "Attempting to download $@"
-	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
-	@if test ! -f $@; then exit 1; fi; \
-	(cat $@ | gzip -d | tar -xf -)
-endif
 
 # Clean up any downloaded/extracted firmware packages
 dist-clean: clean
@@ -104,10 +63,19 @@ dist-clean: clean
 clean:
 	rm -f dahdi-fw-*.o
 
+# Download and extract firmware tarballs
+dahdi-fw-oct6114-064-%.tar.gz dahdi-fw-oct6114-128-%.tar.gz dahdi-fw-tc400m-%.tar.gz dahdi-fw-vpmadt032-%.tar.gz:
+ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.$(subst .tar.gz,,$*) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.$(subst .tar.gz,,$*) ] ); then echo "yes"; else echo "no"; fi),yes)
+	@echo "Attempting to download $@"
+	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
+	@if test ! -f $@; then exit 1; fi; \
+	(cat $@ | gzip -d | tar -xf -)
+endif
+
 # Create object files suitable for linking against
 object-build: $(FIRMWARE) $(OBJECT_FILES)
 
-# Install all downloaded firmware images for hotplug usage and build headers for inclusion
+# Install all downloaded firmware images for hotplug usage
 hotplug-install: $(FIRMWARE)
 ifeq ($(HOTPLUG_FIRMWARE),yes)
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)

@@ -3287,7 +3287,6 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 	struct vpm150m *vpm150m;
 	unsigned short reg;
 	unsigned long flags;
-	struct pci_dev* pdev = voicebus_get_pci_dev(wc->vb);
 	enum vpmadt032_init_result res = VPMADT032_FAILED;
 
 #ifdef VPM150M_SUPPORT
@@ -3299,6 +3298,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 	extern u8 _binary_dahdi_fw_vpmadt032_bin_start[];
 #else
 	static const char vpmadt032_firmware[] = "dahdi-fw-vpmadt032.bin";
+	struct pci_dev *pdev = voicebus_get_pci_dev(wc->vb);
 #endif
 	gpakDownloadStatus_t downloadstatus;
 	gpakPingDspStat_t pingstatus;

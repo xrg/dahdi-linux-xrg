@@ -30,8 +30,10 @@ EXTRA_CFLAGS += $(ECHO_CAN_CFLAGS)
 ifndef HOTPLUG_FIRMWARE
 ifneq (,$(filter y m,$(CONFIG_FW_LOADER)))
 HOTPLUG_FIRMWARE := yes
-export HOTPLUG_FIRMWARE
+else
+HOTPLUG_FIRMWARE := no
 endif
+export HOTPLUG_FIRMWARE
 endif
 
 # fix typo present in CentOS and RHEL 2.6.9 kernels
