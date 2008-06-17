@@ -45,7 +45,7 @@ use Getopt::Std;
 my $program = basename("$0");
 my $init_dir = dirname("$0");
 BEGIN { $init_dir = dirname($0); unshift(@INC, "$init_dir", "$init_dir/zconf", "$init_dir/utils/zconf"); }
-use Zaptel::Config::Defaults;
+use XppConfig;
 my $unit_id;
 my %opts;
 $ENV{XPP_BASE} = '/proc/xpp';
@@ -312,7 +312,7 @@ sub read_defaults() {
 	my $var_debug = 'DEBUG_INIT_FXO';
 	my $var_opermode = 'opermode';
 	my ($default_file, %source_defaults) =
-		Zaptel::Config::Defaults::source_vars($var_debug, $var_opermode);
+		XppConfig::source_vars($var_debug, $var_opermode);
 	$debug = $source_defaults{$var_debug};
 	my $tmp_opermode = $source_defaults{$var_opermode};
 	if(defined($tmp_opermode) and $tmp_opermode) {

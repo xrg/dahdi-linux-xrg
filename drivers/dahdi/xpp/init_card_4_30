@@ -149,7 +149,7 @@ sub read_pri_specs() {
 	my $setup_var = 'XPP_PRI_SETUP';
 	my $setup_string;
 	my ($default_file, %source_defaults) =
-		Zaptel::Config::Defaults::source_vars($setup_var);
+		XppConfig::source_vars($setup_var);
 	$setup_string = $source_defaults{$setup_var};
 	$setup_string =~ s/^\s+//;		# trim
 	$setup_string =~ s/\s+$//;		# trim
@@ -345,7 +345,7 @@ sub port_setup($) {
 
 package main;
 BEGIN { my $dir = dirname($0); unshift(@INC, "$dir", "$dir/zconf"); }
-use Zaptel::Config::Defaults;
+use XppConfig;
 
 logit "Starting '$0'";
 

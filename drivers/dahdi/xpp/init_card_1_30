@@ -45,7 +45,7 @@ use Getopt::Std;
 my $program = basename("$0");
 my $init_dir = dirname("$0");
 BEGIN { $init_dir = dirname($0); unshift(@INC, "$init_dir", "$init_dir/zconf"); }
-use Zaptel::Config::Defaults;
+use XppConfig;
 my $unit_id;
 my %opts;
 $ENV{XPP_BASE} = '/proc/xpp';
@@ -380,7 +380,7 @@ sub read_defaults() {
 	my $var_debug = 'DEBUG_INIT_FXS';
 	my $var_skip_calib = 'INIT_FXS_SKIP_CALIB';
 	my ($default_file, %source_defaults) =
-		Zaptel::Config::Defaults::source_vars($var_debug, $var_skip_calib);
+		XppConfig::source_vars($var_debug, $var_skip_calib);
 	$debug = $source_defaults{$var_debug};
 	$skip_calib = $source_defaults{$var_skip_calib};
 	main::logit "From $default_file: $var_debug=$debug $var_skip_calib=$skip_calib";
