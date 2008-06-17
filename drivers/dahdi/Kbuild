@@ -3,7 +3,7 @@ ifdef ECHO_CAN_NAME
 endif
 
 obj-m := pciradio.o tor2.o wcfxo.o wct1xxp.o wctdm.o wcte11xp.o dahdi.o dahdi_dummy.o dahdi_dynamic.o dahdi_dynamic_eth.o dahdi_dynamic_loc.o dahdi_transcode.o
-obj-m += wct4xxp/ wctc4xxp/ wctdm24xxp/ wcte12xp/
+obj-m += wct4xxp/ wctc4xxp/ wctdm24xxp/ wcte12xp/ xpp/
 
 CFLAGS_MODULE += -I$(DAHDI_INCLUDE)
 
