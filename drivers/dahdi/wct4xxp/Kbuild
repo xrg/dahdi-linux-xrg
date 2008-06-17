@@ -1,6 +1,6 @@
-obj-m += wct4xxp.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCT4XXP) += wct4xxp.o
 
-FIRM_DIR	:= ../../firmware
+FIRM_DIR	:= ../firmware
 
 EXTRA_CFLAGS := -I$(src)/.. $(shell $(src)/../oct612x/octasic-helper cflags $(src)/../oct612x) -Wno-undef
 

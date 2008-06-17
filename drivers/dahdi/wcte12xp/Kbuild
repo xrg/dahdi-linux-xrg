@@ -1,4 +1,4 @@
-obj-m += wcte12xp.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTE12XP) += wcte12xp.o
 
 FIRM_DIR	:= ../../firmware
 

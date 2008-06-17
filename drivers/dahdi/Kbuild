@@ -2,13 +2,37 @@ ifdef ECHO_CAN_NAME
 	ECHO_CAN_CFLAGS	:= -DECHO_CAN_FROMENV -DECHO_CAN_$(ECHO_CAN_NAME)
 endif
 
-obj-m := pciradio.o tor2.o wcfxo.o wct1xxp.o wctdm.o wcte11xp.o dahdi.o dahdi_dummy.o dahdi_dynamic.o dahdi_dynamic_eth.o dahdi_dynamic_loc.o dahdi_transcode.o
-obj-m += wct4xxp/ wctc4xxp/ wctdm24xxp/ wcte12xp/ xpp/
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI)			+= dahdi.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_DUMMY)		+= dahdi_dummy.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_DYNAMIC)		+= dahdi_dynamic.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_DYNAMIC_LOC)	+= dahdi_dynamic_loc.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_DYNAMIC_ETH)	+= dahdi_dynamic_eth.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_TRANSCODE)		+= dahdi_transcode.o
 
-CFLAGS_MODULE += -I$(DAHDI_INCLUDE)
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCT4XXP)		+= wct4xxp/
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTC4XXP)		+= wctc4xxp/
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTDM24XXP)	+= wctdm24xxp/
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTE12XP)		+= wcte12xp/
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTDM)		+= wctdm.o
 
-EXTRA_CFLAGS += -I$(src)
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCT1XXP)		+= wct1xxp.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTE11XP)		+= wcte11xp.o
+
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCFXO)		+= wcfxo.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_TOR2)		+= tor2.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_PCIRADIO)		+= pciradio.o
+
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_XPP)		+= xpp/
+
+CFLAGS_MODULE += -I$(src)
 EXTRA_CFLAGS += $(ECHO_CAN_CFLAGS)
+
+ifndef HOTPLUG_FIRMWARE
+ifneq (,$(filter y m,$(CONFIG_FW_LOADER)))
+HOTPLUG_FIRMWARE := yes
+export HOTPLUG_FIRMWARE
+endif
+endif
 
 # fix typo present in CentOS and RHEL 2.6.9 kernels
 BAD_KERNELS_VERS := 22 34 34.0.1 34.0.2
@@ -65,8 +89,8 @@ DAHDIMMX_CONFIG_VARS := $(DAHDIMMX_WHITELIST_$(ARCH):%=CONFIG_%)
 
 # expand them:
 DAHDIMMX_CONFIG_VALS := $(strip  $(foreach var,$(DAHDIMMX_CONFIG_VARS),$(var))  )
-ifneq (,$(DAHDI_MMX_AUTO))
-  ifneq (,$(DAHDIMMX_CONFIG_VALS))
+ifdef DAHDI_MMX_AUTO
+  ifdef DAHDIMMX_CONFIG_VALS
     # TODO: make that 
     CFLAGS_dahdi-base.o += -DCONFIG_DAHDI_MMX
   endif

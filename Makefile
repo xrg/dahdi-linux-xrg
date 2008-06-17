@@ -1,17 +1,31 @@
 #
-# Makefile for DAHDI driver modules
+# Makefile for DAHDI Linux kernel modules
 #
 # Copyright (C) 2001-2008 Digium, Inc.
 #
 #
 
+# This Makefile is used both by the kernel build system (to set
+# a number of variables before descending into the real module
+# build directory) and by the top-level 'make' process. We can
+# determine which mode is needed by checking the KBUILD_EXTMOD
+# variable, although on reasonably new kernels the kernel build
+# system won't even use this file, it will just use the Kbuild
+# file directly.
+
+ifdef KBUILD_EXTMOD
+
+include $(src)/Kbuild
+
+else
+
 PWD:=$(shell pwd)
 
-ifeq ($(ARCH),)
+ifndef ARCH
 ARCH:=$(shell uname -m | sed -e s/i.86/i386/)
 endif
 
-ifeq ($(DEB_HOST_GNU_TYPE),)
+ifndef DEB_HOST_GNU_TYPE
 UNAME_M:=$(shell uname -m)
 else
 UNAME_M:=$(DEB_HOST_GNU_TYPE)
@@ -55,8 +69,7 @@ endif
 
 MODULE_ALIASES=wcfxs wctdm8xxp wct2xxp
 
-KMAKE = $(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
-KMAKE_INST = $(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
+KMAKE = $(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD) DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 
 ifneq (,$(wildcard $(DESTDIR)/etc/udev/rules.d))
   DYNFS=yes
@@ -66,25 +79,25 @@ ROOT_PREFIX=
 
 CHKCONFIG	:= $(wildcard /sbin/chkconfig)
 UPDATE_RCD	:= $(wildcard /usr/sbin/update-rc.d)
-ifeq (,$(DESTDIR))
-  ifneq (,$(CHKCONFIG))
+ifndef DESTDIR
+  ifdef CHKCONFIG
     ADD_INITD	:= $(CHKCONFIG) --add dahdi
   else
-    ifndef (,$(UPDATE_RCD))
+    ifdef UPDATE_RCD
       ADD_INITD	:= $(UPDATE_RCD) dahdi defaults 15 30
     endif
   endif
 endif
 
 INITRD_DIR	:= $(firstword $(wildcard /etc/rc.d/init.d /etc/init.d))
-ifneq (,$(INITRD_DIR))
+ifdef INITRD_DIR
   INIT_TARGET	:= $(DESTDIR)$(INITRD_DIR)/dahdi
   COPY_INITD	:= install -D dahdi.init $(INIT_TARGET)
 endif
 RCCONF_DIR	:= $(firstword $(wildcard /etc/sysconfig /etc/default))
 
 NETSCR_DIR	:= $(firstword $(wildcard /etc/sysconfig/network-scripts ))
-ifneq (,$(NETSCR_DIR))
+ifdef NETSCR_DIR
   NETSCR_TARGET	:= $(DESTDIR)$(NETSCR_DIR)/ifup-hdlc
   COPY_NETSCR	:= install -D ifup-hdlc $(NETSCR_TARGET)
 endif
@@ -104,16 +117,16 @@ ifeq (no,$(HAS_KSRC))
 	echo "You do not appear to have the sources for the $(KVERS) kernel installed."
 	exit 1
 endif
-	$(KMAKE) modules
+	$(KMAKE) modules DAHDI_BUILD_ALL=m
 
-version.h:
+include/dahdi/version.h:
 	@DAHDIVERSION="${DAHDIVERSION}" build_tools/make_version_h > $@.tmp
 	@if cmp -s $@.tmp $@ ; then :; else \
 		mv $@.tmp $@ ; \
 	fi
 	@rm -f $@.tmp
 
-prereq: version.h
+prereq: include/dahdi/version.h
 
 stackcheck: checkstack modules
 	./checkstack kernel/*.ko kernel/*/*.ko
@@ -136,7 +149,7 @@ install-modconf:
 
 install-firmware:
 ifeq ($(HOTPLUG_FIRMWARE),yes)
-	$(MAKE) -C firmware hotplug-install DESTDIR=$(DESTDIR) HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
+	$(MAKE) -C drivers/dahdi/firmware hotplug-install DESTDIR=$(DESTDIR) HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 endif
 
 install-include:
@@ -176,28 +189,28 @@ endif
 install-udev: devices
 
 uninstall-hotplug:
-	$(MAKE) -C firmware hotplug-uninstall DESTDIR=$(DESTDIR)
+	$(MAKE) -C drivers/dahdi/firmware hotplug-uninstall DESTDIR=$(DESTDIR)
 
 uninstall-modules:
 	@./build_tools/uninstall-modules $(DESTDIR)/lib/modules/$(KVERS) $(ALL_MODULES)
 
 install-modules: # uninstall-modules
-	$(KMAKE_INST)
+	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 
 config:
-ifneq (,$(COPY_INITD))
+ifdef COPY_INITD
 	$(COPY_INITD)
 endif
-ifneq (,$(RCCONF_DIR))
+ifdef RCCONF_DIR
   ifeq (,$(wildcard $(DESTDIR)$(RCCONF_DIR)/dahdi))
 	$(INSTALL) -D -m 644 dahdi.sysconfig $(DESTDIR)$(RCCONF_DIR)/dahdi
   endif
 endif
-ifneq (,$(COPY_NETSCR))
+ifdef COPY_NETSCR
 	$(COPY_NETSCR)
 endif
-ifneq (,$(ADD_INITD))
+ifdef ADD_INITD
 	$(ADD_INITD)
 endif
 	@echo "DAHDI has been configured."
@@ -225,11 +238,14 @@ update:
 
 clean:
 	$(KMAKE) clean
-	$(MAKE) -C firmware clean
+	$(MAKE) -C drivers/dahdi/firmware clean
 
 distclean: dist-clean
 
 dist-clean: clean
-	@$(MAKE) -C firmware dist-clean
+	@rm -f include/dahdi/version.h
+	@$(MAKE) -C drivers/dahdi/firmware dist-clean
 
 .PHONY: distclean dist-clean clean version.h all install devices modules stackcheck install-udev config update install-modules install-include uninstall-modules
+
+endif # ifdef KBUILD_EXTMOD

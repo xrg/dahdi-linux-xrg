@@ -36,7 +36,6 @@
 
 
 #include "dahdi_config.h"
-#include "../version.h"
 
 #include <linux/kernel.h>
 #include <linux/errno.h>
@@ -80,6 +79,7 @@
 #define FAST_HDLC_NEED_TABLES
 #include "fasthdlc.h"
 
+#include <dahdi/version.h>
 #include <dahdi/kernel.h>
 #include <dahdi/user.h>
 

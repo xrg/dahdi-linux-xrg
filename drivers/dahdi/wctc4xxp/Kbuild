@@ -1,4 +1,4 @@
-obj-m += wctc4xxp.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTC4XXP) += wctc4xxp.o
 
 FIRM_DIR	:= ../../firmware
 
