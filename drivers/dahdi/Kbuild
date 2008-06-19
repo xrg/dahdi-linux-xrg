@@ -97,3 +97,5 @@ ifdef DAHDI_MMX_AUTO
     CFLAGS_dahdi-base.o += -DCONFIG_DAHDI_MMX
   endif
 endif
+
+clean-files	:= radfw.h tor2fw.h
