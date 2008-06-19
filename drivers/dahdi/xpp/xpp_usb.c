@@ -45,12 +45,12 @@
 
 static const char rcsid[] = "$Id$";
 
-static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before zap_debug.h */
+static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before dahdi_debug.h */
 static DEF_PARM(int, usb1, 0, 0644, "Allow using USB 1.1 interfaces");
 static DEF_PARM(uint, tx_sluggish, 2000, 0644, "A sluggish transmit (usec)");
 static DEF_PARM(uint, drop_pcm_after, 6, 0644, "Number of consecutive tx_sluggish to drop a PCM frame");
 
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 
 
 #define	XUSB_PRINTK(level, xusb, fmt, ...)	\

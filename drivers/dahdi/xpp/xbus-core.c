@@ -36,13 +36,13 @@
 #include <linux/device.h>
 #include <linux/delay.h>	/* for msleep() to debug */
 #include "xpd.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "xbus-core.h"
 #include "card_global.h"
 #ifdef	XPP_DEBUGFS
 #include "xpp_log.h"
 #endif
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 
 static const char rcsid[] = "$Id$";
 

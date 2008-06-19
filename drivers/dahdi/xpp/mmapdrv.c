@@ -13,7 +13,7 @@
 #include <dahdi.h>
 #include "mmapbus.h"
 #include "xbus-core.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include "xdefs.h"
 #include "xproto.h"
 #include "xframe_queue.h"
@@ -526,7 +526,7 @@ static int __init xpp_mmap_init(void)
 		ret = -ENOMEM;
 		goto fail_cache;
 	}
-	/* interface with Zaptel */
+	/* interface with Dahdi */
 	global_xbus = xbus_new(&xmmap_ops, XFRAME_DATASIZE, NULL);
 	if (!global_xbus) {
 		ret = -ENOMEM;

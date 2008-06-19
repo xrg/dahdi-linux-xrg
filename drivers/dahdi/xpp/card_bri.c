@@ -28,9 +28,9 @@
 #include <linux/delay.h>
 #include "xpd.h"
 #include "xproto.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "card_bri.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include "xbus-core.h"
 
 static const char rcsid[] = "$Id$";
@@ -39,7 +39,7 @@ static const char rcsid[] = "$Id$";
 #error CONFIG_ZAPATA_BRI_DCHANS is not defined
 #endif
 
-static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before zap_debug.h */
+static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before dahdi_debug.h */
 static DEF_PARM(uint, poll_interval, 500, 0644, "Poll channel state interval in milliseconds (0 - disable)");
 static DEF_PARM_BOOL(nt_keepalive, 1, 0644, "Force BRI_NT to keep trying connection");
 
@@ -505,7 +505,7 @@ static int rx_dchan(xpd_t *xpd, reg_cmd_t *regcmd)
 	if(debug)
 		dump_dchan_packet(xpd, 0, dchan_buf, idx /* - 3 */);	/* Print checksum? */
 	/* 
-	 * Tell Zaptel that we received idx-1 bytes. They include the data and a 2-byte checksum.
+	 * Tell Dahdi that we received idx-1 bytes. They include the data and a 2-byte checksum.
 	 * The last byte (that we don't pass on) is 0 if the checksum is correct. If it were wrong,
 	 * we would drop the packet in the "if(dchan_buf[idx-1])" above.
 	 */
@@ -655,7 +655,7 @@ static int BRI_card_remove(xbus_t *xbus, xpd_t *xpd)
 	return 0;
 }
 
-static int BRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
+static int BRI_card_dahdi_preregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct BRI_priv_data	*priv;
@@ -737,7 +737,7 @@ static int BRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
 	return 0;
 }
 
-static int BRI_card_zaptel_postregistration(xpd_t *xpd, bool on)
+static int BRI_card_dahdi_postregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct BRI_priv_data	*priv;
@@ -956,7 +956,7 @@ static int BRI_card_close(xpd_t *xpd, lineno_t pos)
 }
 
 /*
- * Called only for 'span' keyword in /etc/zaptel.conf
+ * Called only for 'span' keyword in /etc/dahdi.conf
  */
 static int bri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 {
@@ -999,8 +999,8 @@ static int bri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 
 /*
  * Set signalling type (if appropriate)
- * Called from zaptel with spinlock held on chan. Must not call back
- * zaptel functions.
+ * Called from dahdi with spinlock held on chan. Must not call back
+ * dahdi functions.
  */
 static int bri_chanconfig(struct dahdi_chan *chan, int sigtype)
 {
@@ -1012,7 +1012,7 @@ static int bri_chanconfig(struct dahdi_chan *chan, int sigtype)
 }
 
 /*
- * Called only for 'span' keyword in /etc/zaptel.conf
+ * Called only for 'span' keyword in /etc/dahdi.conf
  */
 static int bri_startup(struct dahdi_span *span)
 {
@@ -1024,7 +1024,7 @@ static int bri_startup(struct dahdi_span *span)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	if(!TRANSPORT_RUNNING(xpd->xbus)) {
-		XPD_DBG(GENERAL, xpd, "Startup called by zaptel. No Hardware. Ignored\n");
+		XPD_DBG(GENERAL, xpd, "Startup called by dahdi. No Hardware. Ignored\n");
 		return -ENODEV;
 	}
 	XPD_DBG(GENERAL, xpd, "STARTUP\n");
@@ -1034,10 +1034,10 @@ static int bri_startup(struct dahdi_span *span)
 		dchan = &span->chans[2];
 		span->flags |= DAHDI_FLAG_RUNNING;
 		/*
-		 * Zaptel (wrongly) assume that D-Channel need HDLC decoding
-		 * and during zaptel registration override our flags.
+		 * Dahdi (wrongly) assume that D-Channel need HDLC decoding
+		 * and during dahdi registration override our flags.
 		 *
-		 * Don't Get Mad, Get Even:  Now we override zaptel :-)
+		 * Don't Get Mad, Get Even:  Now we override dahdi :-)
 		 */
 		dchan->flags |= DAHDI_FLAG_BRIDCHAN;
 		dchan->flags &= ~DAHDI_FLAG_HDLC;
@@ -1046,7 +1046,7 @@ static int bri_startup(struct dahdi_span *span)
 }
 
 /*
- * Called only for 'span' keyword in /etc/zaptel.conf
+ * Called only for 'span' keyword in /etc/dahdi.conf
  */
 static int bri_shutdown(struct dahdi_span *span)
 {
@@ -1057,7 +1057,7 @@ static int bri_shutdown(struct dahdi_span *span)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	if(!TRANSPORT_RUNNING(xpd->xbus)) {
-		XPD_DBG(GENERAL, xpd, "Shutdown called by zaptel. No Hardware. Ignored\n");
+		XPD_DBG(GENERAL, xpd, "Shutdown called by dahdi. No Hardware. Ignored\n");
 		return -ENODEV;
 	}
 	XPD_DBG(GENERAL, xpd, "SHUTDOWN\n");
@@ -1391,8 +1391,8 @@ static xproto_table_t PROTO_TABLE(BRI) = {
 		.card_new	= BRI_card_new,
 		.card_init	= BRI_card_init,
 		.card_remove	= BRI_card_remove,
-		.card_zaptel_preregistration	= BRI_card_zaptel_preregistration,
-		.card_zaptel_postregistration	= BRI_card_zaptel_postregistration,
+		.card_dahdi_preregistration	= BRI_card_dahdi_preregistration,
+		.card_dahdi_postregistration	= BRI_card_dahdi_postregistration,
 		.card_hooksig	= BRI_card_hooksig,
 		.card_tick	= BRI_card_tick,
 		.card_pcm_fromspan	= BRI_card_pcm_fromspan,

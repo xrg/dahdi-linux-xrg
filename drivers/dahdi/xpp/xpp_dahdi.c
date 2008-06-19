@@ -41,7 +41,7 @@
 #include <dahdi/kernel.h>
 #include "xbus-core.h"
 #include "xproto.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "parport_debug.h"
 
 static const char rcsid[] = "$Id$";
@@ -58,11 +58,11 @@ struct proc_dir_entry *xpp_proc_toplevel = NULL;
 #define	DELAY_UNTIL_DIALTONE	3000
 
 DEF_PARM(int, debug, 0, 0644, "Print DBG statements");
-static DEF_PARM_BOOL(zap_autoreg, 0, 0644, "Register spans automatically (1) or not (0)");
-static DEF_PARM_BOOL(prefmaster, 0, 0644, "Do we want to be zaptel preferred sync master");
+static DEF_PARM_BOOL(dahdi_autoreg, 0, 0644, "Register spans automatically (1) or not (0)");
+static DEF_PARM_BOOL(prefmaster, 0, 0644, "Do we want to be dahdi preferred sync master");
 // DEF_ARRAY(int, pcmtx, 4, 0, "Forced PCM values to transmit");
 
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 
 #ifdef	DEBUG_SYNC_PARPORT
 /*
@@ -107,8 +107,8 @@ int total_registered_spans(void)
 	return atomic_read(&num_registered_spans);
 }
 
-static int zaptel_register_xpd(xpd_t *xpd);
-static int zaptel_unregister_xpd(xpd_t *xpd);
+static int dahdi_register_xpd(xpd_t *xpd);
+static int dahdi_unregister_xpd(xpd_t *xpd);
 static int xpd_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data);
 static int proc_xpd_ztregister_read(char *page, char **start, off_t off, int count, int *eof, void *data);
 static int proc_xpd_ztregister_write(struct file *file, const char __user *buffer, unsigned long count, void *data);
@@ -275,8 +275,8 @@ err:
 void xpd_post_init(xpd_t *xpd)
 {
 	XPD_DBG(DEVICES, xpd, "\n");
-	if(zap_autoreg)
-		zaptel_register_xpd(xpd);
+	if(dahdi_autoreg)
+		dahdi_register_xpd(xpd);
 }
 
 #ifdef CONFIG_PROC_FS
@@ -469,8 +469,8 @@ err:
 	return NULL;
 }
 
-/* FIXME: this should be removed once digium patch their zaptel.h
- * I simply wish to avoid changing zaptel.h in the xpp patches.
+/* FIXME: this should be removed once digium patch their dahdi.h
+ * I simply wish to avoid changing dahdi.h in the xpp patches.
  */
 #ifndef DAHDI_EVENT_REMOVED
 #define DAHDI_EVENT_REMOVED (20)
@@ -507,7 +507,7 @@ void xpd_remove(xpd_t *xpd)
 	BUG_ON(!xpd);
 	xbus = xpd->xbus;
 	XPD_INFO(xpd, "Remove\n");
-	zaptel_unregister_xpd(xpd);
+	dahdi_unregister_xpd(xpd);
 	CALL_XMETHOD(card_remove, xbus, xpd);
 	xpd_free(xpd);
 }
@@ -607,9 +607,9 @@ static int proc_xpd_ztregister_write(struct file *file, const char __user *buffe
 		return -EINVAL;
 	XPD_DBG(GENERAL, xpd, "%s\n", (dahdi_reg) ? "register" : "unregister");
 	if(dahdi_reg)
-		ret = zaptel_register_xpd(xpd);
+		ret = dahdi_register_xpd(xpd);
 	else
-		ret = zaptel_unregister_xpd(xpd);
+		ret = dahdi_unregister_xpd(xpd);
 	return (ret < 0) ? ret : count;
 }
 
@@ -664,12 +664,12 @@ static int proc_xpd_blink_write(struct file *file, const char __user *buffer, un
 
 #define	XPP_MAX_LEN	512
 
-/*------------------------- Zaptel Interfaces ----------------------*/
+/*------------------------- Dahdi Interfaces -----------------------*/
 
 
 /*
- * Called from zaptel with spinlock held on chan. Must not call back
- * zaptel functions.
+ * Called from dahdi with spinlock held on chan. Must not call back
+ * dahdi functions.
  */
 int xpp_open(struct dahdi_chan *chan)
 {
@@ -828,7 +828,7 @@ int xpp_maint(struct dahdi_span *span, int cmd)
 	return ret;
 }
 
-#ifdef	CONFIG_ZAPTEL_WATCHDOG
+#ifdef	CONFIG_DAHDI_WATCHDOG
 /*
  * If the watchdog detects no received data, it will call the
  * watchdog routine
@@ -844,7 +844,7 @@ static int xpp_watchdog(struct dahdi_span *span, int cause)
 #endif
 
 /**
- * Unregister an xpd from zaptel and release related resources
+ * Unregister an xpd from dahdi and release related resources
  * @xpd The xpd to be unregistered
  * @returns 0 on success, errno otherwise
  * 
@@ -854,7 +854,7 @@ static int xpp_watchdog(struct dahdi_span *span, int cause)
  * 	- User action through /proc
  * 	- During xpd_remove()
  */
-static int zaptel_unregister_xpd(xpd_t *xpd)
+static int dahdi_unregister_xpd(xpd_t *xpd)
 {
 	unsigned long	flags;
 
@@ -875,16 +875,16 @@ static int zaptel_unregister_xpd(xpd_t *xpd)
 	mdelay(2);	// FIXME: This is to give chance for transmit/receiveprep to finish.
 	spin_unlock_irqrestore(&xpd->lock, flags);
 	if(xpd->card_present)
-		xpd->xops->card_zaptel_preregistration(xpd, 0);
+		xpd->xops->card_dahdi_preregistration(xpd, 0);
 	atomic_dec(&xpd->dahdi_registered);
 	atomic_dec(&num_registered_spans);
 	dahdi_unregister(&xpd->span);
 	if(xpd->card_present)
-		xpd->xops->card_zaptel_postregistration(xpd, 0);
+		xpd->xops->card_dahdi_postregistration(xpd, 0);
 	return 0;
 }
 
-static int zaptel_register_xpd(xpd_t *xpd)
+static int dahdi_register_xpd(xpd_t *xpd)
 {
 	struct dahdi_span	*span;
 	xbus_t		*xbus;
@@ -925,7 +925,7 @@ static int zaptel_register_xpd(xpd_t *xpd)
 	 * What a bummer...
 	 */
 	span->manufacturer = "Xorcom Inc.";	/* OK, that's obvious */
-	/* span->spantype = "...."; set in card_zaptel_preregistration() */
+	/* span->spantype = "...."; set in card_dahdi_preregistration() */
 	/*
 	 * Yes, this basically duplicates information available
 	 * from the description field. If some more is needed
@@ -952,34 +952,34 @@ static int zaptel_register_xpd(xpd_t *xpd)
 	 */
 	span->irq = 0;
 #endif 
-#ifdef	ZAPTEL_SYNC_TICK
-	span->sync_tick = zaptel_sync_tick;
+#ifdef	DAHDI_SYNC_TICK
+	span->sync_tick = dahdi_sync_tick;
 #endif
 	if (xpp_ec)
 		span->echocan = xpp_echocan;
-#ifdef	CONFIG_ZAPTEL_WATCHDOG
+#ifdef	CONFIG_DAHDI_WATCHDOG
 	span->watchdog = xpp_watchdog;
 #endif
 
 	snprintf(xpd->span.desc, MAX_SPANDESC, "Xorcom XPD #%02d/%1d%1d: %s",
 			xbus->num, xpd->addr.unit, xpd->addr.subunit, xpd->type_name);
 	XPD_DBG(GENERAL, xpd, "Registering span '%s'\n", xpd->span.desc);
-	xpd->xops->card_zaptel_preregistration(xpd, 1);
+	xpd->xops->card_dahdi_preregistration(xpd, 1);
 	if(dahdi_register(&xpd->span, prefmaster)) {
 		XPD_ERR(xpd, "Failed to dahdi_register span\n");
 		return -ENODEV;
 	}
 	atomic_inc(&num_registered_spans);
 	atomic_inc(&xpd->dahdi_registered);
-	xpd->xops->card_zaptel_postregistration(xpd, 1);
+	xpd->xops->card_dahdi_postregistration(xpd, 1);
 	/*
-	 * Update zaptel about our state
+	 * Update dahdi about our state
 	 */
 #if 0
 	/*
 	 * FIXME: since asterisk didn't open the channel yet, the report
 	 * is discarded anyway. OTOH, we cannot report in xpp_open or
-	 * xpp_chanconfig since zaptel call them with a spinlock on the channel
+	 * xpp_chanconfig since dahdi call them with a spinlock on the channel
 	 * and dahdi_hooksig tries to acquire the same spinlock, resulting in
 	 * double spinlock deadlock (we are lucky that RH/Fedora kernel are
 	 * compiled with spinlock debugging).... tough.
@@ -988,25 +988,13 @@ static int zaptel_register_xpd(xpd_t *xpd)
 		struct dahdi_chan	*chans = xpd->span.chans;
 
 		if(IS_SET(xpd->offhook, cn)) {
-			LINE_NOTICE(xpd, cn, "Report OFFHOOK to zaptel\n");
+			LINE_NOTICE(xpd, cn, "Report OFFHOOK to dahdi\n");
 			dahdi_hooksig(&chans[cn], DAHDI_RXSIG_OFFHOOK);
 		}
 	}
 #endif
 	return 0;
 }
-
-/*------------------------- Proc debugging interface ---------------*/
-
-#ifdef CONFIG_PROC_FS
-
-#if 0
-static int xpp_zap_write_proc(struct file *file, const char __user *buffer, unsigned long count, void *data)
-{
-}
-#endif
-
-#endif
 
 /*------------------------- Initialization -------------------------*/
 
@@ -1021,7 +1009,7 @@ static void do_cleanup(void)
 #endif
 }
 
-static int __init xpp_zap_init(void)
+static int __init xpp_dahdi_init(void)
 {
 	int			ret = 0;
 
@@ -1056,7 +1044,7 @@ err:
 	return ret;
 }
 
-static void __exit xpp_zap_cleanup(void)
+static void __exit xpp_dahdi_cleanup(void)
 {
 	xbus_pcm_shutdown();
 	xbus_core_shutdown();
@@ -1078,10 +1066,10 @@ EXPORT_SYMBOL(xpp_ioctl);
 EXPORT_SYMBOL(xpp_maint);
 EXPORT_SYMBOL(report_bad_ioctl);
 
-MODULE_DESCRIPTION("XPP Zaptel Driver");
+MODULE_DESCRIPTION("XPP Dahdi Driver");
 MODULE_AUTHOR("Oron Peled <oron@actcom.co.il>");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(XPP_VERSION);
 
-module_init(xpp_zap_init);
-module_exit(xpp_zap_cleanup);
+module_init(xpp_dahdi_init);
+module_exit(xpp_dahdi_cleanup);

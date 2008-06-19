@@ -1,5 +1,5 @@
-#ifndef	ZAP_DEBUG_H
-#define	ZAP_DEBUG_H
+#ifndef	DAHDI_DEBUG_H
+#define	DAHDI_DEBUG_H
 /*
  * Written by Oron Peled <oron@actcom.co.il>
  * Copyright (C) 2004-2006, Xorcom
@@ -22,7 +22,7 @@
  *
  */
 
-#include <dahdi/kernel.h>	/* for zt_* defs */
+#include <dahdi/kernel.h>	/* for dahdi_* defs */
 
 /* Debugging Macros */
 
@@ -154,7 +154,7 @@ static inline char *hookstate2str(int hookstate)
 	return "Unknown hookstate";
 }
 
-/* From zaptel.c */
+/* From dahdi-base.c */
 static inline char *sig2str(int sig)
 {
 	switch (sig) {
@@ -198,4 +198,4 @@ static inline char *alarmbit2str(int alarmbit)
 
 void alarm2str(int alarm, char *buf, int buflen);
 
-#endif	/* ZAP_DEBUG_H */
+#endif	/* DAHDI_DEBUG_H */

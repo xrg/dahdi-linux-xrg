@@ -1,6 +1,6 @@
 #include "xframe_queue.h"
 #include "xbus-core.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 
 extern int debug;
 

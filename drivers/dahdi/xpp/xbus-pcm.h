@@ -53,9 +53,9 @@ struct xpp_timestamp {
  * A ticker encapsulates the timing information of some
  * abstract tick source. The following tickers are used:
  *   - Each xbus has an embedded ticker.
- *   - There is one global zaptel_ticker to represent ticks
- *     of external zaptel card (in case we want to sync
- *     from other zaptel devices).
+ *   - There is one global dahdi_ticker to represent ticks
+ *     of external dahdi card (in case we want to sync
+ *     from other dahdi devices).
  */
 struct xpp_ticker {		/* for rate calculation */
 	int			count;
@@ -113,8 +113,8 @@ int		xbus_command_queue_tick(xbus_t *xbus);
 void		xbus_reset_counters(xbus_t *xbus);
 void		elect_syncer(const char *msg);
 int		xpp_echocan(struct dahdi_chan *chan, int len);
-#ifdef	ZAPTEL_SYNC_TICK
-int		zaptel_sync_tick(struct dahdi_span *span, int is_master);
+#ifdef	DAHDI_SYNC_TICK
+int		dahdi_sync_tick(struct dahdi_span *span, int is_master);
 #endif
 
 #ifdef	XPP_EC_CHUNK

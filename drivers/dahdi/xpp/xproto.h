@@ -223,8 +223,8 @@ struct xops {
 	int (*card_tick)(xbus_t *xbus, xpd_t *xpd);
 	void (*card_pcm_fromspan)(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xpacket_t *pack);
 	void (*card_pcm_tospan)(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack);
-	int (*card_zaptel_preregistration)(xpd_t *xpd, bool on);
-	int (*card_zaptel_postregistration)(xpd_t *xpd, bool on);
+	int (*card_dahdi_preregistration)(xpd_t *xpd, bool on);
+	int (*card_dahdi_postregistration)(xpd_t *xpd, bool on);
 	int (*card_hooksig)(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig);
 	int (*card_ioctl)(xpd_t *xpd, int pos, unsigned int cmd, unsigned long arg);
 	int (*card_open)(xpd_t *xpd, lineno_t pos);

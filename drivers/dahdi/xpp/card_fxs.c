@@ -26,14 +26,14 @@
 #include <linux/delay.h>
 #include "xpd.h"
 #include "xproto.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "card_fxo.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include "xbus-core.h"
 
 static const char rcsid[] = "$Id$";
 
-static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before zap_debug.h */
+static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before dahdi_debug.h */
 static DEF_PARM_BOOL(reversepolarity, 0, 0644, "Reverse Line Polarity");
 static DEF_PARM_BOOL(vmwineon, 0, 0644, "Indicate voicemail to a neon lamp");
 static DEF_PARM_BOOL(dtmf_detection, 1, 0644, "Do DTMF detection in hardware");
@@ -130,8 +130,8 @@ struct FXS_priv_data {
 	xpp_line_t		search_fsk_pattern;
 	xpp_line_t		found_fsk_pattern;
 	xpp_line_t		update_offhook_state;
-	xpp_line_t		want_dtmf_events;	/* what zaptel want */
-	xpp_line_t		want_dtmf_mute;		/* what zaptel want */
+	xpp_line_t		want_dtmf_events;	/* what dahdi want */
+	xpp_line_t		want_dtmf_mute;		/* what dahdi want */
 	int			led_counter[NUM_LEDS][CHANNELS_PERXPD];
 	int			ohttimer[CHANNELS_PERXPD];
 #define OHT_TIMER		6000	/* How long after RING to retain OHT */
@@ -465,7 +465,7 @@ static int FXS_card_remove(xbus_t *xbus, xpd_t *xpd)
 	return 0;
 }
 
-static int FXS_card_zaptel_preregistration(xpd_t *xpd, bool on)
+static int FXS_card_dahdi_preregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct FXS_priv_data	*priv;
@@ -506,7 +506,7 @@ static int FXS_card_zaptel_preregistration(xpd_t *xpd, bool on)
 	return 0;
 }
 
-static int FXS_card_zaptel_postregistration(xpd_t *xpd, bool on)
+static int FXS_card_dahdi_postregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct FXS_priv_data	*priv;
@@ -894,9 +894,9 @@ static int FXS_card_open(xpd_t *xpd, lineno_t chan)
 	else
 		LINE_DBG(SIGNAL, xpd, chan, "is onhook\n");
 	/*
-	 * Delegate updating zaptel to FXS_card_tick():
+	 * Delegate updating dahdi to FXS_card_tick():
 	 *   The problem is that dahdi_hooksig() is spinlocking the channel and
-	 *   we are called by zaptel with the spinlock already held on the
+	 *   we are called by dahdi with the spinlock already held on the
 	 *   same channel.
 	 */
 	BIT_SET(priv->update_offhook_state, chan);
@@ -1065,7 +1065,7 @@ static int FXS_card_tick(xbus_t *xbus, xpd_t *xpd)
 			if(!IS_SET(priv->update_offhook_state, i))
 				continue;
 			/*
-			 * Update zaptel with current state of line.
+			 * Update dahdi with current state of line.
 			 */
 			if(IS_SET(xpd->offhook, i)) {
 				update_line_status(xpd, i, 1);
@@ -1312,8 +1312,8 @@ static xproto_table_t PROTO_TABLE(FXS) = {
 		.card_new	= FXS_card_new,
 		.card_init	= FXS_card_init,
 		.card_remove	= FXS_card_remove,
-		.card_zaptel_preregistration	= FXS_card_zaptel_preregistration,
-		.card_zaptel_postregistration	= FXS_card_zaptel_postregistration,
+		.card_dahdi_preregistration	= FXS_card_dahdi_preregistration,
+		.card_dahdi_postregistration	= FXS_card_dahdi_postregistration,
 		.card_hooksig	= FXS_card_hooksig,
 		.card_tick	= FXS_card_tick,
 		.card_pcm_fromspan	= generic_card_pcm_fromspan,

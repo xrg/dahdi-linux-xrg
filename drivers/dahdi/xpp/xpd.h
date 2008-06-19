@@ -154,7 +154,7 @@ struct xpd {
 	xpp_line_t	digital_outputs;	/* 0 - no, 1 - yes */
 	xpp_line_t	digital_inputs;		/* 0 - no, 1 - yes */
 	xpp_line_t	digital_signalling;	/* BRI signalling channels */
-	uint		timing_priority;	/* from 'span' directives in zapata.conf */
+	uint		timing_priority;	/* from 'span' directives in chan_dahdi.conf */
 
 	/* maintained by card drivers */
 	uint		pcm_len;		/* allocation length of PCM packet (dynamic) */
@@ -167,7 +167,7 @@ struct xpd {
 	xbus_t *xbus;			/* The XBUS we are connected to */
 
 	spinlock_t	lock;
-	atomic_t	dahdi_registered;	/* Am I fully registered with zaptel */
+	atomic_t	dahdi_registered;	/* Am I fully registered with dahdi */
 	atomic_t	open_counter;	/* Number of open channels */
 
 	int		flags;

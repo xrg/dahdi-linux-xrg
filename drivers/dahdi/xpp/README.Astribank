@@ -3,7 +3,7 @@ Xorcom Astribank Documentation
 Xorcom Team <support@xorcom.com>
 $Revision$, $Date$
 
-This file documents the Zaptel drivers for the Xorcom Channel Bank.
+This file documents the Dahdi drivers for the Xorcom Channel Bank.
 The drivers reside in a separate subdirectory, kernel/xpp/ .
 
 It is generally a more technical document than the 
@@ -15,34 +15,26 @@ http://zaptel.tzafrir.org.il/README.Astribank.html[]
 Building and Installation
 -------------------------
 Building and installation is basically like the normal procedure of 
-installing Zaptel with some additions.
+installing Dahdi with some additions.
 
 Building drivers
 ~~~~~~~~~~~~~~~~
-Apart from the standard Zaptel build requirements, you also need libusb
+Apart from the standard Dahdi build requirements, you also need libusb
 development headers to build the fpga_load firmware loader. This is
 typically the package libusb-dev on Debian (and derivatives like Ubuntu)
 or libusb-devel on RedHat (and derivatives like CentOS/Trixbox).
 
-On Zaptel 1.2 you will need to run the following extra step to build the
-user space utilities, apart from the standard 'make; make install':
-
-  make -C xpp/utils install
-
-Though this should be done automatically on Zaptel >= 1.4.1 .
-
-
 Sample Configurations
 ---------------------
 We generally recommend to generate the configuration by using utility
-genzaptelconf or zapconf which are included with Zaptel. Nevertheless,
+genzaptelconf or zapconf which are included with Dahdi. Nevertheless,
 the following can serve as reference configurations for a system where 
 Astribank devices are used.
 
 
-Zaptel Init Configuration File
+Dahdi Init Configuration File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The zaptel init.d script, genzaptelconf and the XPD init scripts uses the 
+The dahdi init.d script, genzaptelconf and the XPD init scripts uses the 
 parameters located in file /etc/default/zaptel (on Debian) or 
 /etc/sysconfig/zaptel (on RedHats). There is a number of useful parameters 
 that may be defined there:
@@ -60,14 +52,14 @@ that may be defined there:
 
 # Equivalent to the parameter opermode to the module wctdm: country-specific
 # settings to the FXO lines. For a complete list of possible values, see
-# /usr/share/zaptel/init_fxo_mode .
+# /usr/share/dahdi/init_fxo_mode .
 #opermode=FRANCE
 
 # xpp_sync runs with the value of 'XPP_SYNC' as its parameter to set the
 # synchronization source. The default is 'auto' that selects the best
-# Astribank. 'ZAPTEL' gets synchronization from the Zaptel sync master
+# Astribank. 'DAHDI' gets synchronization from the Dahdi sync master
 # span. Or a specific XBUS number.
-#XPP_SYNC=ZAPTEL
+#XPP_SYNC=DAHDI
 
 # Disables hot-plug firmware loading
 #XPP_HOTPLUG_DISABLED=yes
@@ -87,7 +79,7 @@ that may be defined there:
 #	'
 -----------------------------------------------------------
 
-/etc/zaptel.conf
+/etc/dahdi.conf
 ~~~~~~~~~~~~~~~~
 
 Astribank 8
@@ -307,7 +299,7 @@ Sample dialplan (extensions.conf) for all the above:
 
 -----------------------------------------------------------
 [phones-zap]
-; 6001 will dial to channel 1, 6020, to Zaptel channel 20, etc.
+; 6001 will dial to channel 1, 6020, to Dahdi channel 20, etc.
 exten => _6XXX,1,Dial(ZAP/${EXTEN:1})
 ; Useful for debugging trunks. Will potentially allow users to
 ; bypass context limitations.
@@ -335,7 +327,7 @@ include => astbank-test
 [from-pstn] 
 ; Calls from the PSTN enter here. Redirect calls to an IVR 
 ; or a default extension in the s context here. In this case we  
-; redirect calls to Zaptel channel 1: 
+; redirect calls to Dahdi channel 1: 
 exten => s,1,Dial(Zap/1) 
 
 ; Alternatively, the following will redirect you to the demo IVR 
@@ -364,7 +356,7 @@ exten => s,n,Set(ZAP_CHAN=${CUT(ZAP_CHAN,/,2)})
 ; configuration below. 
 ;exten => s,n,Set(INPUT_NUM=$[${ZAP_CHAN}-11)]) 
 ; The sample below just logs the signal.  
-exten => s,n,NoOp(Got signal from Zaptel Channel ${ZAP_CHAN}) 
+exten => s,n,NoOp(Got signal from Dahdi Channel ${ZAP_CHAN}) 
 ; Alternatively: 
 ;exten => s,n,System(run something) 
 
@@ -385,14 +377,14 @@ lsusb Test
 ~~~~~~~~~~
 Check USB level status. You can use one of the following utilities for it:
 
-  zaptel_hardware -v
+  dahdi_hardware -v
        or
   lsusb | grep e4e4
 
 - Look for the USB Product ID (the second number after e4e4).
 - If you see *11x2* (e.g: 1152)- the FPGA firmware has been loaded.
   Move on.
-  zaptel_hardware will also show you some more details if the driver
+  dahdi_hardware will also show you some more details if the driver
   is loaded while the lsusb will just list the device.
 - If it shows something as product ID *11x0* - the USB firmware is not
   loaded. Maybe you need to run fxload. Or maybe just unplug and plug again
@@ -401,46 +393,46 @@ Check USB level status. You can use one of the following utilities for it:
   and not the FPGA firmware is loaded. If this is still the case after 
   a while - either the firmware loading has failed or you don't have
   fpga_load. Make sure you have libusb-dev(el) installed when
-  building Zaptel. After you have installed it, you may need to re-run
+  building Dahdi. After you have installed it, you may need to re-run
   ./configure .
 - It should list all of your Astribank devices. If it doesn't (for
   more than period of time needed for the initial firmware
   loading) - Check that the Astribank is connected indeed.
 
 
-Zaptel Registration
+Dahdi Registration
 ~~~~~~~~~~~~~~~~~~~
-Check if the Astribank spans are registered in Zaptel
+Check if the Astribank spans are registered in Dahdi
 
-  zt_registration
+  dahdi_registration
 
 - This should give useful results after the drivers have identified
   and your devices are initialized.
 - It should list all Astribank XPDs. For each of them it should write
   "on" or "off". If the registration status is "off", then it means that
-  the span has not been registered in Zaptel and therefore can not be used
+  the span has not been registered in Dahdi and therefore can not be used
   yet.
-- Registration is normally done as part of `/etc/init.d/zaptel start`.
+- Registration is normally done as part of `/etc/init.d/dahdi start`.
   If you want to register the spans manually, then run command:
-  `zt_registration on` .
+  `dahdi_registration on` .
 - Disabling of the automatic Astribank spans registration give you full
-  control on the order of Zaptel spans. See the module parameter
+  control on the order of Dahdi spans. See the module parameter
   **zap_autoreg** for the further details.
 
 
-Zaptel Level Information
+Dahdi Level Information
 ~~~~~~~~~~~~~~~~~~~~~~~~
-You can get some information regarding Zaptel channels by running one of the
+You can get some information regarding Dahdi channels by running one of the
 following commands:
 
-    lszaptel
+    lsdahdi
        or
-    cat /proc/zaptel/*
+    cat /proc/dahdi/*
 
-- Those two are almost the same. The lszaptel produced more correctly sorted
+- Those two are almost the same. The lsdahdi produced more correctly sorted
   output if you have more than 10 spans, and also make the output listing
   looks a little bit nicer.
-- You can see if your Zaptel spans and channels were loaded, if
+- You can see if your Dahdi spans and channels were loaded, if
   they were configured by ztcfg and if they are in use (typically by
   Asterisk).
   For example:
@@ -449,7 +441,7 @@ following commands:
      42 FXS
 
 - When a channel has been configured with *ztcfg* (that applies
-  /etc/zaptel.conf), you will see an extra column for the signalling
+  /etc/dahdi.conf), you will see an extra column for the signalling
   type of the channel. The same channel after it has been configured:
 
     42 FXS        FXOKS
@@ -511,7 +503,7 @@ it:
 
 .Fix:
 Move that process from that directory, or close the file it uses from
-under /proc/xpp and reload the zaptel / xpp drivers.
+under /proc/xpp and reload the dahdi / xpp drivers.
 
 
 Bad Firmware Version
@@ -529,14 +521,14 @@ to a
 
 The protocol version supported by the firmware will typically be the same 
 one as in the device initialization scripts installed to 
-/usr/share/zaptel . Hence if this version installed 
-`/usr/share/zaptel/init_card_3_29` it will probably include firmware of 
+/usr/share/dahdi . Hence if this version installed 
+`/usr/share/dahdi/init_card_3_29` it will probably include firmware of 
 protocol version 29.
 
 .Fix:
 Reset the firmware:
 
-  /usr/share/zaptel/xpp_fxloader reset
+  /usr/share/dahdi/xpp_fxloader reset
 
 Or disconnect the Astribank from the power and reocnnect. On some older 
 versions of the USB firmware resetting the firmware (or any operation of 
@@ -565,7 +557,7 @@ BRI Layer 1 Down
 With the BRI module only, and not in the middle of an active call, you
 notice that suddenly the line goes down. The LED of the port stops
 blinking, layer1 not listed as "active" in the bri_info file in
-/proc/xpp, and the span is in RED alarm in Zaptel.
+/proc/xpp, and the span is in RED alarm in Dahdi.
 
 You may also see an error message such as:
 
@@ -609,7 +601,7 @@ many of our programs read configuration from there: either from
 The problem is what to do if both of those exist. Selecting an arbitrary
 one can lead to unexpected results. Likewise sourcing both of them.
 Therefore we prefer to fail in a noisy and expected way. In the future
-we will probably me to reading configuration from a file under /etc/zaptel .
+we will probably me to reading configuration from a file under /etc/dahdi .
 
 .Fix:
 Remove one of those two. There should be no reason to have both on the
@@ -639,7 +631,7 @@ initilization to end.
 .Fix:
 Reset the firmware of the Astribank by either:
 
-  /usr/share/zaptel/xpp_fxloader reset
+  /usr/share/dahdi/xpp_fxloader reset
 
 or disconnecting it from the power and reconnecting it.
 
@@ -697,17 +689,17 @@ For each port there are two optional parameters that define its
 behavior:
 
 Each port in the PRI module can be configured either as E1 or T1. The
-port type defaults to E1 and can be changed to T1 in the Zaptel Init 
+port type defaults to E1 and can be changed to T1 in the Dahdi Init 
 Configuration File.
 
 The Astribank xpp driver uses that information for correct hardware
-initialization that is performed before the Zaptel span registration
+initialization that is performed before the Dahdi span registration
 process takes place. Because of that, xpp driver can't use the 
-information from file zaptel.conf.
+information from file dahdi.conf.
 
-Another parameter that also can be defined in the Zaptel Init
+Another parameter that also can be defined in the Dahdi Init
 Configuration File is the function group TE (CPE) or NT (Network). This
-parameter is used for (a) building correct Zaptel & Asterisk
+parameter is used for (a) building correct Dahdi & Asterisk
 configuration by genzaptelconf and (b) control RJ-45 sockets LEDs for 
 better visual port control:
 
@@ -724,7 +716,7 @@ NT::
 
 To set them to a non-default value, you should use the variable
 XPP_PRI_SETUP in the 
-xref:_zaptel_init_configuration_file[Zaptel Init Configuration File]
+xref:dahdi_init_configuration_file[Dahdi Init Configuration File]
 (/etc/sysconfig/zaptel on Redhats, /etc/default/zaptel on Debians).
 This value is a whitespace-separated list of conditions. When a port is 
 initialized it checks those conditions and uses the first one that 
@@ -790,18 +782,18 @@ Device Startup
 ~~~~~~~~~~~~~~
 This section describes in great depth the initialization of the Xorcom
 Astribank. Normally it would not be really needed, as the standard
-installation of Zaptel should put everything in place.
+installation of Dahdi should put everything in place.
 
 Terminology
 ^^^^^^^^^^^
 There are some technical terms that are used in this document and in the
-driver / zaptel.
+driver / dahdi.
 
 span:
-Zaptel breaks the channels it knows about to logical units called
+Dahdi breaks the channels it knows about to logical units called
 "spans". A port in a E1/T1/ISDN card is usually a span. An whole
 analog card is also a "span". You can see the list of spans as the list
-of files under /proc/zaptel directory or in output of the zttool
+of files under /proc/dahdi directory or in output of the zttool
 utility.
 
 XBUS:
@@ -809,13 +801,13 @@ A funny way to call an Astribank device.
 
 XPD:
 Basically this is a logical unit of the Astribank. It will be registered in
-Zaptel as a single span. This can be either an analog (FXS or FXO)
+Dahdi as a single span. This can be either an analog (FXS or FXO)
 module or a single port in case of a BRI module.
 
 
 Loading Firmware
 ^^^^^^^^^^^^^^^^
-Normally this is done using the script /usr/share/zaptel/xpp_fxloader.
+Normally this is done using the script /usr/share/dahdi/xpp_fxloader.
 If it works fine, you don't need to bother reading this section.
 Once the firmware is loaded the USB Vendor ID and Product ID of the Astribank
 became to be e4e4 11x2, and now the driver can pick it up.
@@ -825,8 +817,8 @@ is lsusb. The output of lsusb should show you if the device is connected
 if its firmware is loaded. 
 
 The firmware files are named *.hex. They are presented in the text
-hexadecimal format The files are copied from xpp/utils to /usr/share/zaptel
-folder during the Zaptel installation.
+hexadecimal format The files are copied from xpp/utils to /usr/share/dahdi
+folder during the Dahdi installation.
 
 The Astribank needs a firmware loaded into it. Without the firmware, 
 the device will appear in lsusb with Vendor ID e4e4 and Product ID 1130.
@@ -837,7 +829,7 @@ completed the Vendor ID is e4e4 and the Product ID is 1131.
 You can use the following command in order to load the "USB" firmware
 manually:
 
-  fxload -t fx2 -D /proc/bus/usb/MMM/NNN -I /usr/share/zaptel/USB_FW.hex
+  fxload -t fx2 -D /proc/bus/usb/MMM/NNN -I /usr/share/dahdi/USB_FW.hex
 
 where,
 
@@ -858,12 +850,12 @@ disconnects and then connects again itself with USB Product ID 1131
 In the second stage, the "FPGA" firmware is loaded.
 The second-stage firmware loading is performed by using program fpga_load, 
 which is built in the directory xpp/utils and then copied to folder 
-/usr/sbin during Zaptel installation.
+/usr/sbin during Dahdi installation.
 
 The command syntax is similar to the syntax of fxload. You can use the 
 following command in order to load the FPGA firmware manually:
 
-  fpga_load -D /proc/bus/usb/MMM/NNN -I /usr/share/zaptel/FPGA_1151.hex
+  fpga_load -D /proc/bus/usb/MMM/NNN -I /usr/share/dahdi/FPGA_1151.hex
 
 Please note, that  NNN value differs from that that was used for the 
 fxload command due to the fact that device has "reconnected" itself 
@@ -911,7 +903,7 @@ then the firmware should be loaded automatically.
 In order to get udev to automatically load the firmware into the Astribank, 
 the configuration file xpp.rules should be copied into folder /etc/udev/rules.d 
 and the script xpp_fxloader should be copied into folder /etc/hotplug/usb/ . 
-This is done by 'make -C xpp/utils install' during Zaptel installation.
+This is done by 'make -C xpp/utils install' during Dahdi installation.
 
 File xpp.rules instructs the udevd daemon to run xpp_fxloader script with
 the option "udev" and with the Astribank USB ID obtained from the 
@@ -927,11 +919,11 @@ Newer versions of the USB firmware can now be reset using 'fpga_load -r'.
 
 Also you can try the following:
 
-  /usr/share/zaptel/xpp_fxloader reset
+  /usr/share/dahdi/xpp_fxloader reset
   # if asterisk was running: you may need to stop/restart it now. 
   # if there are some "disconnected" spans in /proc/xpp/xbuses
   # wait a while, until you see the 1152 IDs again, and then:
-  /etc/init.d/zaptel start
+  /etc/init.d/dahdi start
   # and start/restart asterisk.
 
 
@@ -953,7 +945,7 @@ Now to the ugly details:
 
 The driver of the Astribank is composed of several modules: 
 
-* xpp     - the basic module, that communicates with Zaptel and provides
+* xpp     - the basic module, that communicates with Dahdi and provides
             some common services to other modules.
 * xpd_fxs - the module for controlling FXS modules.
 * xpd_fxo - the module for controlling FXO modules. 
@@ -971,7 +963,7 @@ Vendor-ID/Product-ID of the device will be  e4e4/1132 . The handler for that
 combination is listed as the kernel module xpp_usb. Therefore, the system
 runs 'modprobe xpp_usb' if that module is not already loaded.
 
-The module xpp_usb depends on the zaptel and xpp modules. Both of them 
+The module xpp_usb depends on the dahdi and xpp modules. Both of them 
 are loaded before xpp_usb. As usual, parameters and rules form
 /etc/modprobe.conf and/or from /etc/modprobe.d/* will be applied to 
 the module.
@@ -990,8 +982,8 @@ Device Initializations Scripts
 The chips in the device need to be initialized. This requires sending a
 bunch of values to certain registers in those chips. We decided that
 hardwiring those values in the driver code is not a good idea.
-Before registering a XPD as a span in Zaptel, we run an initialization
-script: /usr/share/zaptel/init_card_N_MM (
+Before registering a XPD as a span in Dahdi, we run an initialization
+script: /usr/share/dahdi/init_card_N_MM (
 where,
 
 * N  - is 3 for an FXS span and 4 for an FXO span, and 6 or 7 for BRI.
@@ -1004,75 +996,75 @@ If because of some reasons this fails (the script is not in the place, or the
 file doesn't have the executable permissions), then you will get an error 
 message in the logs and the XPD will then be removed (you won't see directory
 for that XPD under the corresponding /proc/xpp/XBUS-* directory) and will not
-be registered in Zaptel.
+be registered in Dahdi.
 
 As the XPD is initialized, you'll see the green LEDs of the ports steadily 
 turn on and later off ("a train of lights"). This is a bit slower than the 
-faster "blinking" when the XPDs register as Zaptel spans. The initialization 
+faster "blinking" when the XPDs register as Dahdi spans. The initialization 
 of an FXS XPD may take a few seconds.
 
 
-Registering in Zaptel
+Registering in Dahdi
 ^^^^^^^^^^^^^^^^^^^^^
-The XPDs will not automatically register as Zaptel spans. This is
+The XPDs will not automatically register as Dahdi spans. This is
 intended to allow you to set the registration order (and hence the order
-of Zaptel spans and channels) among multiple Astribank devices,
-or between an Astribank and a different Zaptel device.
+of Dahdi spans and channels) among multiple Astribank devices,
+or between an Astribank and a different Dahdi device.
 
-When the XPD registers to Zaptel, all the green LEDs will be lit for a
+When the XPD registers to Dahdi, all the green LEDs will be lit for a
 short while. 
 
-Spans are normally registered with the utility zt_registration. Simply
-running 'zt_registration' shows the available XPDs and whether or not
+Spans are normally registered with the utility dahdi_registration. Simply
+running 'dahdi_registration' shows the available XPDs and whether or not
 they are registered. To register: 
 
-  zt_registration on
+  dahdi_registration on
 
 For a system with several spans you'll see a "fast train of lights".
 
-If you have multiple Astribank devices, zt_registration will register
+If you have multiple Astribank devices, dahdi_registration will register
 them by the order of the "connector" field. This means that as long as
 the same Astribank is connected to the same port, the order of plugging
 is not important..
 
-zt_registration checks if a span is registered or tries to register a
-span using the file /proc/xpp/XBUS-nn/XPD-mm/zt_registration . Reading
+dahdi_registration checks if a span is registered or tries to register a
+span using the file /proc/xpp/XBUS-nn/XPD-mm/dahdi_registration . Reading
 from that file returns 0 if the span is unregisters or 1 if it is
 registered. You can register a span or ask to unregister it by writing 1
 (register) or 0 (unregister) to that file. Registration should
 generally always succeed. Unregistration may fail if a span is in use.
 
-You may choose to register the XPDs in Zaptel automatically. This may
+You may choose to register the XPDs in Dahdi automatically. This may
 make the startup sequence a bit simpler, but is generally not
 recommended on a system with more than one Astribank or an Astribank and
-a different Zaptel device. This behavior may be defined by setting 
+a different Dahdi device. This behavior may be defined by setting 
 parameter zap_autoreg in the modprobe configuration file (A file under 
 /etc/modprobe.d or /etc/modprobe.conf):
 
   options xpp zap_autoreg=1
 
 
-Zaptel And Above
+Dahdi And Above
 ^^^^^^^^^^^^^^^^
-From here you get a standard Zaptel span. It still needs to be
+From here you get a standard Dahdi span. It still needs to be
 configured by ztcfg and used by a program such as Asterisk like any
-other Zaptel device. In order for you to get a dial-tone in a phone
+other Dahdi device. In order for you to get a dial-tone in a phone
 connected to the FXS port or a fully synchronized BRI port (layer 2
 activated, as signalled by a more steady blink) you will actually need
-both the span configured by Zaptel and the channels configured in
+both the span configured by Dahdi and the channels configured in
 Asterisk.
 
-You should generally refer to the general Zaptel documentation on how to
+You should generally refer to the general Dahdi documentation on how to
 configure those levels. e.g, the README file in the top-level directory,
 and
 
   http://voip-info.org/wiki/view/Asterisk+config+zapata.conf[]
 
 
-Zaptel now includes a utility called genzaptelconf (written as a big
-ugly shell script) to configure Zaptel automatically as good as
+Dahdi now includes a utility called genzaptelconf (written as a big
+ugly shell script) to configure Dahdi automatically as good as
 possible. For analog channels it works quite well (because, IMHO, the
-"configuration" level on Zaptel should be optional there - there are
+"configuration" level on Dahdi should be optional there - there are
 already sane defaults). For digital spans - BRI and PRI , it may take
 some tuning.
 
@@ -1088,7 +1080,7 @@ are many other debugging details that are exposed through the procfs
 interface. 
 
 Also note that those details are subject to changes. Generally the
-recommended stable interface are the Zaptel-perl utilities from the
+recommended stable interface are the Dahdi-perl utilities from the
 xpp/utils directory.
 
 
@@ -1114,15 +1106,15 @@ Possible values are:
 <number>::
   Make the Astribank XBUS-<number> the sync source for other Astribanks.
 
-ZAPTEL::
-  Make the Astribanks synchronize with the Zaptel timing master span.
+DAHDI::
+  Make the Astribanks synchronize with the Dahdi timing master span.
   You probably need this to get faxes from a non-Astribank adapter to an
   Astribank.
 
 Though you'll normally use xpp_sync(8) for that.
 
 For each Astribank device there is folder /proc/xpp/XBUS-nn and for each device
-module (span in the terms of Zaptel) there is folder /proc/XBUS-nn/XPD-mm.
+module (span in the terms of Dahdi) there is folder /proc/XBUS-nn/XPD-mm.
 
 
 /proc/xpp/XBUS-nn/waitfor_xpds
@@ -1136,23 +1128,23 @@ reading from this file returns immediately:
   XPDS_READY: XBUS-00: 3/3
 
 
-/proc/xpp/XBUS-nn/XPD-mm/zt_registration
+/proc/xpp/XBUS-nn/XPD-mm/dahdi_registration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 is a read/write file. Reading from it gives 0 if the span is
 unregistered, or the span number if it is registered.
 
-Writing to it allows manual registration / unregistration from Zaptel:
+Writing to it allows manual registration / unregistration from Dahdi:
 writing 1 registers a span (if it wasn't already registered) and writing
 0 attempts to unregister it (if it is registered.  Span unregistration 
 will fail if some channels from the span are used  (e.g: by Asterisk).
 
-A more convenient interface to this is the command zt_registration that
+A more convenient interface to this is the command dahdi_registration that
 registers or unregisters all the spans at once with a predefined order,
 and this is what you should normally use.
 
 Alternatively you can use the parameter zap_autoreg to register spans
 automatically. But this is only recommended on a system with a single
-Astribank and no other Zaptel device.
+Astribank and no other Dahdi device.
 
 
 /proc/xpp/XBUS-nn/XPD-mm/summary 
@@ -1216,7 +1208,7 @@ the contents of the channel that is supposed to be the D channel.
 
 Writing to this file can be used to change the type of the device. The
 device type can only be changed when the XPD is not registered as a
-Zaptel span. The value is a whitespace-separated list of values that can 
+Dahdi span. The value is a whitespace-separated list of values that can 
 be of:
 
 E1::
@@ -1248,7 +1240,7 @@ NOLOCALLOOP::
 
 Normally those are set by the PRI initialization script . See the
 definition of XPP_PRI_SETUP in 
-xref:_zaptel_init_configuration_file[the sample Zaptel init 
+xref:dahdi_init_configuration_file[the sample Dahdi init 
 configuration file] .
 
 
@@ -1264,7 +1256,7 @@ for each Astribank (such as its connector string).
 
 On each time an Astribank is initialized or destroyed a udev event is
 generated. The rules from our sample udev rules file (xpp/utils/xpp.rules) 
-make that event run the script /usr/share/zaptel/astribank_hook with the
+make that event run the script /usr/share/dahdi/astribank_hook with the
 parameter 'add' or 'remove', if such script exists. An example script
 that just adjusts the Astribank sync settings is included in xpp/utils. 
 
@@ -1296,13 +1288,13 @@ description line for the parameter in the "modinfo" command output.
 zap_autoreg (xpp)::
   Register spans automatically (1) or not (0). Default: 0. 
   Setting it simplifies operations with a single Astribank and no other 
-  Zaptel hardware. However if you have such systems, automatic
+  Dahdi hardware. However if you have such systems, automatic
   registration can cause the order of spans to be unpredictable.
-  The standard startup scripts use 'zt_registration on' instead of this.
+  The standard startup scripts use 'dahdi_registration on' instead of this.
 
 initdir (xpp)::
   This is the directory containing the initialization scripts.
-  The default is /usr/share/zaptel .
+  The default is /usr/share/dahdi .
   Setting this value could be useful if that location is inconvenient for you.
 
 rx_tasklet (xpp)::
@@ -1322,7 +1314,7 @@ debug (all modules)::
   * 4  - LEDS - Anything related to the LEDs status control. The driver
          produces a lot of messages when the option is enabled.
   * 8  - SYNC - Synchronization related messages.
-  * 16 - SIGNAL - Zaptel signalling related messages.
+  * 16 - SIGNAL - Dahdi signalling related messages.
   * 32 - PROC - Messages related to the procfs interface.
   * 64 - REGS - Reading and writing to chip registers. Tends to flood
   	 logs.

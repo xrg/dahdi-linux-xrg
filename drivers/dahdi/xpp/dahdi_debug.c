@@ -29,7 +29,7 @@
 #include <linux/errno.h>
 #include <linux/module.h>
 #include <dahdi/kernel.h>
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include "xdefs.h"
 
 static const char rcsid[] = "$Id$";

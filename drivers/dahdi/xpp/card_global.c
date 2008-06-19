@@ -24,15 +24,15 @@
 #include <linux/delay.h>
 #include "xdefs.h"
 #include "xpd.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "xproto.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include "xbus-core.h"
 #include "parport_debug.h"
 
 static const char rcsid[] = "$Id$";
 
-DEF_PARM(charp,initdir, "/usr/share/zaptel", 0644, "The directory of card initialization scripts");
+DEF_PARM(charp,initdir, "/usr/share/dahdi", 0644, "The directory of card initialization scripts");
 
 #define	CHIP_REGISTERS	"chipregs"
 

@@ -22,9 +22,9 @@
 
 #include "xpd.h"
 #include "xproto.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "xbus-core.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include <linux/module.h>
 #include <linux/delay.h>
 
@@ -437,8 +437,8 @@ int xproto_register(const xproto_table_t *proto_table)
 	CHECK_XOP(card_tick);
 	CHECK_XOP(card_pcm_fromspan);
 	CHECK_XOP(card_pcm_tospan);
-	CHECK_XOP(card_zaptel_preregistration);
-	CHECK_XOP(card_zaptel_postregistration);
+	CHECK_XOP(card_dahdi_preregistration);
+	CHECK_XOP(card_dahdi_postregistration);
 	CHECK_XOP(card_hooksig);
 	// CHECK_XOP(card_ioctl);	// optional method -- call after testing
 	CHECK_XOP(card_register_reply);

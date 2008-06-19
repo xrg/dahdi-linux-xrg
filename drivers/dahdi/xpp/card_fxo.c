@@ -26,9 +26,9 @@
 #include <linux/delay.h>
 #include "xpd.h"
 #include "xproto.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "card_fxo.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include "xbus-core.h"
 
 static const char rcsid[] = "$Id$";
@@ -97,7 +97,7 @@ static int proc_fxo_info_read(char *page, char **start, off_t off, int count, in
 #ifdef	WITH_METERING
 static int proc_xpd_metering_read(char *page, char **start, off_t off, int count, int *eof, void *data);
 #endif
-static void zap_report_battery(xpd_t *xpd, lineno_t chan);
+static void dahdi_report_battery(xpd_t *xpd, lineno_t chan);
 
 #define	PROC_REGISTER_FNAME	"slics"
 #define	PROC_FXO_INFO_FNAME	"fxo_info"
@@ -261,7 +261,7 @@ static void handle_fxo_leds(xpd_t *xpd)
 	spin_unlock_irqrestore(&xpd->lock, flags);
 }
 
-static void update_zap_ring(xpd_t *xpd, int pos, bool on)
+static void update_dahdi_ring(xpd_t *xpd, int pos, bool on)
 {
 	dahdi_rxsig_t	rxsig;
 
@@ -289,7 +289,7 @@ static void update_zap_ring(xpd_t *xpd, int pos, bool on)
 		dahdi_hooksig(&xpd->chans[pos], rxsig);
 }
 
-static void mark_ring(xpd_t *xpd, lineno_t pos, bool on, bool update_zap)
+static void mark_ring(xpd_t *xpd, lineno_t pos, bool on, bool update_dahdi)
 {
 	struct FXO_priv_data	*priv;
 
@@ -305,15 +305,15 @@ static void mark_ring(xpd_t *xpd, lineno_t pos, bool on, bool update_zap)
 		LINE_DBG(SIGNAL, xpd, pos, "START\n");
 		xpd->ringing[pos] = 1;
 		MARK_BLINK(priv, pos, LED_GREEN, LED_BLINK_RING);
-		if(update_zap)
-			update_zap_ring(xpd, pos, on);
+		if(update_dahdi)
+			update_dahdi_ring(xpd, pos, on);
 	} else if(!on && xpd->ringing[pos]) {
 		LINE_DBG(SIGNAL, xpd, pos, "STOP\n");
 		xpd->ringing[pos] = 0;
 		if(IS_BLINKING(priv, pos, LED_GREEN))
 			MARK_BLINK(priv, pos, LED_GREEN, 0);
-		if(update_zap)
-			update_zap_ring(xpd, pos, on);
+		if(update_dahdi)
+			update_dahdi_ring(xpd, pos, on);
 	}
 }
 
@@ -494,7 +494,7 @@ static int FXO_card_remove(xbus_t *xbus, xpd_t *xpd)
 	return 0;
 }
 
-static int FXO_card_zaptel_preregistration(xpd_t *xpd, bool on)
+static int FXO_card_dahdi_preregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct FXO_priv_data	*priv;
@@ -527,7 +527,7 @@ static int FXO_card_zaptel_preregistration(xpd_t *xpd, bool on)
 	return 0;
 }
 
-static int FXO_card_zaptel_postregistration(xpd_t *xpd, bool on)
+static int FXO_card_dahdi_postregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct FXO_priv_data	*priv;
@@ -540,7 +540,7 @@ static int FXO_card_zaptel_postregistration(xpd_t *xpd, bool on)
 	BUG_ON(!priv);
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"ON":"OFF");
 	for_each_line(xpd, i) {
-		zap_report_battery(xpd, i);
+		dahdi_report_battery(xpd, i);
 		MARK_OFF(priv, i, LED_GREEN);
 		msleep(2);
 		MARK_OFF(priv, i, LED_RED);
@@ -577,7 +577,7 @@ static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txs
 	return ret;
 }
 
-static void zap_report_battery(xpd_t *xpd, lineno_t chan)
+static void dahdi_report_battery(xpd_t *xpd, lineno_t chan)
 {
 	struct FXO_priv_data	*priv;
 
@@ -856,7 +856,7 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 				LINE_DBG(SIGNAL, xpd, portno, "BATTERY OFF voltage=%d\n", data_low);
 				priv->battery[portno] = BATTERY_OFF;
 				if(SPAN_REGISTERED(xpd))
-					zap_report_battery(xpd, portno);
+					dahdi_report_battery(xpd, portno);
 				priv->polarity[portno] = POL_UNKNOWN;	/* What's the polarity ? */
 				priv->power[portno] = POWER_UNKNOWN;	/* What's the current ? */
 				/*
@@ -872,7 +872,7 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 			LINE_DBG(SIGNAL, xpd, portno, "BATTERY ON voltage=%d\n", data_low);
 			priv->battery[portno] = BATTERY_ON;
 			if(SPAN_REGISTERED(xpd))
-				zap_report_battery(xpd, portno);
+				dahdi_report_battery(xpd, portno);
 		}
 	}
 #if 0
@@ -923,7 +923,7 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 			LINE_DBG(SIGNAL, xpd, portno,
 				"Polarity changed to %s\n", polname);
 			/*
-			 * Inform zaptel/Asterisk:
+			 * Inform dahdi/Asterisk:
 			 * 1. Maybe used for hangup detection during offhook
 			 * 2. In some countries used to report caller-id during onhook
 			 *    but before first ring.
@@ -1066,8 +1066,8 @@ static xproto_table_t PROTO_TABLE(FXO) = {
 		.card_new	= FXO_card_new,
 		.card_init	= FXO_card_init,
 		.card_remove	= FXO_card_remove,
-		.card_zaptel_preregistration	= FXO_card_zaptel_preregistration,
-		.card_zaptel_postregistration	= FXO_card_zaptel_postregistration,
+		.card_dahdi_preregistration	= FXO_card_dahdi_preregistration,
+		.card_dahdi_postregistration	= FXO_card_dahdi_postregistration,
 		.card_hooksig	= FXO_card_hooksig,
 		.card_tick	= FXO_card_tick,
 		.card_pcm_fromspan	= generic_card_pcm_fromspan,

@@ -28,15 +28,15 @@
 #include <linux/delay.h>
 #include "xpd.h"
 #include "xproto.h"
-#include "xpp_zap.h"
+#include "xpp_dahdi.h"
 #include "card_pri.h"
-#include "zap_debug.h"
+#include "dahdi_debug.h"
 #include "xpd.h"
 #include "xbus-core.h"
 
 static const char rcsid[] = "$Id$";
 
-static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before zap_debug.h */
+static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before dahdi_debug.h */
 static DEF_PARM(uint, poll_interval, 500, 0644, "Poll channel state interval in milliseconds (0 - disable)");
 
 #define	PRI_LINES_BITMASK	BITMASK(31)
@@ -474,7 +474,7 @@ static int set_pri_proto(xpd_t *xpd, enum pri_protocol set_proto)
 	return 0;
 }
 
-static void zap_update_syncsrc(xpd_t *xpd)
+static void dahdi_update_syncsrc(xpd_t *xpd)
 {
 	struct PRI_priv_data	*priv;
 	xpd_t			*subxpd;
@@ -562,18 +562,18 @@ static void set_clocking(xpd_t *xpd)
 			priv->clock_source = 0;
 		}
 	}
-	zap_update_syncsrc(xpd);
+	dahdi_update_syncsrc(xpd);
 	put_xbus(xbus);
 }
 
 /*
- * Normally set by the timing parameter in zaptel.conf
+ * Normally set by the timing parameter in dahdi.conf
  * If this is called by ztcfg, than it's too late to change
- * zaptel sync priority (we are already registered)
+ * dahdi sync priority (we are already registered)
  * There are two workarounds to mitigate this problem:
  * 1. So we set *our* sync master at least.
  * 2. And we try to call it with a sane default from set_nt()
- *    which is called before zaptel registration.
+ *    which is called before dahdi registration.
  */
 static int set_master_mode(const char *msg, xpd_t *xpd)
 {
@@ -779,7 +779,7 @@ bad_lineconfig:
 }
 
 /*
- * Called only for 'span' keyword in /etc/zaptel.conf
+ * Called only for 'span' keyword in /etc/dahdi.conf
  */
 
 static int pri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
@@ -796,7 +796,7 @@ static int pri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 		return -EINVAL;
 	}
 	/*
-	 * FIXME: lc->name is unused by ztcfg and zaptel...
+	 * FIXME: lc->name is unused by ztcfg and dahdi...
 	 *        We currently ignore it also.
 	 */
 	XPD_DBG(GENERAL, xpd, "[%s] lbo=%d lineconfig=0x%X sync=%d\n",
@@ -813,8 +813,8 @@ static int pri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 
 /*
  * Set signalling type (if appropriate)
- * Called from zaptel with spinlock held on chan. Must not call back
- * zaptel functions.
+ * Called from dahdi with spinlock held on chan. Must not call back
+ * dahdi functions.
  */
 static int pri_chanconfig(struct dahdi_chan *chan, int sigtype)
 {
@@ -898,7 +898,7 @@ static int PRI_card_remove(xbus_t *xbus, xpd_t *xpd)
 	return 0;
 }
 
-static int PRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
+static int PRI_card_dahdi_preregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct PRI_priv_data	*priv;
@@ -947,7 +947,7 @@ static int PRI_card_zaptel_preregistration(xpd_t *xpd, bool on)
 	return 0;
 }
 
-static int PRI_card_zaptel_postregistration(xpd_t *xpd, bool on)
+static int PRI_card_dahdi_postregistration(xpd_t *xpd, bool on)
 {
 	xbus_t			*xbus;
 	struct PRI_priv_data	*priv;
@@ -957,7 +957,7 @@ static int PRI_card_zaptel_postregistration(xpd_t *xpd, bool on)
 	priv = xpd->priv;
 	BUG_ON(!xbus);
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"on":"off");
-	zap_update_syncsrc(xpd);
+	dahdi_update_syncsrc(xpd);
 	return(0);
 }
 
@@ -1124,7 +1124,7 @@ static int PRI_card_close(xpd_t *xpd, lineno_t pos)
 }
 
 /*
- * Called only for 'span' keyword in /etc/zaptel.conf
+ * Called only for 'span' keyword in /etc/dahdi.conf
  */
 static int pri_startup(struct dahdi_span *span)
 {
@@ -1135,7 +1135,7 @@ static int pri_startup(struct dahdi_span *span)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	if(!TRANSPORT_RUNNING(xpd->xbus)) {
-		XPD_DBG(GENERAL, xpd, "Startup called by zaptel. No Hardware. Ignored\n");
+		XPD_DBG(GENERAL, xpd, "Startup called by dahdi. No Hardware. Ignored\n");
 		return -ENODEV;
 	}
 	XPD_DBG(GENERAL, xpd, "STARTUP\n");
@@ -1145,7 +1145,7 @@ static int pri_startup(struct dahdi_span *span)
 }
 
 /*
- * Called only for 'span' keyword in /etc/zaptel.conf
+ * Called only for 'span' keyword in /etc/dahdi.conf
  */
 static int pri_shutdown(struct dahdi_span *span)
 {
@@ -1156,7 +1156,7 @@ static int pri_shutdown(struct dahdi_span *span)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	if(!TRANSPORT_RUNNING(xpd->xbus)) {
-		XPD_DBG(GENERAL, xpd, "Shutdown called by zaptel. No Hardware. Ignored\n");
+		XPD_DBG(GENERAL, xpd, "Shutdown called by dahdi. No Hardware. Ignored\n");
 		return -ENODEV;
 	}
 	XPD_DBG(GENERAL, xpd, "SHUTDOWN\n");
@@ -1437,8 +1437,8 @@ static xproto_table_t PROTO_TABLE(PRI) = {
 		.card_new	= PRI_card_new,
 		.card_init	= PRI_card_init,
 		.card_remove	= PRI_card_remove,
-		.card_zaptel_preregistration	= PRI_card_zaptel_preregistration,
-		.card_zaptel_postregistration	= PRI_card_zaptel_postregistration,
+		.card_dahdi_preregistration	= PRI_card_dahdi_preregistration,
+		.card_dahdi_postregistration	= PRI_card_dahdi_postregistration,
 		.card_hooksig	= PRI_card_hooksig,
 		.card_tick	= PRI_card_tick,
 		.card_pcm_fromspan	= PRI_card_pcm_fromspan,

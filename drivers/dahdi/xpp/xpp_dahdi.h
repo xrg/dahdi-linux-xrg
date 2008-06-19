@@ -1,5 +1,5 @@
-#ifndef	XPP_ZAP_H
-#define	XPP_ZAP_H
+#ifndef	XPP_DAHDI_H
+#define	XPP_DAHDI_H
 /*
  * Written by Oron Peled <oron@actcom.co.il>
  * Copyright (C) 2004-2006, Xorcom
@@ -50,4 +50,4 @@ extern struct proc_dir_entry	*xpp_proc_toplevel;
 
 #define	SPAN_REGISTERED(xpd)	atomic_read(&(xpd)->dahdi_registered)
 
-#endif	/* XPP_ZAP_H */
+#endif	/* XPP_DAHDI_H */

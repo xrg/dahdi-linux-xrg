@@ -29,8 +29,8 @@
 #include <linux/module.h>
 #include "xbus-pcm.h"
 #include "xbus-core.h"
-#include "xpp_zap.h"
-#include "zap_debug.h"
+#include "xpp_dahdi.h"
+#include "dahdi_debug.h"
 #include "parport_debug.h"
 
 static const char rcsid[] = "$Id$";
@@ -38,7 +38,7 @@ static const char rcsid[] = "$Id$";
 extern int debug;
 #ifdef	XPP_EC_CHUNK
 #include "supress/ec_xpp.h"
-DEF_PARM_BOOL(xpp_ec, 0, 0444, "Do we use our own (1) or Zaptel's (0) echo canceller");
+DEF_PARM_BOOL(xpp_ec, 0, 0444, "Do we use our own (1) or Dahdi's (0) echo canceller");
 #endif
 #ifdef	OPTIMIZE_CHANMUTE
 static DEF_PARM_BOOL(optimize_chanmute, 1, 0644, "Optimize by muting inactive channels");
@@ -53,14 +53,14 @@ static DEF_PARM_BOOL(disable_pll_sync, 0, 0644, "Disable automatic adjustment of
 
 static xbus_t			*syncer;		/* current syncer */
 static atomic_t			xpp_tick_counter = ATOMIC_INIT(0);
-static struct xpp_ticker	zaptel_ticker;
+static struct xpp_ticker	dahdi_ticker;
 /*
  * The ref_ticker points to the current referece tick source.
- * I.e: one of our AB or zaptel_ticker
+ * I.e: one of our AB or dahdi_ticker
  */
 static struct xpp_ticker	*ref_ticker = NULL;
 static spinlock_t		ref_ticker_lock = SPIN_LOCK_UNLOCKED;
-static bool			force_zaptel_sync = 0;	/* from "/proc/xpp/sync" */
+static bool			force_dahdi_sync = 0;	/* from "/proc/xpp/sync" */
 static xbus_t			*global_ticker;
 static struct xpp_ticker	global_ticks_series;
 
@@ -76,8 +76,8 @@ static struct xpp_ticker	global_ticks_series;
 #define	SYNC_ADJ_QUICK	1000
 #define	SYNC_ADJ_SLOW	10000
 
-#ifdef	ZAPTEL_SYNC_TICK
-static unsigned int		zaptel_tick_count = 0;
+#ifdef	DAHDI_SYNC_TICK
+static unsigned int		dahdi_tick_count = 0;
 #endif
 
 /*------------------------- SYNC Handling --------------------------*/
@@ -431,40 +431,40 @@ static void global_tick(void)
 	xpp_ticker_step(&global_ticks_series, &now);
 }
 
-#ifdef	ZAPTEL_SYNC_TICK
-int zaptel_sync_tick(struct dahdi_span *span, int is_master)
+#ifdef	DAHDI_SYNC_TICK
+int dahdi_sync_tick(struct dahdi_span *span, int is_master)
 {
 	xpd_t		*xpd = span->pvt;
 	static int	redundant_ticks;	/* for extra spans */
 	struct timeval	now;
 
-	if(!force_zaptel_sync)
+	if(!force_dahdi_sync)
 		goto noop;
 	do_gettimeofday(&now);
 	BUG_ON(!xpd);
 	/*
-	 * Detect if any of our spans is zaptel sync master
+	 * Detect if any of our spans is dahdi sync master
 	 */
 	if(is_master) {
 		static int	rate_limit;
 
 		if(xpd->xbus != syncer && ((rate_limit % 1003) == 0)) {
 			XPD_ERR(xpd,
-				"Zaptel master, but syncer=%s\n",
+				"Dahdi master, but syncer=%s\n",
 				xpd->xbus->busname);
 		}
 		if((rate_limit % 5003) == 0)
-			XPD_NOTICE(xpd, "Zaptel master: ignore ZAPTEL sync\n");
+			XPD_NOTICE(xpd, "Dahdi master: ignore DAHDI sync\n");
 		rate_limit++;
 		goto noop;
 	}
-	/* Now we know for sure someone else is zaptel sync master */
+	/* Now we know for sure someone else is dahdi sync master */
 	if(syncer) {
 		static int	rate_limit;
 
 		if((rate_limit++ % 5003) == 0)
 			XBUS_DBG(SYNC, syncer,
-				"Already a syncer, ignore ZAPTEL sync\n");
+				"Already a syncer, ignore DAHDI sync\n");
 		goto noop;
 	}
 	/* ignore duplicate calls from all our registered spans */
@@ -473,27 +473,27 @@ int zaptel_sync_tick(struct dahdi_span *span, int is_master)
 		static int	rate_limit;
 
 		if((rate_limit++ % 1003) < 16)
-			XPD_NOTICE(xpd, "boop (%d)\n", zaptel_tick_count);
+			XPD_NOTICE(xpd, "boop (%d)\n", dahdi_tick_count);
 #endif
 		goto noop;
 	}
-	xpp_ticker_step(&zaptel_ticker, &now);
-	zaptel_tick_count++;
+	xpp_ticker_step(&dahdi_ticker, &now);
+	dahdi_tick_count++;
 	//flip_parport_bit(1);
 	return 0;
 noop:
-	return 0;	/* No auto sync from zaptel */
+	return 0;	/* No auto sync from dahdi */
 }
 #endif
 
 /*
  * called from elect_syncer()
  * if new_syncer is NULL, than we move all to SYNC_MODE_PLL
- * for ZAPTEL sync.
+ * for DAHDI sync.
  */
 static void update_sync_master(xbus_t *new_syncer)
 {
-	const char	*msg = (force_zaptel_sync) ? "ZAPTEL" : "NO-SYNC";
+	const char	*msg = (force_dahdi_sync) ? "DAHDI" : "NO-SYNC";
 	int		i;
 	unsigned long	flags;
 
@@ -511,12 +511,12 @@ static void update_sync_master(xbus_t *new_syncer)
 	if(new_syncer) {
 		XBUS_DBG(SYNC, new_syncer, "pcm_rx_counter=%d\n",
 			atomic_read(&new_syncer->pcm_rx_counter));
-		force_zaptel_sync = 0;
+		force_dahdi_sync = 0;
 		ref_ticker = &new_syncer->ticker;
 		xbus_drift_clear(new_syncer);	/* Clean new data */
 		xbus_request_sync(new_syncer, SYNC_MODE_AB);
-	} else if(force_zaptel_sync) {
-		ref_ticker = &zaptel_ticker;
+	} else if(force_dahdi_sync) {
+		ref_ticker = &dahdi_ticker;
 	} else {
 		ref_ticker = NULL;
 	}
@@ -652,7 +652,7 @@ void fill_beep(u_char *buf, int num, int duration)
 
 #ifdef	XPP_EC_CHUNK
 /*
- * Taken from zaptel.c
+ * Taken from dahdi.c
  */
 static inline void xpp_ec_chunk(struct dahdi_chan *chan, unsigned char *rxchunk, const unsigned char *txchunk)
 {
@@ -724,7 +724,7 @@ int xpp_echocan(struct dahdi_chan *chan, int len)
 {
 #ifdef	XPP_EC_CHUNK
 	if(len == 0) {	/* shut down */
-		/* zaptel calls this also during channel initialization */
+		/* dahdi calls this also during channel initialization */
 		if(chan->ec) {
 			xpp_echo_can_free(chan->ec);
 		}
@@ -969,7 +969,7 @@ static void xbus_tick(xbus_t *xbus)
 	bool		sent_sync_bit = 0;
 
 	/*
-	 * Update zaptel
+	 * Update dahdi
 	 */
 	for(i = 0; i < MAX_XPDS; i++) {
 		xpd = xpd_of(xbus, i);
@@ -1089,7 +1089,7 @@ static void do_tick(xbus_t *xbus, const struct timeval *tv_received)
 
 	xbus_command_queue_tick(xbus);
 	if(global_ticker == xbus)
-		global_tick();	/* called from here or zaptel_sync_tick() */
+		global_tick();	/* called from here or dahdi_sync_tick() */
 	spin_lock_irqsave(&ref_ticker_lock, flags);
 	xpp_drift_step(xbus, tv_received);
 	spin_unlock_irqrestore(&ref_ticker_lock, flags);
@@ -1131,27 +1131,27 @@ static int proc_sync_read(char *page, char **start, off_t off, int count, int *e
 
 	do_gettimeofday(&now);
 	len += sprintf(page + len, "# To modify sync source write into this file:\n");
-	len += sprintf(page + len, "#     ZAPTEL      - Another zaptel device provide sync\n");
+	len += sprintf(page + len, "#     DAHDI       - Another dahdi device provide sync\n");
 	len += sprintf(page + len, "#     SYNC=nn     - XBUS-nn provide sync\n");
 	len += sprintf(page + len, "#     QUERY=nn    - Query XBUS-nn for sync information (DEBUG)\n");
 	if(!syncer) {
-		if(force_zaptel_sync)
-			len += sprintf(page + len, "ZAPTEL\n");
+		if(force_dahdi_sync)
+			len += sprintf(page + len, "DAHDI\n");
 		else
 			len += sprintf(page + len, "NO-SYNC\n");
 	} else
 		len += sprintf(page + len, "SYNC=%02d\n", syncer->num);
-#ifdef	ZAPTEL_SYNC_TICK
-	if(force_zaptel_sync) {
+#ifdef	DAHDI_SYNC_TICK
+	if(force_dahdi_sync) {
 		len += sprintf(page + len,
-			"Zaptel Reference Sync (%d registered spans):\n",
+			"Dahdi Reference Sync (%d registered spans):\n",
 			total_registered_spans());
-		len += sprintf(page + len, "\tzaptel_tick: #%d\n", zaptel_tick_count);
-		len += sprintf(page + len, "\ttick - zaptel_tick = %d\n",
-				counter - zaptel_tick_count);
+		len += sprintf(page + len, "\tdahdi_tick: #%d\n", dahdi_tick_count);
+		len += sprintf(page + len, "\ttick - dahdi_tick = %d\n",
+				counter - dahdi_tick_count);
 	} else {
 		len += sprintf(page + len,
-				"Zaptel Reference Sync Not activated\n");
+				"Dahdi Reference Sync Not activated\n");
 	}
 #endif
 	usec = usec_diff(&now, &global_ticks_series.last_sample.tv);
@@ -1185,9 +1185,9 @@ static int proc_sync_write(struct file *file, const char __user *buffer, unsigne
 	if(copy_from_user(buf, buffer, count))
 		return -EFAULT;
 	buf[count] = '\0';
-	if(strncmp("ZAPTEL", buf, 6) == 0) {
-		DBG(SYNC, "ZAPTEL\n");
-		force_zaptel_sync=1;
+	if(strncmp("DAHDI", buf, 6) == 0) {
+		DBG(SYNC, "DAHDI\n");
+		force_dahdi_sync=1;
 		update_sync_master(NULL);
 	} else if(sscanf(buf, "SYNC=%d", &xbus_num) == 1) {
 		DBG(SYNC, "SYNC=%d\n", xbus_num);
@@ -1254,13 +1254,13 @@ int xbus_pcm_init(struct proc_dir_entry *toplevel)
 		INFO("FEATURE: with XPP_EC_CHUNK\n");
 	else
 		INFO("FEATURE: without XPP_EC_CHUNK\n");
-#ifdef	ZAPTEL_SYNC_TICK
-	INFO("FEATURE: with sync_tick() from ZAPTEL\n");
+#ifdef	DAHDI_SYNC_TICK
+	INFO("FEATURE: with sync_tick() from DAHDI\n");
 #else
-	INFO("FEATURE: without sync_tick() from ZAPTEL\n");
+	INFO("FEATURE: without sync_tick() from DAHDI\n");
 #endif
 	xpp_ticker_init(&global_ticks_series);
-	xpp_ticker_init(&zaptel_ticker);
+	xpp_ticker_init(&dahdi_ticker);
 #ifdef CONFIG_PROC_FS
 	top = toplevel;
 	ent = create_proc_entry(PROC_SYNC, 0644, top);
@@ -1289,8 +1289,8 @@ EXPORT_SYMBOL(xbus_request_sync);
 EXPORT_SYMBOL(got_new_syncer);
 EXPORT_SYMBOL(elect_syncer);
 EXPORT_SYMBOL(xpp_echocan);
-#ifdef	ZAPTEL_SYNC_TICK
-EXPORT_SYMBOL(zaptel_sync_tick);
+#ifdef	DAHDI_SYNC_TICK
+EXPORT_SYMBOL(dahdi_sync_tick);
 #endif
 EXPORT_SYMBOL(__pcm_recompute);
 EXPORT_SYMBOL(pcm_recompute);

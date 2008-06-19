@@ -25,7 +25,7 @@ ifneq	(,$(filter y m,$(CONFIG_BF537)))
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_XPP_MMAP)		+= xpp_mmap.o
 endif
 
-xpp-objs		+= xbus-core.o xbus-sysfs.o xbus-pcm.o xframe_queue.o xpp_zap.o xproto.o card_global.o zap_debug.o
+xpp-objs		+= xbus-core.o xbus-sysfs.o xbus-pcm.o xframe_queue.o xpp_dahdi.o xproto.o card_global.o dahdi_debug.o
 xpd_fxs-objs		+= card_fxs.o
 xpd_fxo-objs		+= card_fxo.o
 xpd_bri-objs		+= card_bri.o
