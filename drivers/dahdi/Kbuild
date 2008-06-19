@@ -78,24 +78,4 @@ $(obj)/radfw.h: $(src)/pciradio.rbt $(obj)/makefw
 $(obj)/makefw: $(src)/makefw.c
 	$(HOSTCC) -o $@ $^
 
-# set CONFIG_DAHDI_MMX for a number of CPU types.
-# Right now this part is not enabled, unless you build with
-# DAHDI_MMX_AUTO=something .
-DAHDIMMX_WHITELIST_i386 = M586MMX M686 MPENTIUMII MPENTIUMIII MPENTIUMM \
-			    MPENTIUM4 MVIAC3_2
-
-DAHDIMMX_WHITELIST_x86_64 = 
-
-# A list of configuration variables to test: CONFIG_M686 , etc.
-DAHDIMMX_CONFIG_VARS := $(DAHDIMMX_WHITELIST_$(ARCH):%=CONFIG_%)
-
-# expand them:
-DAHDIMMX_CONFIG_VALS := $(strip  $(foreach var,$(DAHDIMMX_CONFIG_VARS),$(var))  )
-ifdef DAHDI_MMX_AUTO
-  ifdef DAHDIMMX_CONFIG_VALS
-    # TODO: make that 
-    CFLAGS_dahdi-base.o += -DCONFIG_DAHDI_MMX
-  endif
-endif
-
 clean-files	:= radfw.h tor2fw.h
