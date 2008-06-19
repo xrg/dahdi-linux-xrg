@@ -45,7 +45,7 @@ use Getopt::Std;
 my $program = basename("$0");
 my $init_dir = dirname("$0");
 BEGIN { $init_dir = dirname($0); unshift(@INC, "$init_dir", "$init_dir/zconf"); }
-use XppConfig;
+use XppConfig $init_dir;
 my $unit_id;
 my %opts;
 $ENV{XPP_BASE} = '/proc/xpp';

@@ -1,4 +1,4 @@
-package XppConf;
+package XppConfig;
 #
 # Written by Oron Peled <oron@actcom.co.il>
 # Copyright (C) 2008, Xorcom
@@ -10,8 +10,6 @@ package XppConf;
 use strict;
 
 my $conf_file = "/etc/dahdi/xpp.conf";
-
-$conf_file = $ENV{XPP_CONFIG} if $ENV{XPP_CONFIG};
 
 sub subst_var($$) {
 	my $lookup = shift;
@@ -55,7 +53,13 @@ LINE:
 	return %xpp_config;
 }
 
-my %x = read_config($conf_file);
+sub import {
+	my $pack = shift || die "Import without package?";
+	my $init_dir = shift || die "$pack::import -- missing init_dir parameter";
+	my $local_conf = "$init_dir/xpp.conf";
+	$conf_file = $local_conf if -r $local_conf;
+	my %x = read_config($conf_file);
+}
 
 sub show_vars {
 	my $assoc = shift;
@@ -79,6 +83,5 @@ sub source_vars {
 	return ($conf_file, %result);
 }
 
-source_vars(qw(XPP_PRI_SETUP opermode));
 
 1;

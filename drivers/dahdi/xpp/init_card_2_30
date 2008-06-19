@@ -45,12 +45,12 @@ use Getopt::Std;
 my $program = basename("$0");
 my $init_dir = dirname("$0");
 BEGIN { $init_dir = dirname($0); unshift(@INC, "$init_dir", "$init_dir/zconf", "$init_dir/utils/zconf"); }
-use XppConfig;
+use XppConfig $init_dir;
 my $unit_id;
 my %opts;
 $ENV{XPP_BASE} = '/proc/xpp';
 
-getopts('o:', \%opts);
+getopts('o:v:', \%opts);
 
 my $debug;
 
@@ -127,9 +127,9 @@ BULGARIA       	reg16=00	reg26=C2	reg30=03	reg31=20
 CANADA         	reg16=00	reg26=C0	reg30=00	reg31=20		
 CHILE          	reg16=00	reg26=C0	reg30=00	reg31=20		
 CHINA          	reg16=00	reg26=30	reg30=0F	reg31=20		
-COLUMBIA       	reg16=00	reg26=C0	reg30=00	reg31=20		
+COLOMBIA       	reg16=00	reg26=C0	reg30=00	reg31=20		
 CROATIA        	reg16=00	reg26=C2	reg30=02	reg31=20		
-CYRPUS         	reg16=00	reg26=C2	reg30=02	reg31=20		
+CYPRUS         	reg16=00	reg26=C2	reg30=02	reg31=20		
 CZECH          	reg16=00	reg26=C2	reg30=02	reg31=20		
 DENMARK        	reg16=00	reg26=C2	reg30=02	reg31=28		
 ECUADOR        	reg16=00	reg26=C0	reg30=00	reg31=20		
@@ -263,6 +263,7 @@ sub opermode_to_string($) {
 sub opermode_verify($) {
 	my $input = shift or die;
 	my %verification_table;
+	my $mismatches = 0;
 
 	open(F, $input) or die "$0: Failed opening '$input': $!\n";
 	while(<F>) {
@@ -281,7 +282,8 @@ sub opermode_verify($) {
 	foreach my $location (sort keys %verification_table) {
 		my $mode = $opermode_table{$location};
 		if(! defined $mode) {
-			printf STDERR  "Missing $location\n";
+			printf STDERR  "Missing from $0: '$location'\n";
+			$mismatches++;
 			next;
 		}
 		my $verify_mode = $verification_table{$location};
@@ -291,16 +293,20 @@ sub opermode_verify($) {
 			print STDERR  "DIFF: $location:\n";
 			printf STDERR  "\t%-20s: %s\n", "program", $str1;
 			printf STDERR  "\t%-20s: %s\n", "verify", $str2;
+			$mismatches++;
 		}
 	}
 	# Second test: check for extra data in our program
 	foreach my $location (sort keys %opermode_table) {
 		my $mode = $verification_table{$location};
 		if(! defined $mode) {
-			printf STDERR  "Extra $location\n";
+			printf STDERR  "Extra in $0 '$location'\n";
+			$mismatches++;
 			next;
 		}
 	}
+	print STDERR "Total $mismatches mismatches\n" if $mismatches;
+	return $mismatches;
 }
 
 sub read_defaults() {
@@ -331,11 +337,12 @@ package main;
 
 FXO::opermode_preprocess;	# Must be first
 
-if(@ARGV and $ARGV[0] =~ /^verify(.*)/) {
-	my $verify_file = $1;
-	die "Usage: $0 verify=filename\n" unless $verify_file =~ s/^=//;
+if($opts{v}) {
+	my $verify_file = $opts{v};
+	die "Usage: $0 [-v verify_filename]\n" unless $verify_file;
 	main::debug "$0: opermode verification (input='$verify_file')";
-	FXO::opermode_verify($verify_file);
+	my $mismatches = FXO::opermode_verify($verify_file);
+	die "$0: Verification against $verify_file failed\n" if $mismatches != 0;
 	exit 0;
 }
 

@@ -54,6 +54,8 @@ use Getopt::Std;
 
 my $program = basename("$0");
 my $init_dir = dirname("$0");
+BEGIN { $init_dir = dirname($0); unshift(@INC, "$init_dir", "$init_dir/zconf"); }
+use XppConfig $init_dir;
 my $unit_id;
 my %opts;
 $ENV{XPP_BASE} = '/proc/xpp';
@@ -344,8 +346,6 @@ sub port_setup($) {
 }
 
 package main;
-BEGIN { my $dir = dirname($0); unshift(@INC, "$dir", "$dir/zconf"); }
-use XppConfig;
 
 logit "Starting '$0'";
 
