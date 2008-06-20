@@ -412,14 +412,6 @@ static struct t4 *cards[MAX_T4_CARDS];
 static inline unsigned int __t4_pci_in(struct t4 *wc, const unsigned int addr)
 {
 	unsigned int res = readl(&wc->membase[addr]);
-	if (pedanticpci) {
-		/* Even though we do not support fast back-to-back
-		 * transactions, some host bridges appear to generate them.
-		 * This delay prevents this. 
-		 */
-		if (!test_bit(T4_LOADING_FW, &wc->checkflag))
-			udelay(3);
-	}
 	return res;
 }
 
@@ -428,12 +420,6 @@ static inline void __t4_pci_out(struct t4 *wc, const unsigned int addr, const un
 	unsigned int tmp;
 	writel(value, &wc->membase[addr]);
 	if (pedanticpci) {
-		/* Even though we do not support fast back-to-back
-		 * transactions, some host bridges appear to generate them.
-		 * This delay prevents this. 
-		 */
-		if (!test_bit(T4_LOADING_FW, &wc->checkflag))
-			udelay(3);
 		tmp = __t4_pci_in(wc, WC_VERSION);
 		if ((tmp & 0xffff0000) != 0xc01a0000)
 			printk("TE4XXP: Version Synchronization Error!\n");
@@ -3171,15 +3157,12 @@ static void t4_vpm450_init(struct t4 *wc)
 		return;
 	}
 
-	set_bit(T4_LOADING_FW, &wc->checkflag);
 	if (!(wc->vpm450m = init_vpm450m(wc, laws, wc->numspans, firmware))) {
 		printk("VPM450: Failed to initialize\n");
 		if (firmware != &embedded_firmware)
 			release_firmware(firmware);
-		clear_bit(T4_LOADING_FW, &wc->checkflag);
 		return;
 	}
-	clear_bit(T4_LOADING_FW, &wc->checkflag);
 
 	if (firmware != &embedded_firmware)
 		release_firmware(firmware);
