@@ -69,7 +69,7 @@ ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/l
 	@echo "Attempting to download $@"
 	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
 	@if test ! -f $@; then exit 1; fi; \
-	(cat $@ | gzip -d | tar -xf -)
+	(cat $@ | gzip -d | tar -xof -)
 endif
 
 # Create object files suitable for linking against
