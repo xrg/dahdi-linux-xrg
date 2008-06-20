@@ -1481,5 +1481,4 @@ static void __exit sync_ppp_cleanup(void)
 module_init(sync_ppp_init);
 module_exit(sync_ppp_cleanup);
 module_param(debug, int, 0);
-MODULE_LICENSE("GPL");
-
+MODULE_LICENSE("GPL v2");

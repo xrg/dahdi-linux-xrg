@@ -3799,12 +3799,9 @@ static void __exit t4_cleanup(void)
 
 MODULE_AUTHOR("Mark Spencer");
 MODULE_DESCRIPTION("Unified TE4XXP-TE2XXP PCI Driver");
-#if defined(MODULE_ALIAS)
 MODULE_ALIAS("wct2xxp");
-#endif
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
+
 module_param(pedanticpci, int, 0600);
 module_param(debug, int, 0600);
 module_param(loopback, int, 0600);

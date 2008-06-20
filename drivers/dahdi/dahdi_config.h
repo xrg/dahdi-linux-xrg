@@ -54,61 +54,22 @@
  */
 /* #define CONFIG_DAHDI_MMX */
 
-/** If defined: the user must define exactly one ECHO_CAN_ var: */
-#ifndef ECHO_CAN_FROMENV 
-
-/*
- * Pick your echo canceller: MARK2, MARK3, STEVE, or STEVE2 :)
- * 
- */ 
-/* #define ECHO_CAN_STEVE */
-/* #define ECHO_CAN_STEVE2 */
-/* #define ECHO_CAN_KB1 */
-/* This is the new latest and greatest */
-#define ECHO_CAN_MG2
-
-/*
- * This is only technically an "echo canceller"...
- * It purposely drops 2 out of 3 samples and sounds horrible.
- * You really only want this for testing "echo cancelled" audio.
- */
-/* #define ECHO_CAN_JP1 */
-
-/*
- * Uncomment for aggressive residual echo suppression under 
- * MARK2, KB1, and MG2 echo canceler
- */
-/* #define AGGRESSIVE_SUPPRESSOR */
-#endif /* ifndef ECHO_CAN_FROMENV */
 /*
  * Define to turn off the echo canceler disable tone detector,
- * which will cause dahdi to ignore the 2100 Hz echo cancel disable
+ * which will cause DAHDI to ignore the 2100 Hz echo cancel disable
  * tone.
  */
 /* #define NO_ECHOCAN_DISABLE */
 
-/* udev support */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,1)
-#define CONFIG_DAHDI_UDEV
-#endif
-
 /* We now use the linux kernel config to detect which options to use */
 /* You can still override them below */
 #if defined(CONFIG_HDLC) || defined(CONFIG_HDLC_MODULE)
-/* #define CONFIG_DAHDI_NET */  /* NEVER implicitly turn on CONFIG_DAHDI_NET */
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,4,20)
-#define CONFIG_OLD_HDLC_API
-#else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,23)
-/* Starting with 2.4.23 the kernel hdlc api changed again */
-/* Now we have to use hdlc_type_trans(skb, dev) instead of htons(ETH_P_HDLC) */
 #define DAHDI_HDLC_TYPE_TRANS
-#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,3)
 #define HDLC_MAINTAINERS_ARE_MORE_STUPID_THAN_I_THOUGHT
 #endif
 #endif
-#endif
+
 #ifdef CONFIG_PPP
 #define CONFIG_DAHDI_PPP
 #endif
@@ -185,7 +146,7 @@
 
 /*
  * Enable sync_tick() calls. Allows low-level drivers to synchronize
- * their internal clocks to the dahdi master clock.
+ * their internal clocks to the DAHDI master clock.
  */
 #define DAHDI_SYNC_TICK
 

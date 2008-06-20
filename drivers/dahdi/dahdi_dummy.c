@@ -332,6 +332,4 @@ module_param(rtc_rate, int, 0600);
 
 MODULE_DESCRIPTION("Dummy DAHDI Driver");
 MODULE_AUTHOR("Robert Pleh <robert.pleh@hermes.si>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");

@@ -1,7 +1,3 @@
-ifdef ECHO_CAN_NAME
-	ECHO_CAN_CFLAGS	:= -DECHO_CAN_FROMENV -DECHO_CAN_$(ECHO_CAN_NAME)
-endif
-
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI)			+= dahdi.o
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_DUMMY)		+= dahdi_dummy.o
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_DYNAMIC)		+= dahdi_dynamic.o
@@ -24,8 +20,13 @@ obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_PCIRADIO)		+= pciradio.o
 
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_XPP)		+= xpp/
 
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_JPAH)	+= dahdi_echocan_jpah.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_STEVE)	+= dahdi_echocan_sec.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_STEVE2)	+= dahdi_echocan_sec2.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_KB1)	+= dahdi_echocan_kb1.o
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_MG2)	+= dahdi_echocan_mg2.o
+
 CFLAGS_MODULE += -I$(src)
-EXTRA_CFLAGS += $(ECHO_CAN_CFLAGS)
 
 ifndef HOTPLUG_FIRMWARE
 ifneq (,$(filter y m,$(CONFIG_FW_LOADER)))
@@ -45,23 +46,25 @@ endif
 
 dahdi-objs := dahdi-base.o
 
+dahdi_echocan_hpec-objs := hpec/dahdi_echocan_hpec.o
+CFLAGS_dahdi_echocan_hpec.o := -I$(src)/hpec
+
 ifeq ($(ARCH),i386)
 ifneq ($(wildcard $(src)/hpec/hpec_x86_32.o_shipped),)
 HPEC_PRESENT=yes
-dahdi-objs += hpec/hpec_x86_32.o
+dahdi_echocan_hpec-objs += hpec/hpec_x86_32.o
 endif
 endif
 
 ifeq ($(ARCH),x86_64)
 ifneq ($(wildcard $(src)/hpec/hpec_x86_64.o_shipped),)
 HPEC_PRESENT=yes
-dahdi-objs += hpec/hpec_x86_64.o
+dahdi_echocan_hpec-objs += hpec/hpec_x86_64.o
 endif
 endif
 
 ifeq ($(HPEC_PRESENT),yes)
-EXTRA_CFLAGS += -DECHO_CAN_HPEC -I$(src)/hpec
-$(obj)/dahdi-base.o: $(src)/hpec/hpec_dahdi.h $(src)/hpec/hpec_user.h
+obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_HPEC)	+= dahdi_echocan_hpec.o
 endif
 
 $(obj)/pciradio.o: $(obj)/radfw.h

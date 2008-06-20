@@ -1888,10 +1888,7 @@ module_param(debug, int, 0600);
 
 MODULE_DESCRIPTION("DAHDI Telephony PCI Radio Card Driver");
 MODULE_AUTHOR("Jim Dixon <jim@lambdatel.com>");
-
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(pciradio_init);
 module_exit(pciradio_cleanup);

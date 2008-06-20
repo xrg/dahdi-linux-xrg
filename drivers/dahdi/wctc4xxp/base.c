@@ -2013,11 +2013,10 @@ module_param(debug_des_cnt, int, S_IRUGO | S_IWUSR);
 module_param(debug_notimeout, int, S_IRUGO | S_IWUSR);
 module_param(force_alert, int, S_IRUGO | S_IWUSR);
 module_param(mode, charp, S_IRUGO | S_IWUSR);
+
 MODULE_DESCRIPTION("Wildcard TC400P+TC400M Driver");
 MODULE_AUTHOR("John Sloan <jsloan@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(ztdte_init);
 module_exit(ztdte_cleanup);

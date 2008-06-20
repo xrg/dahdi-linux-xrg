@@ -1407,9 +1407,7 @@ module_param(debug, int, 0600);
 
 MODULE_DESCRIPTION("Wildcard T100P/E100P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(t1xxp_init);
 module_exit(t1xxp_cleanup);

@@ -1061,9 +1061,7 @@ module_param(opermode, int, 0444);
 
 MODULE_DESCRIPTION("Wildcard X100P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(wcfxo_init);
 module_exit(wcfxo_cleanup);

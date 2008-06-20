@@ -1,14 +1,13 @@
 /*
  * DAHDI Telephony Interface to Digium High-Performance Echo Canceller
  *
- * Copyright (C) 2006 Digium, Inc.
+ * Copyright (C) 2006-2008 Digium, Inc.
  *
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,10 +19,19 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
  */
 
-#if !defined(_HPEC_DAHDI_H)
-#define _HPEC_DAHDI_H
+#include <linux/kernel.h>
+#include <linux/errno.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/ctype.h>
+#include <linux/moduleparam.h>
 
-#define DAHDI_EC_ARRAY_UPDATE
+#include <dahdi/kernel.h>
+
+static int debug;
+
+#define module_printk(level, fmt, args...) printk(level "%s: " fmt, THIS_MODULE->name, ## args)
+#define debug_printk(level, fmt, args...) if (debug >= level) printk("%s (%s): " fmt, THIS_MODULE->name, __FUNCTION__, ## args)
 
 #include "hpec_user.h"
 #include "hpec.h"
@@ -59,28 +67,12 @@ static void memfree(void *ptr)
 	kfree(ptr);
 }
 
-static void echo_can_init(void)
-{
-	printk("DAHDI Echo Canceller: Digium High-Performance Echo Canceller\n");
-	hpec_init(logger, debug, DAHDI_CHUNKSIZE, memalloc, memfree);
-}
-
-static void echo_can_identify(char *buf, size_t len)
-{
-	dahdi_copy_string(buf, "HPEC", len);
-}
-
-static void echo_can_shutdown(void)
-{
-	hpec_shutdown();
-}
-
-static inline void echo_can_free(struct echo_can_state *ec)
+static void echo_can_free(struct echo_can_state *ec)
 {
 	hpec_channel_free(ec);
 }
 
-static inline void echo_can_array_update(struct echo_can_state *ec, short *iref, short *isig)
+static void echo_can_array_update(struct echo_can_state *ec, short *iref, short *isig)
 {
 	hpec_channel_update(ec, iref, isig);
 }
@@ -143,4 +135,46 @@ static int hpec_license_ioctl(unsigned int cmd, unsigned long data)
 	}
 }
 
-#endif /* !defined(_HPEC_DAHDI_H) */
+static const struct dahdi_echocan me = {
+	.name = "HPEC",
+	.owner = THIS_MODULE,
+	.echo_can_create = echo_can_create,
+	.echo_can_free = echo_can_free,
+	.echo_can_array_update = echo_can_array_update,
+	.echo_can_traintap = echo_can_traintap,
+};
+
+static int __init mod_init(void)
+{
+	if (dahdi_register_echocan(&me)) {
+		module_printk(KERN_ERR, "could not register with DAHDI core\n");
+
+		return -EPERM;
+	}
+
+	module_printk(KERN_NOTICE, "Registered echo canceler '%s'\n", me.name);
+
+	hpec_init(logger, debug, DAHDI_CHUNKSIZE, memalloc, memfree);
+
+	dahdi_set_hpec_ioctl(hpec_license_ioctl);
+
+	return 0;
+}
+
+static void __exit mod_exit(void)
+{
+	dahdi_unregister_echocan(&me);
+
+	dahdi_set_hpec_ioctl(NULL);
+
+	hpec_shutdown();
+}
+
+module_param(debug, int, S_IRUGO | S_IWUSR);
+
+MODULE_DESCRIPTION("DAHDI High Performance Echo Canceller");
+MODULE_AUTHOR("Kevin P. Fleming <kpfleming@digium.com>");
+MODULE_LICENSE("Digium Commercial");
+
+module_init(mod_init);
+module_exit(mod_exit);

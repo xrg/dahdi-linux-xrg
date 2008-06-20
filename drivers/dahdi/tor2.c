@@ -1483,9 +1483,7 @@ static int tor2_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long d
 
 MODULE_AUTHOR("Mark Spencer");
 MODULE_DESCRIPTION("Tormenta 2 PCI Quad T1 or E1 DAHDI Driver");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_param(debug, int, 0600);
 module_param(loopback, int, 0600);

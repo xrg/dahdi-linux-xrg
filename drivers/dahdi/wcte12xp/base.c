@@ -1725,9 +1725,7 @@ module_param(vpmdtmfsupport, int, S_IRUGO | S_IWUSR);
 module_param(vpmtsisupport, int, S_IRUGO | S_IWUSR);
 #endif
 
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(te12xp_init);
 module_exit(te12xp_cleanup);

@@ -626,7 +626,7 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 		/* Try loading the right module */
 		char fn[80];
 		spin_unlock_irqrestore(&dlock, flags);
-		sprintf(fn, "ztd-%s", zds->driver);
+		sprintf(fn, "dahdi_dynamic_%s", zds->driver);
 		request_module(fn);
 		spin_lock_irqsave(&dlock, flags);
 		ztd = find_driver(zds->driver);
@@ -844,9 +844,7 @@ module_param(debug, int, 0600);
 
 MODULE_DESCRIPTION("DAHDI Dynamic Span Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(ztdynamic_init);
 module_exit(ztdynamic_cleanup);
