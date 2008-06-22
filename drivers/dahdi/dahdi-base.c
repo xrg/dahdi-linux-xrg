@@ -7668,6 +7668,12 @@ static int __init dahdi_init(void) {
 static void __exit dahdi_cleanup(void) {
 	int x;
 
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 255)); /* pseudo */
+	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
+	class_destroy(dahdi_class);
+
 	unregister_chrdev(DAHDI_MAJOR, "dahdi");
 
 #ifdef CONFIG_PROC_FS
@@ -7679,14 +7685,6 @@ static void __exit dahdi_cleanup(void) {
 		if (tone_zones[x])
 			kfree(tone_zones[x]);
 	}
-
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 255)); /* pseudo */
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
-	class_destroy(dahdi_class);
-
-	unregister_chrdev(DAHDI_MAJOR, "dahdi");
 
 #ifdef CONFIG_DAHDI_WATCHDOG
 	watchdog_cleanup();
