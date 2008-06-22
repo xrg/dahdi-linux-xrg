@@ -7643,16 +7643,16 @@ static int __init dahdi_init(void) {
 	proc_entries[0] = proc_mkdir("dahdi", NULL);
 #endif
 
+	if ((res = register_chrdev(DAHDI_MAJOR, "dahdi", &dahdi_fops))) {
+		module_printk(KERN_ERR, "Unable to register DAHDI character device handler on %d\n", DAHDI_MAJOR);
+		return res;
+	}
+
 	dahdi_class = class_create(THIS_MODULE, "dahdi");
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 253), NULL, "dahditimer");
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 254), NULL, "dahdichannel");
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 255), NULL, "dahdipseudo");
 	CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 0), NULL, "dahdictl");
-
-	if ((res = register_chrdev(DAHDI_MAJOR, "dahdi", &dahdi_fops))) {
-		module_printk(KERN_ERR, "Unable to register DAHDI character device handler on %d\n", DAHDI_MAJOR);
-		return res;
-	}
 
 	module_printk(KERN_INFO, "Telephony Interface Registered on major %d\n", DAHDI_MAJOR);
 	module_printk(KERN_INFO, "Version: %s\n", DAHDI_VERSION);
