@@ -7686,6 +7686,8 @@ static void __exit dahdi_cleanup(void) {
 	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
 	class_destroy(dahdi_class);
 
+	unregister_chrdev(DAHDI_MAJOR, "dahdi");
+
 #ifdef CONFIG_DAHDI_WATCHDOG
 	watchdog_cleanup();
 #endif
