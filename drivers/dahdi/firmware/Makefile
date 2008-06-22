@@ -81,15 +81,11 @@ ifeq ($(HOTPLUG_FIRMWARE),yes)
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-oct6114-064.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		tar xzvf dahdi-fw-oct6114-064-$(OCT6114_064_VERSION).tar.gz; \
-		mv zaptel-fw-oct6114-064.bin dahdi-fw-oct6114-064.bin; \
 		install -m 644 dahdi-fw-oct6114-064.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		tar xzvf dahdi-fw-oct6114-064-$(OCT6114_064_VERSION).tar.gz; \
-		mv zaptel-fw-oct6114-064.bin dahdi-fw-oct6114-064.bin; \
 		install -m 644 dahdi-fw-oct6114-064.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION)); \
@@ -100,15 +96,11 @@ endif
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-oct6114-128.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		tar xzvf dahdi-fw-oct6114-128-$(OCT6114_128_VERSION).tar.gz; \
-		mv zaptel-fw-oct6114-128.bin dahdi-fw-oct6114-128.bin; \
 		install -m 644 dahdi-fw-oct6114-128.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-128-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		tar xzvf dahdi-fw-oct6114-128-$(OCT6114_128_VERSION).tar.gz; \
-		mv zaptel-fw-oct6114-128.bin dahdi-fw-oct6114-128.bin; \
 		install -m 644 dahdi-fw-oct6114-128.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-128-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-128-$(OCT6114_128_VERSION)); \
@@ -119,15 +111,11 @@ endif
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-tc400m.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		tar xzvf dahdi-fw-tc400m-$(TC400M_VERSION).tar.gz; \
-		mv zaptel-fw-tc400m.bin dahdi-fw-tc400m.bin; \
 		install -m 644 dahdi-fw-tc400m.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-tc400m-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		tar xzvf dahdi-fw-tc400m-$(TC400M_VERSION).tar.gz; \
-		mv zaptel-fw-tc400m.bin dahdi-fw-tc400m.bin; \
 		install -m 644 dahdi-fw-tc400m.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-tc400m-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-tc400m-$(TC400M_VERSION)); \
@@ -138,15 +126,11 @@ endif
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-vpmadt032.bin to hotplug firmware directories"
 	if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ]; then \
-		tar xzvf dahdi-fw-vpmadt032-$(VPMADT032_VERSION).tar.gz; \
-		mv zaptel-fw-vpmadt032.bin dahdi-fw-vpmadt032.bin; \
 		install -m 644 dahdi-fw-vpmadt032.bin $(DESTDIR)/usr/lib/hotplug/firmware && \
 		(rm -rf $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-vpmadt032-*; \
 		 touch $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION)); \
 	fi
 	if [ -d $(DESTDIR)/lib/firmware ]; then \
-		tar xzvf dahdi-fw-vpmadt032-$(VPMADT032_VERSION).tar.gz; \
-		mv zaptel-fw-vpmadt032.bin dahdi-fw-vpmadt032.bin; \
 		install -m 644 dahdi-fw-vpmadt032.bin $(DESTDIR)/lib/firmware && \
 		(rm -rf $(DESTDIR)/lib/firmware/.dahdi-fw-vpmadt032-*; \
 		 touch $(DESTDIR)/lib/firmware/.dahdi-fw-vpmadt032-$(VPMADT032_VERSION)); \
