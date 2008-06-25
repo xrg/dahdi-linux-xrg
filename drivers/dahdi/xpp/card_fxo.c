@@ -41,12 +41,6 @@ static DEF_PARM(uint, poll_metering_interval, 500, 0644, "Poll metering interval
 static DEF_PARM(int, ring_debounce, 50, 0644, "Number of ticks to debounce a false RING indication");
 static DEF_PARM(int, caller_id_style, 0, 0444, "Caller-Id detection style: 0 - [BELL], 1 - [BT], 2 - [PASS]");
 
-/* Backward compatibility plug */
-#ifndef DAHDI_GET_PARAMS_V1
-#define dahdi_alarm_channel(a,b) dahdi_qevent_lock(a,( (b)==DAHDI_ALARM_NONE )? \
-	DAHDI_EVENT_NOALARM : DAHDI_EVENT_ALARM)
-#endif
-
 enum cid_style {
 	CID_STYLE_BELL		= 0,	/* E.g: US (Bellcore) */
 	CID_STYLE_ETSI_POLREV	= 1,	/* E.g: UK (British Telecom) */

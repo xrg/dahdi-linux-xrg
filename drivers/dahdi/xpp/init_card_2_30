@@ -310,11 +310,7 @@ sub opermode_verify($) {
 }
 
 sub read_defaults() {
-	# For lab tests
-	my $labfile = "$init_dir/genzaptelconf.env";
-
 	# Source default files
-	$ENV{ZAPTEL_DEFAULTS} = "$labfile" if -r "$labfile";
 	my $var_debug = 'DEBUG_INIT_FXO';
 	my $var_opermode = 'opermode';
 	my ($default_file, %source_defaults) =

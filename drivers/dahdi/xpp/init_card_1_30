@@ -372,11 +372,7 @@ sub calibrate_slics() {
 }
 
 sub read_defaults() {
-	# For lab tests
-	my $labfile = "$init_dir/genzaptelconf.env";
-
 	# Source default files
-	$ENV{ZAPTEL_DEFAULTS} = "$labfile" if -r "$labfile";
 	my $var_debug = 'DEBUG_INIT_FXS';
 	my $var_skip_calib = 'INIT_FXS_SKIP_CALIB';
 	my ($default_file, %source_defaults) =
