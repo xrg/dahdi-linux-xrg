@@ -36,10 +36,6 @@
 static const char rcsid[] = "$Id$";
 
 extern int debug;
-#ifdef	XPP_EC_CHUNK
-#include "supress/ec_xpp.h"
-DEF_PARM_BOOL(xpp_ec, 0, 0444, "Do we use our own (1) or Dahdi's (0) echo canceller");
-#endif
 #ifdef	OPTIMIZE_CHANMUTE
 static DEF_PARM_BOOL(optimize_chanmute, 1, 0644, "Optimize by muting inactive channels");
 #endif
@@ -650,52 +646,20 @@ void fill_beep(u_char *buf, int num, int duration)
 	memcpy(buf, snd, DAHDI_CHUNKSIZE);
 }
 
-#ifdef	XPP_EC_CHUNK
-/*
- * Taken from dahdi.c
- */
-static inline void xpp_ec_chunk(struct dahdi_chan *chan, unsigned char *rxchunk, const unsigned char *txchunk)
-{
-	int16_t		rxlin;
-	int		x;
-	unsigned long	flags;
-
-	/* Perform echo cancellation on a chunk if necessary */
-	if (!chan->ec)
-		return;
-	spin_lock_irqsave(&chan->lock, flags);
-	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
-		rxlin = DAHDI_XLAW(rxchunk[x], chan);
-		rxlin = xpp_echo_can_update(chan->ec, DAHDI_XLAW(txchunk[x], chan), rxlin);
-		rxchunk[x] = DAHDI_LIN2X((int)rxlin, chan);
-	}
-	spin_unlock_irqrestore(&chan->lock, flags);
-}
-#endif
-
 static void do_ec(xpd_t *xpd)
 {
-#ifdef WITH_ECHO_SUPPRESSION
 	struct dahdi_chan	*chans = xpd->span.chans;
 	int		i;
 
-	/* FIXME: need to Echo cancel double buffered data */
 	for (i = 0;i < xpd->span.channels; i++) {
 		if(unlikely(IS_SET(xpd->digital_signalling, i)))	/* Don't echo cancel BRI D-chans */
 			continue;
 		if(!IS_SET(xpd->wanted_pcm_mask, i))			/* No ec for unwanted PCM */
 			continue;
-#ifdef XPP_EC_CHUNK 
-		/* even if defined, parameterr xpp_ec can override at run-time */
-		if (xpp_ec)
-			xpp_ec_chunk(&chans[i], chans[i].readchunk, xpd->ec_chunk2[i]);
-		else
-#endif
-			dahdi_ec_chunk(&chans[i], chans[i].readchunk, xpd->ec_chunk2[i]);
+		dahdi_ec_chunk(&chans[i], chans[i].readchunk, xpd->ec_chunk2[i]);
 		memcpy(xpd->ec_chunk2[i], xpd->ec_chunk1[i], DAHDI_CHUNKSIZE);
 		memcpy(xpd->ec_chunk1[i], chans[i].writechunk, DAHDI_CHUNKSIZE);
 	}
-#endif
 }
 
 #if 0
@@ -719,29 +683,6 @@ int (*hooksig)(struct dahdi_chan *chan, dahdi_txsig_t hookstate);
    which handles the individual hook states  */
 int (*sethook)(struct dahdi_chan *chan, int hookstate);
 #endif
-
-int xpp_echocan(struct dahdi_chan *chan, int len)
-{
-#ifdef	XPP_EC_CHUNK
-	if(len == 0) {	/* shut down */
-		/* dahdi calls this also during channel initialization */
-		if(chan->ec) {
-			xpp_echo_can_free(chan->ec);
-		}
-		return 0;
-	}
-	if(chan->ec) {
-		ERR("%s: Trying to override an existing EC (%p)\n", __FUNCTION__, chan->ec);
-		return -EINVAL;
-	}
-	chan->ec = xpp_echo_can_create(len, 0);
-	if(!chan->ec) {
-		ERR("%s: Failed creating xpp EC (len=%d)\n", __FUNCTION__, len);
-		return -EINVAL;
-	}
-#endif
-	return 0;
-}
 
 static bool pcm_valid(xpd_t *xpd, xpacket_t *pack)
 {
@@ -1245,15 +1186,6 @@ int xbus_pcm_init(struct proc_dir_entry *toplevel)
 	INFO("FEATURE: with CHANMUTE optimization (%sactivated)\n",
 		(optimize_chanmute)?"":"de");
 #endif
-#ifdef	WITH_ECHO_SUPPRESSION
-	INFO("FEATURE: with ECHO_SUPPRESSION\n");
-#else
-	INFO("FEATURE: without ECHO_SUPPRESSION\n");
-#endif
-	if(xpp_ec)
-		INFO("FEATURE: with XPP_EC_CHUNK\n");
-	else
-		INFO("FEATURE: without XPP_EC_CHUNK\n");
 #ifdef	DAHDI_SYNC_TICK
 	INFO("FEATURE: with sync_tick() from DAHDI\n");
 #else
@@ -1288,7 +1220,6 @@ void xbus_pcm_shutdown(void)
 EXPORT_SYMBOL(xbus_request_sync);
 EXPORT_SYMBOL(got_new_syncer);
 EXPORT_SYMBOL(elect_syncer);
-EXPORT_SYMBOL(xpp_echocan);
 #ifdef	DAHDI_SYNC_TICK
 EXPORT_SYMBOL(dahdi_sync_tick);
 #endif

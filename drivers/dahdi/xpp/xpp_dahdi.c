@@ -955,8 +955,6 @@ static int dahdi_register_xpd(xpd_t *xpd)
 #ifdef	DAHDI_SYNC_TICK
 	span->sync_tick = dahdi_sync_tick;
 #endif
-	if (xpp_ec)
-		span->echocan = xpp_echocan;
 #ifdef	CONFIG_DAHDI_WATCHDOG
 	span->watchdog = xpp_watchdog;
 #endif

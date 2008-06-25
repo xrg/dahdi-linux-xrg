@@ -112,15 +112,8 @@ void		got_new_syncer(xbus_t *xbus, enum sync_mode mode, int drift);
 int		xbus_command_queue_tick(xbus_t *xbus);
 void		xbus_reset_counters(xbus_t *xbus);
 void		elect_syncer(const char *msg);
-int		xpp_echocan(struct dahdi_chan *chan, int len);
 #ifdef	DAHDI_SYNC_TICK
 int		dahdi_sync_tick(struct dahdi_span *span, int is_master);
-#endif
-
-#ifdef	XPP_EC_CHUNK
-extern int xpp_ec;
-#else
-#define	xpp_ec	0
 #endif
 
 #ifdef	DEBUG_PCMTX
