@@ -1214,7 +1214,7 @@ static int start_tone(struct dahdi_chan *chan, int tone)
 		static int __warnonce = 1;
 		if (__warnonce) {
 			__warnonce = 0;
-			/* The tonezones are loaded by ztcfg based on /etc/dahdi.conf. */
+			/* The tonezones are loaded by dahdi_cfg based on /etc/dahdi/system.conf. */
 			module_printk(KERN_WARNING, "DAHDI: Cannot start tones until tone zone is loaded.\n");
 		}
 		/* Note that no tone zone exists at the moment */
@@ -2844,7 +2844,7 @@ struct dahdi_tone *dahdi_mf_tone(const struct dahdi_chan *chan, char digit, int 
 		static int __warnonce = 1;
 		if (__warnonce) {
 			__warnonce = 0;
-			/* The tonezones are loaded by ztcfg based on /etc/dahdi.conf. */
+			/* The tonezones are loaded by dahdi_cfg based on /etc/dahdi/system.conf. */
 			module_printk(KERN_WARNING, "Cannot get dtmf tone until tone zone is loaded.\n");
 		}
 		return NULL;
@@ -4049,7 +4049,7 @@ static int ioctl_dahdi_dial(struct dahdi_chan *chan, unsigned long data)
 	spin_lock_irqsave(&chan->lock, flags);
 	if (!chan->curzone) {
 		spin_unlock_irqrestore(&chan->lock, flags);
-		/* The tone zones are loaded by ztcfg from /etc/dahdi.conf */
+		/* The tone zones are loaded by dahdi_cfg from /etc/dahdi/system.conf */
 		module_printk(KERN_WARNING, "Cannot dial until a tone zone is loaded.\n");
 		return -ENODATA;
 	}

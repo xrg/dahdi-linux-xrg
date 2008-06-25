@@ -956,7 +956,7 @@ static int BRI_card_close(xpd_t *xpd, lineno_t pos)
 }
 
 /*
- * Called only for 'span' keyword in /etc/dahdi.conf
+ * Called only for 'span' keyword in /etc/dahdi/system.conf
  */
 static int bri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 {
@@ -1012,7 +1012,7 @@ static int bri_chanconfig(struct dahdi_chan *chan, int sigtype)
 }
 
 /*
- * Called only for 'span' keyword in /etc/dahdi.conf
+ * Called only for 'span' keyword in /etc/dahdi/system.conf
  */
 static int bri_startup(struct dahdi_span *span)
 {
@@ -1046,7 +1046,7 @@ static int bri_startup(struct dahdi_span *span)
 }
 
 /*
- * Called only for 'span' keyword in /etc/dahdi.conf
+ * Called only for 'span' keyword in /etc/dahdi/system.conf
  */
 static int bri_shutdown(struct dahdi_span *span)
 {

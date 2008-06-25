@@ -567,7 +567,7 @@ static void set_clocking(xpd_t *xpd)
 }
 
 /*
- * Normally set by the timing parameter in dahdi.conf
+ * Normally set by the timing parameter in /etc/dahdi/system.conf
  * If this is called by ztcfg, than it's too late to change
  * dahdi sync priority (we are already registered)
  * There are two workarounds to mitigate this problem:
@@ -779,7 +779,7 @@ bad_lineconfig:
 }
 
 /*
- * Called only for 'span' keyword in /etc/dahdi.conf
+ * Called only for 'span' keyword in /etc/dahdi/system.conf
  */
 
 static int pri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
@@ -1124,7 +1124,7 @@ static int PRI_card_close(xpd_t *xpd, lineno_t pos)
 }
 
 /*
- * Called only for 'span' keyword in /etc/dahdi.conf
+ * Called only for 'span' keyword in /etc/dahdi/system.conf
  */
 static int pri_startup(struct dahdi_span *span)
 {
@@ -1145,7 +1145,7 @@ static int pri_startup(struct dahdi_span *span)
 }
 
 /*
- * Called only for 'span' keyword in /etc/dahdi.conf
+ * Called only for 'span' keyword in /etc/dahdi/system.conf
  */
 static int pri_shutdown(struct dahdi_span *span)
 {
