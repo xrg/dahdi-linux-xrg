@@ -12,6 +12,8 @@ usage() {
 	echo "  $me checkout <kerneldir>  Pull a kernel version into <kerneldir>"
 	echo "  $me update                Update (pull) the kernel tree."
 	echo "  $me setver <kernel_ver>   Set the kernel version"
+	echo "  $me versions              Print available versions"
+	echo "  $me version               Print current (kernel) version"
 	echo "  $me build                 Test-build"
 	echo "  $me git <git command>     Run <git command>"
 	echo ""
@@ -62,14 +64,20 @@ case "$command" in
 		cd "$kernel_dir"
 		git tag -l $2 | cut -c2-
 		;;
+	version)
+		cd "$kernel_dir"
+		echo "Configured: $kernel_ver"
+		echo -n "Actual: "
+		git describe | cut -c2-
+		;;
 	setver)
 		kernel_ver="$2"
 		tag="v$kernel_ver"
 		cd "$kernel_dir"
 		git-reset --hard "$tag"
-		make clean
-		make defconfig prepare
-		make SUBDIRS=scripts # generate scripts/mod/modpost
+		make distclean
+		make defconfig modules_prepare
+		#make SUBDIRS=scripts # generate scripts/mod/modpost
 		set_var kernel_ver "$kernel_ver"
 		;;
 	test|build)
@@ -78,7 +86,6 @@ case "$command" in
 		# 1. Set th value of MAKE_PARAMS in git_test.conf .
 		# 2. Any extra command-line parameter.
 		shift
-		make KSRC="$kernel_dir" KVERS=$kernel_ver $MAKE_PARAMS clean
 		make KSRC="$kernel_dir" KVERS=$kernel_ver $MAKE_PARAMS "$@"
 		;;
 	*)
