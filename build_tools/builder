@@ -127,7 +127,7 @@ case "$1" in
 init)
 	mkdir -p $LOGS_DIR
 	cat <<EOF | $SQLITE $DB
-CREATE TABLE runs(name TEXT PRIMARY KEY, time INTEGER DEFAULT CURRENT_TIMESTAMP, zap_ver TEXT);
+CREATE TABLE runs(name TEXT PRIMARY KEY, time INTEGER DEFAULT CURRENT_TIMESTAMP, driver_ver TEXT);
 CREATE TABLE results(name TEXT, system TEXT, kvers TEXT, result INTEGER, fail_type TEXT, log TEXT);
 EOF
 	mkdir -p $LOGS_DIR
@@ -136,12 +136,12 @@ EOF
 build)
 	cd $BASE_DIR
 	shift
+	
 	if [ "$*" != '' ]; then KERNELS_localhost="$*"; fi
-	#make update
-	make version.h
-	zap_ver=`awk -F'"' '/ZAPTEL_VERSION/{print $2}' version.h`
+	driver_ver=`$BUILD_SCRIPT version_driver`
 	build_name=`date '+%Y%m%d-%H%M%si'`
-	echo "INSERT INTO runs (name, zap_ver) VALUES ('$build_name', '$zap_ver');" | $SQLITE $DB
+
+	echo "INSERT INTO runs (name, driver_ver) VALUES ('$build_name', '$driver_ver');" | $SQLITE $DB
 
 	for host in $HOSTS; do
 		eval kernels="\$KERNELS_$host"
