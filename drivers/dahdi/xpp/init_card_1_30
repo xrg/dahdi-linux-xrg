@@ -52,8 +52,9 @@ $ENV{XPP_BASE} = '/proc/xpp';
 
 getopts('o:', \%opts);
 
-my $debug;
-my $skip_calib;
+my %settings;
+$settings{debug} = 0;
+$settings{fxs_skip_calib} = 0;
 
 my $xpd_name = sprintf("XPD-%1d0", $ENV{UNIT_NUMBER});
 my $chipregs = "$ENV{XPP_BASE}/$ENV{XBUS_NAME}/$xpd_name/chipregs";
@@ -63,7 +64,7 @@ sub logit {
 }
 
 sub debug {
-	logit @_ if $debug;
+	logit @_ if $settings{debug};
 }
 
 # Arrange for error logging
@@ -372,14 +373,11 @@ sub calibrate_slics() {
 }
 
 sub read_defaults() {
-	# Source default files
-	my $var_debug = 'DEBUG_INIT_FXS';
-	my $var_skip_calib = 'INIT_FXS_SKIP_CALIB';
-	my ($default_file, %source_defaults) =
-		XppConfig::source_vars($var_debug, $var_skip_calib);
-	$debug = $source_defaults{$var_debug};
-	$skip_calib = $source_defaults{$var_skip_calib};
-	main::logit "From $default_file: $var_debug=$debug $var_skip_calib=$skip_calib";
+	if(XppConfig::read_config(\%settings)) {
+		main::logit "Defaults from $settings{xppconf}";
+	} else {
+		main::logit "No defaults file, use hard-coded defaults.";
+	}
 }
 
 package main;
@@ -392,7 +390,7 @@ FXS::init_indirect_registers();
 main::debug "after init_indirect_registers";
 FXS::init_early_direct_regs();
 main::debug "after init_early_direct_regs";
-if($skip_calib) {
+if($settings{fxs_skip_calib}) {
 	main::logit "==== WARNING: SKIPPED SLIC CALIBRATION =====";
 } else {
 	FXS::calibrate_slics;

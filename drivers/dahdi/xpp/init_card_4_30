@@ -33,6 +33,7 @@ use strict;
 #			4 - PRI
 #	XBUS_REVISION	- xbus revision number
 #	XBUS_CONNECTOR	- xbus connector string
+#	XBUS_LABEL	- xbus label string
 #
 # Output data format:
 #	- An optional comment start with ';' or '#' until the end of line
@@ -59,9 +60,10 @@ use XppConfig $init_dir;
 my $unit_id;
 my %opts;
 $ENV{XPP_BASE} = '/proc/xpp';
-my @pri_specs;
 
 getopts('o:', \%opts);
+
+my %settings;
 
 sub logit {
 	print STDERR "$unit_id: @_\n";
@@ -142,24 +144,12 @@ sub finish_quad() {
 	PRI::gen "0 WD 83 9B"; 	# PC4 (Port configuration 4): RPD_1.GPI  (nConfig1), XPD_1.GPOL (MUX_SEL2)
 }
 
-sub read_pri_specs() {
-	# For lab tests
-	my $labfile = "${0}.setup";
-
-	# Source default files
-	$ENV{ZAPTEL_DEFAULTS} = "$labfile" if -r "$labfile";
-	my $setup_var = 'XPP_PRI_SETUP';
-	my $setup_string;
-	my ($default_file, %source_defaults) =
-		XppConfig::source_vars($setup_var);
-	$setup_string = $source_defaults{$setup_var};
-	$setup_string =~ s/^\s+//;		# trim
-	$setup_string =~ s/\s+$//;		# trim
-	$setup_string =~ s/\s+/\n/g;		# cannonical spaces
-	#main::logit "From $default_file: $setup_var=\n$setup_string";
-	@pri_specs = split(/\s+/, $setup_string);
-	push(@pri_specs, 'NUM/*=TE,E1');	# Fall back default (last)
-	main::logit "pri_specs: @pri_specs";
+sub read_defaults() {
+	if(XppConfig::read_config(\%settings)) {
+		main::logit "Defaults from $settings{xppconf}";
+	} else {
+		main::logit "No defaults file, use hard-coded defaults.";
+	}
 }
 
 package PRI::Port;
@@ -168,57 +158,46 @@ sub new {
 	my $pack = shift;
 	my $port = { @_ };
 	bless $port, $pack;
-	$port->process_pri_spec;
 	return $port;
+}
+
+sub get_pri_protocol {
+	my $port = shift;
+	my $subunit = $port->{PORT_NUM};
+	my $xpd_name = "XPD-$ENV{UNIT_NUMBER}$subunit";
+	my $pri_protocol;
+	my @keys = (
+			"pri_protocol/connector:$ENV{XBUS_CONNECTOR}/$xpd_name",
+			"pri_protocol/label:$ENV{XBUS_LABEL}/$xpd_name",
+			"pri_protocol/$ENV{XBUS_NAME}/$xpd_name",
+			"pri_protocol"
+		);
+	foreach my $k (@keys) {
+		$k = lc($k);		# Lowercase
+		$pri_protocol = $settings{$k};
+		if(defined $pri_protocol) {
+			$port->{pri_protocol} = $pri_protocol;
+			return $pri_protocol;
+		}
+	}
+	return undef;
 }
 
 sub write_pri_info {
 	my $port = shift;
 	my $subunit = $port->{PORT_NUM};
-	my @pri_setup = @{$port->{PRI_SETUP}};
-	my $pri_type = $pri_setup[0] || die "Missing pri_type parameter";
-	my $pri_proto = $pri_setup[1] || die "Missing pri_proto parameter";
 	my $xpd_name = "XPD-$ENV{UNIT_NUMBER}$subunit";
 	my $info = "$ENV{XPP_BASE}/$ENV{XBUS_NAME}/$xpd_name/pri_info";	
+	my $pri_protocol = $port->get_pri_protocol;
 
-	main::logit "$xpd_name: PRI_SETUP $pri_type $pri_proto";
-	open(INFO, ">$info") || die "Failed to open '$info': $!\n";
-	print INFO "$pri_type $pri_proto\n" || die "Failed writing to '$info': $!\n";
-	close INFO || die "Failed during close of '$info': $!\n";
-}
-
-sub process_pri_spec($) {
-	my $port = shift;
-	my $subunit = $port->{PORT_NUM};
-	my $xpd_name = "XPD-$ENV{UNIT_NUMBER}$subunit";
-	my $match;
-	my $setup;
-	my @pri_setup;
-SPEC:
-	for(my $i = 0; $i < @pri_specs; $i++) {
-		my $spec = $pri_specs[$i];
-		($match, $setup) = split(/=/, $spec);
-		next unless defined $match and defined $setup;
-		# Convert "globs" to regex
-		$match =~ s/\*/.*/g;
-		$match =~ s/\?/./g;
-		#logit "match: $match";
-		my @patlist = (
-			"CONNECTOR/$ENV{XBUS_CONNECTOR}/$xpd_name",
-			"NUM/$ENV{XBUS_NAME}/$xpd_name"
-			);
-		foreach my $pattern (@patlist) {
-			#logit "testmatch: $pattern =~ $match";
-			if($pattern =~ $match) {
-				main::logit "$xpd_name: MATCH '$pattern' ~ '$match' setup=$setup";
-				last SPEC;
-			}
-		}
+	if(defined $pri_protocol) {
+		main::logit "$xpd_name: pri_protocol $pri_protocol";
+		open(INFO, ">$info") || die "Failed to open '$info': $!\n";
+		print INFO "$pri_protocol\n" || die "Failed writing '$pri_protocol' to '$info': $!\n";
+		close INFO || die "Failed during close of '$info': $!\n";
+	} else {
+		main::logit "$xpd_name: Skip setting pri protocol -- non given";
 	}
-	die "No setup matching $ENV{XBUS_NAME}/$xpd_name\n" unless defined $setup;
-	@pri_setup = split(/,/, $setup);
-	die "Bad setup string '$setup'\n" unless @pri_setup;
-	$port->{'PRI_SETUP'} = \@pri_setup;
 }
 
 sub port_setup($) {
@@ -349,7 +328,7 @@ package main;
 
 logit "Starting '$0'";
 
-PRI::read_pri_specs;
+PRI::read_defaults;
 
 sub main() {
 	my @ports;
@@ -359,12 +338,9 @@ sub main() {
 	PRI::init_quad;
 	# Must initialize all 4 ports, regardless how much there are
 	for($subunit = 0; $subunit < 4; $subunit++) {
-		my $is_nt = 0;
-
-		#logit "main(): Initializing subunit $subunit is_nt=$is_nt";
+		#logit "main(): Initializing subunit $subunit";
 		my $p = PRI::Port->new(
 				'PORT_NUM'		=> $subunit,
-				'PRI_NT'		=> $is_nt,
 				'EXIST'			=> ($subunit < $ENV{UNIT_SUBUNITS})
 				);
 		$p->port_setup;

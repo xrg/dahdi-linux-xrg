@@ -66,6 +66,7 @@ Notes about the dahdi-tools package:
       ztspeed	      ->	dahdi_speed
       zttest	      ->	dahdi_test
       zttool	      ->	dahdi_tool
+      zapconf         ->        dahdi_genconf (deprecate genzaptelconf)
 
 * The system configuration file has moved from /etc/zaptel.conf to
   /etc/dahdi/system.conf.
@@ -73,3 +74,12 @@ Notes about the dahdi-tools package:
 * The dahdi_cfg tool can now be used to select an echo canceler on a
   channel-by-channel basis in the system configuration file; see
   system.conf.sample for examples of how to do this.
+
+* The configuration for XPP init_card_* scripts is done now
+  in /etc/dahdi/xpp.conf and uses a simple syntax (example included).
+  For PRI modules, the 'pri_protocol' setting, determines how
+  to configure it (E1/T1).
+
+* In Astribank PRI modules, the LED behaviour represent which ports
+  are *CLOCK MASTER* (red color) and which are *CLOCK SLAVE* (green color).
+  Usually (but not always), this corresponds to the NT/TE settings in Asterisk.

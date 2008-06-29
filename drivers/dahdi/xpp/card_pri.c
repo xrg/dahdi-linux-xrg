@@ -100,25 +100,16 @@ static int pri_num_channels(enum pri_protocol pri_protocol)
 	return num_channels[pri_protocol];
 }
 
-static const char *type_name(enum pri_protocol pri_protocol, bool is_nt)
+static const char *type_name(enum pri_protocol pri_protocol)
 {
-	static const char	*names[2][4] = {
-		/* TE */ [0]	= {
-				[PRI_PROTO_0] = "Unknown_TE",
-				[PRI_PROTO_E1] = "E1_TE",
-				[PRI_PROTO_T1] = "T1_TE",
-				[PRI_PROTO_J1] = "J1_TE"
-			},
-		/* NT */ [1]	= {
-				[PRI_PROTO_0] = "Unknown_NT",
-				[PRI_PROTO_E1] = "E1_NT",
-				[PRI_PROTO_T1] = "T1_NT",
-				[PRI_PROTO_J1] = "J1_NT"
-			}
-		};
-	int	term = (is_nt) ? 1 : 0;
+	static const char	*names[4] = {
+		[PRI_PROTO_0] = "Unknown",
+		[PRI_PROTO_E1] = "E1",
+		[PRI_PROTO_T1] = "T1",
+		[PRI_PROTO_J1] = "J1"
+	};
 
-	return names[term][pri_protocol];
+	return names[pri_protocol];
 }
 
 static int pri_linecompat(enum pri_protocol pri_protocol)
@@ -159,10 +150,10 @@ enum pri_led_state {
 };
 
 enum pri_led_selectors {
-	TE_RED_LED	= 0,
-	TE_GREEN_LED	= 1,
-	NT_RED_LED	= 2,
-	NT_GREEN_LED	= 3,
+	BOTTOM_RED_LED		= 0,
+	BOTTOM_GREEN_LED	= 1,
+	TOP_RED_LED		= 2,
+	TOP_GREEN_LED		= 3,
 };
 
 #define	NUM_LEDS	4
@@ -242,7 +233,6 @@ struct pri_leds {
 #define	REG_CMR1_STF	BIT(2)
 
 struct PRI_priv_data {
-	bool				is_nt;
 	bool				clock_source;
 	struct proc_dir_entry		*pri_info;
 	enum pri_protocol		pri_protocol;
@@ -450,7 +440,7 @@ static int set_pri_proto(xpd_t *xpd, enum pri_protocol set_proto)
 	xpd->wanted_pcm_mask = BITMASK(xpd->channels);
 	priv->deflaw = deflaw;
 	priv->dchan_num = dchan_num;
-	xpd->type_name = type_name(priv->pri_protocol, priv->is_nt);
+	xpd->type_name = type_name(priv->pri_protocol);
 	XPD_DBG(GENERAL, xpd, "%s, channels=%d, dchan_num=%d, deflaw=%d\n",
 			pri_protocol_name(set_proto),
 			xpd->channels,
@@ -509,7 +499,7 @@ static void dahdi_update_syncsrc(xpd_t *xpd)
 /*
  * Called from:
  *   - set_master_mode() --
- *       As a result of ztcfg or writing to /proc/xpp/XBUS-??/XPD-/??/pri_info
+ *       As a result of dahdi_cfg
  *   - layer1_state() --
  *       As a result of an alarm.
  */
@@ -568,12 +558,8 @@ static void set_clocking(xpd_t *xpd)
 
 /*
  * Normally set by the timing parameter in /etc/dahdi/system.conf
- * If this is called by ztcfg, than it's too late to change
+ * If this is called by dahdi_cfg, than it's too late to change
  * dahdi sync priority (we are already registered)
- * There are two workarounds to mitigate this problem:
- * 1. So we set *our* sync master at least.
- * 2. And we try to call it with a sane default from set_nt()
- *    which is called before dahdi registration.
  */
 static int set_master_mode(const char *msg, xpd_t *xpd)
 {
@@ -604,27 +590,6 @@ static int set_master_mode(const char *msg, xpd_t *xpd)
 	return 0;
 }
 
-static int set_nt(const char *msg, xpd_t *xpd, bool is_nt)
-{
-	struct PRI_priv_data	*priv;
-
-	BUG_ON(!xpd);
-	priv = xpd->priv;
-	if(SPAN_REGISTERED(xpd)) {
-		XPD_NOTICE(xpd, "Registered as span %d. Cannot do %s(%s)\n",
-			xpd->span.spanno, __FUNCTION__, msg);
-		return -EBUSY;
-	}
-	priv->is_nt = is_nt;
-	xpd->type_name = type_name(priv->pri_protocol, is_nt);
-	xpd->direction = (is_nt) ? TO_PHONE : TO_PSTN;
-	XPD_DBG(SIGNAL, xpd, "%s(%s): %s %s\n", __FUNCTION__, msg, xpd->type_name, (is_nt) ? "NT" : "TE");
-	if(xpd->timing_priority == 0 && !is_nt) /* by default set timing priority from NT/TE */
-		xpd->timing_priority = 1;
-	set_master_mode(msg, xpd);
-	return 0;
-}
-
 static int set_localloop(const char *msg, xpd_t *xpd, bool localloop)
 {
 	struct PRI_priv_data	*priv;
@@ -639,7 +604,7 @@ static int set_localloop(const char *msg, xpd_t *xpd, bool localloop)
 		return -EBUSY;
 	}
 	lim0 |= (localloop) ? REG_LIM0_LL : 0;
-	if(priv->is_nt)
+	if(priv->clock_source)
 		lim0 |=  REG_LIM0_MAS;
 	else
 		lim0 &= ~REG_LIM0_MAS;
@@ -760,7 +725,7 @@ static int pri_lineconfig(xpd_t *xpd, int lineconfig)
 		fmr2 |= REG_FMR2_E_RFS1;
 	}
 	XPD_DBG(GENERAL, xpd, "[%s] lineconfig=%s/%s/%s %s (0x%X)\n",
-		(priv->is_nt)?"NT":"TE",
+		(priv->clock_source)?"MASTER":"SLAVE",
 		framingstr, codingstr, crcstr,
 		(lineconfig & DAHDI_CONFIG_NOTOPEN)?"YELLOW":"",
 		lineconfig);
@@ -796,11 +761,11 @@ static int pri_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 		return -EINVAL;
 	}
 	/*
-	 * FIXME: lc->name is unused by ztcfg and dahdi...
+	 * FIXME: lc->name is unused by dahdi_cfg and dahdi...
 	 *        We currently ignore it also.
 	 */
 	XPD_DBG(GENERAL, xpd, "[%s] lbo=%d lineconfig=0x%X sync=%d\n",
-		(priv->is_nt)?"NT":"TE", lc->lbo, lc->lineconfig, lc->sync);
+		(priv->clock_source)?"MASTER":"SLAVE", lc->lbo, lc->lineconfig, lc->sync);
 	ret = pri_lineconfig(xpd, lc->lineconfig);
 	if(!ret) {
 		span->lineconfig = lc->lineconfig;
@@ -837,10 +802,9 @@ static xpd_t *PRI_card_new(xbus_t *xbus, int unit, int subunit, const xproto_tab
 	if(!xpd)
 		return NULL;
 	priv = xpd->priv;
-	priv->pri_protocol = PRI_PROTO_0;	/* Default, changes in set_pri_proto() */
+	priv->pri_protocol = PRI_PROTO_0;		/* Default, changes in set_pri_proto() */
 	priv->deflaw = DAHDI_LAW_DEFAULT;		/* Default, changes in set_pri_proto() */
-	xpd->type_name =
-		type_name(priv->pri_protocol, 0);	/* Default, changes in set_nt() */
+	xpd->type_name = type_name(priv->pri_protocol);
 	if(xpd_common_init(xbus, xpd, unit, subunit, subtype, subunits) < 0)
 		goto err;
 	if(pri_proc_create(xbus, xpd) < 0)
@@ -862,7 +826,6 @@ static int PRI_card_init(xbus_t *xbus, xpd_t *xpd)
 	xproto_table_t		*proto_table;
 
 	BUG_ON(!xpd);
-	XPD_DBG(GENERAL, xpd, "\n");
 	xpd->type = XPD_TYPE_PRI;
 	proto_table = &PROTO_TABLE(PRI);
 	priv = xpd->priv;
@@ -874,6 +837,11 @@ static int PRI_card_init(xbus_t *xbus, xpd_t *xpd)
 		XPD_NOTICE(xpd, "PRI protocol not set\n");
 		goto err;
 	}
+	xpd->type_name = type_name(priv->pri_protocol);
+	xpd->direction = TO_PSTN;
+	XPD_DBG(DEVICES, xpd, "%s\n", xpd->type_name);
+	xpd->timing_priority = 1;		/* SLAVE */
+	set_master_mode(__FUNCTION__, xpd);
 	for(ret = 0; ret < NUM_LEDS; ret++) {
 		DO_LED(xpd, ret, PRI_LED_ON);
 		msleep(20);
@@ -1002,7 +970,7 @@ static void dchan_state(xpd_t *xpd, bool up)
 
 /*
  * LED managment is done by the driver now:
- *   - Turn constant ON RED/GREEN led to indicate NT/TE port
+ *   - Turn constant ON RED/GREEN led to indicate MASTER/SLAVE port
  *   - Very fast "Double Blink" to indicate Layer1 alive (without D-Channel)
  *   - Constant blink (1/2 sec cycle) to indicate D-Channel alive.
  */
@@ -1018,12 +986,12 @@ static void handle_leds(xbus_t *xbus, xpd_t *xpd)
 	BUG_ON(!xpd);
 	priv = xpd->priv;
 	BUG_ON(!priv);
-	if(priv->is_nt) {
-		which_led = NT_RED_LED;
-		other_led = TE_GREEN_LED;
+	if(xpd->timing_priority == 0) {
+		which_led = TOP_RED_LED;
+		other_led = BOTTOM_GREEN_LED;
 	} else {
-		which_led = TE_GREEN_LED;
-		other_led = NT_RED_LED;
+		which_led = BOTTOM_GREEN_LED;
+		other_led = TOP_RED_LED;
 	}
 	ledstate = priv->ledstate[which_led];
 	timer_count = xpd->timer_count;
@@ -1455,11 +1423,10 @@ static xproto_table_t PROTO_TABLE(PRI) = {
 
 static bool pri_packet_is_valid(xpacket_t *pack)
 {
-	const xproto_entry_t	*xe_nt = NULL;
-	const xproto_entry_t	*xe_te = NULL;
+	const xproto_entry_t	*xe = NULL;
 	// DBG(GENERAL, "\n");
-	xe_nt = xproto_card_entry(&PROTO_TABLE(PRI), XPACKET_OP(pack));
-	return xe_nt != NULL || xe_te != NULL;
+	xe = xproto_card_entry(&PROTO_TABLE(PRI), XPACKET_OP(pack));
+	return xe != NULL;
 }
 
 static void pri_packet_dump(const char *msg, xpacket_t *pack)
@@ -1478,8 +1445,6 @@ static int proc_pri_info_write(struct file *file, const char __user *buffer, uns
 	int			ret = 0;
 	bool			got_localloop = 0;
 	bool			got_nolocalloop = 0;
-	bool			got_te = 0;
-	bool			got_nt = 0;
 	bool			got_e1 = 0;
 	bool			got_t1 = 0;
 	bool			got_j1 = 0;
@@ -1509,10 +1474,6 @@ static int proc_pri_info_write(struct file *file, const char __user *buffer, uns
 			got_localloop = 1;
 		else if(strnicmp(tok, "NOLOCALLOOP", 8) == 0)
 			got_nolocalloop = 1;
-		else if(strnicmp(tok, "NT", 2) == 0)
-			got_nt = 1;
-		else if(strnicmp(tok, "TE", 2) == 0)
-			got_te = 1;
 		else if(strnicmp(tok, "E1", 2) == 0)
 			got_e1 = 1;
 		else if(strnicmp(tok, "T1", 2) == 0)
@@ -1539,10 +1500,6 @@ static int proc_pri_info_write(struct file *file, const char __user *buffer, uns
 		ret = set_localloop(msg, xpd, 1);
 	if(got_nolocalloop)
 		ret = set_localloop(msg, xpd, 0);
-	if(got_nt)
-		ret = set_nt(msg, xpd, 1);
-	if(got_te)
-		ret = set_nt(msg, xpd, 0);
 	return (ret) ? ret : count;
 }
 
@@ -1562,7 +1519,7 @@ static int proc_pri_info_read(char *page, char **start, off_t off, int count, in
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	len += sprintf(page + len, "PRI: %s %s%s (deflaw=%d, dchan=%d)\n",
-		(priv->is_nt) ? "NT" : "TE",
+		(priv->clock_source) ? "MASTER" : "SLAVE",
 		pri_protocol_name(priv->pri_protocol),
 		(priv->local_loopback) ? " LOCALLOOP" : "",
 		priv->deflaw, priv->dchan_num);

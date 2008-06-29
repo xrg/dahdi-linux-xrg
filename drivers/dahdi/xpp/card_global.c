@@ -795,6 +795,7 @@ int run_initialize_registers(xpd_t *xpd)
 	snprintf(directionstr, MAX_ENV_STR, "UNIT_SUBUNITS_DIR=%d", direction_mask);
 	snprintf(revstr, MAX_ENV_STR, "XBUS_REVISION=%d", xbus->revision);
 	snprintf(connectorstr, MAX_ENV_STR, "XBUS_CONNECTOR=%s", xbus->location);
+	snprintf(connectorstr, MAX_ENV_STR, "XBUS_LABEL=%s", xbus->label);
 	if(snprintf(init_card, MAX_PATH_STR, "%s/init_card_%d_%d",
 				initdir, xpd->type, xbus->revision) > MAX_PATH_STR) {
 		XPD_NOTICE(xpd, "Cannot initialize. pathname is longer than %d characters.\n", MAX_PATH_STR);
