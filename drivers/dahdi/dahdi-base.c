@@ -2451,7 +2451,9 @@ static int dahdi_specchan_release(struct inode *node, struct file *file, int uni
 		close_channel(chans[unit]);
 		if (chans[unit]->span && chans[unit]->span->close)
 			res = chans[unit]->span->close(chans[unit]);
-		clear_bit(DAHDI_FLAGBIT_OPEN, &chans[unit]->flags);
+		/* The channel might be destroyed by low-level driver span->close() */
+		if(chans[unit])
+			clear_bit(DAHDI_FLAGBIT_OPEN, &chans[unit]->flags);
 	} else
 		res = -ENXIO;
 	return res;
