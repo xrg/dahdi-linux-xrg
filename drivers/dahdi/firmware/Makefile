@@ -64,7 +64,7 @@ clean:
 	rm -f dahdi-fw-*.o
 
 # Download and extract firmware tarballs
-dahdi-fw-oct6114-064-%.tar.gz dahdi-fw-oct6114-128-%.tar.gz dahdi-fw-tc400m-%.tar.gz dahdi-fw-vpmadt032-%.tar.gz:
+dahdi-fw-oct6114-%.tar.gz dahdi-fw-tc400m-%.tar.gz dahdi-fw-vpmadt032-%.tar.gz:
 ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.$(subst .tar.gz,,$*) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.$(subst .tar.gz,,$*) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Attempting to download $@"
 	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
