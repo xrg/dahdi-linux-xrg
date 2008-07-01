@@ -194,7 +194,7 @@ uninstall-hotplug:
 uninstall-modules:
 	@./build_tools/uninstall-modules $(DESTDIR)/lib/modules/$(KVERS) $(ALL_MODULES)
 
-install-modules: modules # uninstall-modules
+install-modules: modules
 	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 
