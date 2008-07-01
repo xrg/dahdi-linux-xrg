@@ -77,31 +77,6 @@ endif
 
 ROOT_PREFIX=
 
-CHKCONFIG	:= $(wildcard /sbin/chkconfig)
-UPDATE_RCD	:= $(wildcard /usr/sbin/update-rc.d)
-ifndef DESTDIR
-  ifdef CHKCONFIG
-    ADD_INITD	:= $(CHKCONFIG) --add dahdi
-  else
-    ifdef UPDATE_RCD
-      ADD_INITD	:= $(UPDATE_RCD) dahdi defaults 15 30
-    endif
-  endif
-endif
-
-INITRD_DIR	:= $(firstword $(wildcard /etc/rc.d/init.d /etc/init.d))
-ifdef INITRD_DIR
-  INIT_TARGET	:= $(DESTDIR)$(INITRD_DIR)/dahdi
-  COPY_INITD	:= install -D dahdi.init $(INIT_TARGET)
-endif
-RCCONF_DIR	:= $(firstword $(wildcard /etc/sysconfig /etc/default))
-
-NETSCR_DIR	:= $(firstword $(wildcard /etc/sysconfig/network-scripts ))
-ifdef NETSCR_DIR
-  NETSCR_TARGET	:= $(DESTDIR)$(NETSCR_DIR)/ifup-hdlc
-  COPY_NETSCR	:= install -D ifup-hdlc $(NETSCR_TARGET)
-endif
-
 ifneq ($(wildcard .version),)
   DAHDIVERSION:=$(shell cat .version)
 else
@@ -198,30 +173,6 @@ install-modules: modules
 	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 
-config:
-ifdef COPY_INITD
-	$(COPY_INITD)
-endif
-ifdef RCCONF_DIR
-  ifeq (,$(wildcard $(DESTDIR)$(RCCONF_DIR)/dahdi))
-	install -D -m 644 dahdi.sysconfig $(DESTDIR)$(RCCONF_DIR)/dahdi
-  endif
-endif
-ifdef COPY_NETSCR
-	$(COPY_NETSCR)
-endif
-ifdef ADD_INITD
-	$(ADD_INITD)
-endif
-	@echo "DAHDI has been configured."
-	@echo ""
-	@echo "If you have any DAHDI hardware it is now recommended to "
-	@echo "edit /etc/default/dahdi or /etc/sysconfig/dahdi and set there an "
-	@echo "optimal value for the variable MODULES."
-	@echo ""
-	@echo "I think that the DAHDI hardware you have on your system is:"
-	@kernel/xpp/utils/dahdi_hardware || true
-
 update:
 	@if [ -d .svn ]; then \
 		echo "Updating from Subversion..." ; \
@@ -246,6 +197,6 @@ dist-clean: clean
 	@rm -f include/dahdi/version.h
 	@$(MAKE) -C drivers/dahdi/firmware dist-clean
 
-.PHONY: distclean dist-clean clean version.h all install devices modules stackcheck install-udev config update install-modules install-include uninstall-modules
+.PHONY: distclean dist-clean clean version.h all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules
 
 endif # ifdef KBUILD_EXTMOD
