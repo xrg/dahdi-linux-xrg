@@ -35,8 +35,8 @@
 
 static const char rcsid[] = "$Id$";
 
-#ifndef CONFIG_ZAPATA_BRI_DCHANS
-#error CONFIG_ZAPATA_BRI_DCHANS is not defined
+#ifndef CONFIG_DAHDI_BRI_DCHANS
+#error CONFIG_DAHDI_BRI_DCHANS is not defined
 #endif
 
 static DEF_PARM(int, debug, 0, 0644, "Print DBG statements");	/* must be before dahdi_debug.h */
@@ -690,8 +690,8 @@ static int BRI_card_dahdi_preregistration(xpd_t *xpd, bool on)
 		cur_chan->pvt = xpd;
 		if(i == 2) {	/* D-CHAN */
 			cur_chan->sigcap = BRI_DCHAN_SIGCAP;
-			cur_chan->flags |= DAHDI_FLAG_BRIDCHAN;
-			cur_chan->flags &= ~DAHDI_FLAG_HDLC;
+			set_bit(DAHDI_FLAGBIT_BRIDCHAN, &cur_chan->flags);
+			clear_bit(DAHDI_FLAGBIT_HDLC, &cur_chan->flags);
 
 			/* Setup big buffers for D-Channel rx/tx */
 			cur_chan->readchunk = priv->dchan_rbuf;
@@ -1039,8 +1039,8 @@ static int bri_startup(struct dahdi_span *span)
 		 *
 		 * Don't Get Mad, Get Even:  Now we override dahdi :-)
 		 */
-		dchan->flags |= DAHDI_FLAG_BRIDCHAN;
-		dchan->flags &= ~DAHDI_FLAG_HDLC;
+		set_bit(DAHDI_FLAGBIT_BRIDCHAN, &dchan->flags);
+		clear_bit(DAHDI_FLAGBIT_HDLC, &dchan->flags);
 	}
 	return 0;
 }

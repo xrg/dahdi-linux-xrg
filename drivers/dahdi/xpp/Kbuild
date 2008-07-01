@@ -6,7 +6,7 @@ EXTRA_CFLAGS	=	$(XPP_LOCAL_CFLAGS)	\
 			-g
 			#
 
-WITH_BRISTUFF	:= $(shell grep '^[[:space:]]*\#[[:space:]]*define[[:space:]]\+CONFIG_ZAPATA_BRI_DCHANS\>' $(src)/../dahdi_config.h)
+WITH_BRISTUFF	:= $(shell grep '^[[:space:]]*\#[[:space:]]*define[[:space:]]\+CONFIG_DAHDI_BRI_DCHANS\>' $(src)/../dahdi_config.h)
 
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_XPP)		+= xpp.o
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_XPD_FXS)		+= xpd_fxs.o
