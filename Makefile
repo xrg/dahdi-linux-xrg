@@ -94,6 +94,7 @@ ifdef INITRD_DIR
   INIT_TARGET	:= $(DESTDIR)$(INITRD_DIR)/dahdi
   COPY_INITD	:= install -D dahdi.init $(INIT_TARGET)
 endif
+RCCONF_DIR	:= $(firstword $(wildcard /etc/sysconfig /etc/default))
 
 NETSCR_DIR	:= $(firstword $(wildcard /etc/sysconfig/network-scripts ))
 ifdef NETSCR_DIR
@@ -198,23 +199,25 @@ install-modules: modules
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 
 config:
-	install -d $(DESTDIR)/etc/dahdi
-	install -D -m 644 system.conf.sample $(DESTDIR)/etc/dahdi/system.conf
 ifdef COPY_INITD
 	$(COPY_INITD)
-	install -D -m 644 init.conf.sample $(DESTDIR)/etc/dahdi/init.conf
-ifdef ADD_INITD
-	$(ADD_INITD)
 endif
+ifdef RCCONF_DIR
+  ifeq (,$(wildcard $(DESTDIR)$(RCCONF_DIR)/dahdi))
+	install -D -m 644 dahdi.sysconfig $(DESTDIR)$(RCCONF_DIR)/dahdi
+  endif
 endif
 ifdef COPY_NETSCR
 	$(COPY_NETSCR)
 endif
+ifdef ADD_INITD
+	$(ADD_INITD)
+endif
 	@echo "DAHDI has been configured."
 	@echo ""
 	@echo "If you have any DAHDI hardware it is now recommended to "
-	@echo "edit /etc/dahdi/init.conf and set an optimal value for"
-	@echo " the variable MODULES."
+	@echo "edit /etc/default/dahdi or /etc/sysconfig/dahdi and set there an "
+	@echo "optimal value for the variable MODULES."
 	@echo ""
 	@echo "I think that the DAHDI hardware you have on your system is:"
 	@kernel/xpp/utils/dahdi_hardware || true
