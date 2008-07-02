@@ -3745,6 +3745,18 @@ retry:
 
 static struct pci_driver wctdm_driver;
 
+static void free_wc(struct wctdm *wc)
+{
+	unsigned int x;
+
+	for (x = 0; x < wc->cards; x++) {
+		if (wc->chans[x]) {
+			kfree(wc->chans[x]);
+		}
+	}
+	kfree(wc);
+}
+
 static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
 	struct wctdm *wc;
@@ -3754,11 +3766,10 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 	int ret;
 
 retry:
-	wc = kmalloc(sizeof(struct wctdm), GFP_KERNEL);
-	if (!wc) {
-		/* \todo Print debug message. */
+	if (!(wc = kmalloc(sizeof(*wc), GFP_KERNEL))) {
 		return -ENOMEM;
 	}
+
 	memset(wc, 0, sizeof(*wc));
 	spin_lock(&ifacelock);	
 	/* \todo this is a candidate for removal... */
@@ -3771,7 +3782,7 @@ retry:
 	spin_unlock(&ifacelock);
 
 	snprintf(wc->board_name, sizeof(wc->board_name)-1, "%s%d",
-		wctdm_driver.name, i);
+		 wctdm_driver.name, i);
 	ret = voicebus_init(pdev, SFRAME_SIZE, wc->board_name,
 		handle_receive, handle_transmit, wc, &wc->vb);
 	if (ret) {
@@ -3832,6 +3843,14 @@ retry:
 	/* Final initialization */
 	wctdm_post_initialize(wc);
 	
+	for (i = 0; i < wc->cards; i++) {
+		if (!(wc->chans[i] = kmalloc(sizeof(*wc->chans[i]), GFP_KERNEL))) {
+			free_wc(wc);
+			return -ENOMEM;
+		}
+		memset(wc->chans[i], 0, sizeof(*wc->chans[i]));
+	}
+
 	/* We should be ready for DAHDI to come in now. */
 	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with DAHDI\n");
@@ -3864,7 +3883,7 @@ static void wctdm_release(struct wctdm *wc)
 	ifaces[i] = NULL;
 	spin_unlock(&ifacelock);
 	
-	kfree(wc);
+	free_wc(wc);
 }
 
 static void __devexit wctdm_remove_one(struct pci_dev *pdev)
