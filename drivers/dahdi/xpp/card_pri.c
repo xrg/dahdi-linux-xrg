@@ -560,6 +560,8 @@ static void set_clocking(xpd_t *xpd)
  * Normally set by the timing parameter in /etc/dahdi/system.conf
  * If this is called by dahdi_cfg, than it's too late to change
  * dahdi sync priority (we are already registered)
+ *
+ * Also called from set_localloop()
  */
 static int set_master_mode(const char *msg, xpd_t *xpd)
 {
@@ -590,36 +592,20 @@ static int set_master_mode(const char *msg, xpd_t *xpd)
 	return 0;
 }
 
-static int set_localloop(const char *msg, xpd_t *xpd, bool localloop)
+static int set_localloop(xpd_t *xpd, bool localloop)
 {
 	struct PRI_priv_data	*priv;
-	byte			lim0 = 0;
-	byte			xsp  = 0;
 
 	BUG_ON(!xpd);
 	priv = xpd->priv;
 	if(SPAN_REGISTERED(xpd)) {
-		XPD_NOTICE(xpd, "Registered as span %d. Cannot do %s(%s)\n",
-			xpd->span.spanno, __FUNCTION__, msg);
+		XPD_NOTICE(xpd, "Registered as span %d. Cannot do %s\n",
+			xpd->span.spanno, __FUNCTION__);
 		return -EBUSY;
 	}
-	lim0 |= (localloop) ? REG_LIM0_LL : 0;
-	if(priv->clock_source)
-		lim0 |=  REG_LIM0_MAS;
-	else
-		lim0 &= ~REG_LIM0_MAS;
-	if(priv->pri_protocol == PRI_PROTO_E1)
-	{
-		lim0 |= REG_LIM0_RTRS; /*  Receive termination: Integrated resistor is switched on (100 Ohm || 300 Ohm = 75 Ohm) */
-		xsp  |= REG_XSP_E_EBP | REG_XSP_E_AXS | REG_XSP_E_XSIF;
-	} else if(priv->pri_protocol == PRI_PROTO_T1) { 
-		lim0 &= ~REG_LIM0_RTRS ; /*  Receive termination: Integrated resistor is switched off (100 Ohm, no internal 300 Ohm)  */;
-		xsp  |=  REG_FMR5_T_XTM;
-	}
 	priv->local_loopback = localloop;
-	XPD_DBG(SIGNAL, xpd, "%s(%s): %s\n", __FUNCTION__, msg, (localloop) ? "LOCALLOOP" : "NO");
-	write_subunit(xpd, REG_LIM0 , lim0);
-	write_subunit(xpd, REG_XSP_E, xsp);
+	XPD_DBG(SIGNAL, xpd, "%s: %s\n", __FUNCTION__, (localloop) ? "LOCALLOOP" : "NO");
+	set_master_mode(__FUNCTION__, xpd);
 	return 0;
 }
 
@@ -1439,7 +1425,6 @@ static int proc_pri_info_write(struct file *file, const char __user *buffer, uns
 	char			buf[MAX_PROC_WRITE];
 	char			*p;
 	char			*tok;
-	static const char	*msg = "PROC";	/* for logs */
 	int			ret = 0;
 	bool			got_localloop = 0;
 	bool			got_nolocalloop = 0;
@@ -1495,9 +1480,9 @@ static int proc_pri_info_write(struct file *file, const char __user *buffer, uns
 		return -EINVAL;
 	}
 	if(got_localloop)
-		ret = set_localloop(msg, xpd, 1);
+		ret = set_localloop(xpd, 1);
 	if(got_nolocalloop)
-		ret = set_localloop(msg, xpd, 0);
+		ret = set_localloop(xpd, 0);
 	return (ret) ? ret : count;
 }
 
