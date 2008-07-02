@@ -92,7 +92,7 @@ prereq: include/dahdi/version.h
 stackcheck: checkstack modules
 	./checkstack kernel/*.ko kernel/*/*.ko
 
-install: all devices install-modules install-firmware install-include
+install: all devices install-modules install-include install-firmware
 	@echo "###################################################"
 	@echo "###"
 	@echo "### DAHDI installed successfully."
