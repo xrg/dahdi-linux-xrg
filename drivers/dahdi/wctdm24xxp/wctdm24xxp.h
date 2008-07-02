@@ -266,7 +266,7 @@ struct wctdm {
 #endif	
 #endif
 	struct voicebus *vb;
-	struct dahdi_chan chans[NUM_CARDS];
+	struct dahdi_chan *chans[NUM_CARDS];
 	int initialized;
 };
 

@@ -139,7 +139,8 @@ struct wcfxo {
 	struct pci_dev *dev;
 	char *variety;
 	struct dahdi_span span;
-	struct dahdi_chan chan;
+	struct dahdi_chan _chan;
+	struct dahdi_chan *chan;
 	int usecount;
 	int dead;
 	int pos;
@@ -257,7 +258,7 @@ static inline void wcfxo_transmitprep(struct wcfxo *wc, unsigned char ints)
 	}
 
 	/* Remember what it was we just sent */
-	memcpy(wc->lasttx, wc->chan.writechunk, DAHDI_CHUNKSIZE);
+	memcpy(wc->lasttx, wc->chan->writechunk, DAHDI_CHUNKSIZE);
 
 	if (ints & 0x01)  {
 		/* Write is at interrupt address.  Start writing from normal offset */
@@ -272,11 +273,11 @@ static inline void wcfxo_transmitprep(struct wcfxo *wc, unsigned char ints)
 		/* Send a sample, as a 32-bit word, and be sure to indicate that a command follows */
 		if (wc->flags & FLAG_INVERTSER)
 			writechunk[x << 1] = cpu_to_le32(
-				~((unsigned short)(DAHDI_XLAW(wc->chan.writechunk[x], (&wc->chan)))| 0x1) << 16
+				~((unsigned short)(DAHDI_XLAW(wc->chan->writechunk[x], wc->chan))| 0x1) << 16
 				);
 		else
 			writechunk[x << 1] = cpu_to_le32(
-				((unsigned short)(DAHDI_XLAW(wc->chan.writechunk[x], (&wc->chan)))| 0x1) << 16
+				((unsigned short)(DAHDI_XLAW(wc->chan->writechunk[x], wc->chan))| 0x1) << 16
 				);
 
 		/* We always have a command to follow our signal */
@@ -374,7 +375,7 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 			wc->pegtimer = 0;
 			wc->peg = -1;
 		}
-		wc->chan.readchunk[x] = DAHDI_LIN2X((sample), (&wc->chan));
+		wc->chan->readchunk[x] = DAHDI_LIN2X((sample), (wc->chan));
 	}
 	if (wc->pegtimer > PEGTIME) {
 		/* Reset pegcount if our timer expires */
@@ -388,14 +389,14 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 			/* It's ringing */
 			if (debug)
 				printk("RING!\n");
-			dahdi_hooksig(&wc->chan, DAHDI_RXSIG_RING);
+			dahdi_hooksig(wc->chan, DAHDI_RXSIG_RING);
 			wc->ring = 1;
 		}
 		if (wc->ring && !wc->pegcount) {
 			/* No more ring */
 			if (debug)
 				printk("NO RING!\n");
-			dahdi_hooksig(&wc->chan, DAHDI_RXSIG_OFFHOOK);
+			dahdi_hooksig(wc->chan, DAHDI_RXSIG_OFFHOOK);
 			wc->ring = 0;
 		}
 	}
@@ -404,7 +405,7 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 
 	/* Do the echo cancellation...  We are echo cancelling against
 	   what we sent two chunks ago*/
-	dahdi_ec_chunk(&wc->chan, wc->chan.readchunk, wc->lasttx);
+	dahdi_ec_chunk(wc->chan, wc->chan->readchunk, wc->lasttx);
 
 	/* Receive the result */
 	dahdi_receive(&wc->span);
@@ -497,7 +498,7 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 #endif
 				}
 #else
-				dahdi_hooksig(&wc->chan, DAHDI_RXSIG_ONHOOK);
+				dahdi_hooksig(wc->chan, DAHDI_RXSIG_ONHOOK);
 #endif
 				wc->battdebounce = BATT_DEBOUNCE;
 			} else if (!wc->battery)
@@ -522,7 +523,7 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 						printk("Signalled Off Hook\n");
 				}
 #else
-				dahdi_hooksig(&wc->chan, DAHDI_RXSIG_OFFHOOK);
+				dahdi_hooksig(wc->chan, DAHDI_RXSIG_OFFHOOK);
 #endif
 				wc->battery = 1;
 				wc->nobatttimer = 0;
@@ -639,13 +640,13 @@ static int wcfxo_initialize(struct wcfxo *wc)
 	/* DAHDI stuff */
 	sprintf(wc->span.name, "WCFXO/%d", wc->pos);
 	snprintf(wc->span.desc, sizeof(wc->span.desc) - 1, "%s Board %d", wc->variety, wc->pos + 1);
-	sprintf(wc->chan.name, "WCFXO/%d/%d", wc->pos, 0);
+	sprintf(wc->chan->name, "WCFXO/%d/%d", wc->pos, 0);
 	snprintf(wc->span.location, sizeof(wc->span.location) - 1,
 		 "PCI Bus %02d Slot %02d", wc->dev->bus->number, PCI_SLOT(wc->dev->devfn) + 1);
 	wc->span.manufacturer = "Digium";
 	dahdi_copy_string(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype));
-	wc->chan.sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF;
-	wc->chan.chanpos = 1;
+	wc->chan->sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF;
+	wc->chan->chanpos = 1;
 	wc->span.chans = &wc->chan;
 	wc->span.channels = 1;
 	wc->span.hooksig = wcfxo_hooksig;
@@ -661,7 +662,7 @@ static int wcfxo_initialize(struct wcfxo *wc)
 	init_waitqueue_head(&wc->span.maintq);
 
 	wc->span.pvt = wc;
-	wc->chan.pvt = wc;
+	wc->chan->pvt = wc;
 	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with DAHDI\n");
 		return -1;
@@ -902,6 +903,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	}
 
 	ifaces[x] = wc;
+	wc->chan = &wc->_chan;
 	memset(wc, 0, sizeof(struct wcfxo));
 	wc->ioaddr = pci_resource_start(pdev, 0);
 	wc->dev = pdev;

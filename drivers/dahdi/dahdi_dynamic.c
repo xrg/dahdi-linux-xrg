@@ -104,7 +104,7 @@ static struct dahdi_dynamic {
 	unsigned short txcnt;
 	unsigned short rxcnt;
 	struct dahdi_span span;
-	struct dahdi_chan *chans;
+	struct dahdi_chan **chans;
 	struct dahdi_dynamic *next;
 	struct dahdi_dynamic_driver *driver;
 	void *pvt;
@@ -196,7 +196,7 @@ static void ztd_sendmessage(struct dahdi_dynamic *z)
 	offset = 0;
 	for (x=0;x<z->span.channels;x++) {
 		offset = x % 4;
-		bits |= (z->chans[x].txsig & 0xf) << (offset << 2);
+		bits |= (z->chans[x]->txsig & 0xf) << (offset << 2);
 		if (offset == 3) {
 			/* Write the bits when we have four channels */
 			*((unsigned short *)buf) = htons(bits);
@@ -214,7 +214,7 @@ static void ztd_sendmessage(struct dahdi_dynamic *z)
 	}
 	
 	for (x=0;x<z->span.channels;x++) {
-		memcpy(buf, z->chans[x].writechunk, DAHDI_CHUNKSIZE);
+		memcpy(buf, z->chans[x]->writechunk, DAHDI_CHUNKSIZE);
 		buf += DAHDI_CHUNKSIZE;
 		msglen += DAHDI_CHUNKSIZE;
 	}
@@ -611,13 +611,13 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 	z->span.close = ztd_close;
 	z->span.chanconfig = ztd_chanconfig;
 	for (x=0;x<zds->numchans;x++) {
-		sprintf(z->chans[x].name, "ZTD/%s/%s/%d", zds->driver, zds->addr, x+1);
-		z->chans[x].sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS |
-				     DAHDI_SIG_FXSKS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXOLS |
-				     DAHDI_SIG_FXOKS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | 
-				     DAHDI_SIG_DACS_RBS | DAHDI_SIG_CAS;
-		z->chans[x].chanpos = x + 1;
-		z->chans[x].pvt = z;
+		sprintf(z->chans[x]->name, "ZTD/%s/%s/%d", zds->driver, zds->addr, x+1);
+		z->chans[x]->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS |
+				      DAHDI_SIG_FXSKS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXOLS |
+				      DAHDI_SIG_FXOKS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | 
+				      DAHDI_SIG_DACS_RBS | DAHDI_SIG_CAS;
+		z->chans[x]->chanpos = x + 1;
+		z->chans[x]->pvt = z;
 	}
 	
 	spin_lock_irqsave(&dlock, flags);

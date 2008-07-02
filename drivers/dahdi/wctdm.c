@@ -252,7 +252,8 @@ struct wctdm {
 	dma_addr_t	writedma;
 	volatile unsigned int *writechunk;				/* Double-word aligned write memory */
 	volatile unsigned int *readchunk;				/* Double-word aligned read memory */
-	struct dahdi_chan chans[NUM_CARDS];
+	struct dahdi_chan _chans[NUM_CARDS];
+	struct dahdi_chan *chans;
 };
 
 
@@ -2030,7 +2031,7 @@ static int wctdm_initialize(struct wctdm *wc)
 		wc->chans[x].chanpos = x+1;
 		wc->chans[x].pvt = wc;
 	}
-	wc->span.chans = wc->chans;
+	wc->span.chans = &wc->chans;
 	wc->span.channels = NUM_CARDS;
 	wc->span.hooksig = wctdm_hooksig;
 	wc->span.irq = wc->dev->irq;
@@ -2261,6 +2262,7 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 			int cardcount = 0;
 
 			ifaces[x] = wc;
+			wc->chans = wc->_chans;
 			memset(wc, 0, sizeof(struct wctdm));
 			spin_lock_init(&wc->lock);
 			wc->curcard = -1;
