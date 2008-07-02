@@ -460,7 +460,7 @@ static int rx_dchan(xpd_t *xpd, reg_cmd_t *regcmd)
 #ifdef XPP_DEBUGFS
 	xbus_log(xbus, xpd, 0, regcmd, sizeof(reg_cmd_t));		/* 0 = RX */
 #endif
-	dchan = &xpd->span.chans[2];
+	dchan = xpd->span.chans[2];
 	if(!IS_SET(xpd->offhook, 2)) {	/* D-chan is used? */
 		static int rate_limit;
 
@@ -534,7 +534,7 @@ static int tx_dchan(xpd_t *xpd)
 	BUG_ON(!priv);
 	if(!SPAN_REGISTERED(xpd) || !(xpd->span.flags & DAHDI_FLAG_RUNNING))
 		return 0;
-	dchan = &xpd->chans[2];
+	dchan = xpd->chans[2];
 	len = dchan->bytes2transmit;	/* dchan's hdlc package len */
 	eoframe = dchan->eoftx;		/* dchan's end of frame */
 	dchan->bytes2transmit = 0;
@@ -678,7 +678,7 @@ static int BRI_card_dahdi_preregistration(xpd_t *xpd, bool on)
 	xpd->span.deflaw = DAHDI_LAW_ALAW;
 	BIT_SET(xpd->digital_signalling, 2);	/* D-Channel */
 	for_each_line(xpd, i) {
-		struct dahdi_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = xpd->chans[i];
 
 		XPD_DBG(GENERAL, xpd, "setting BRI channel %d\n", i);
 		snprintf(cur_chan->name, MAX_CHANNAME, "XPP_%s/%02d/%1d%1d/%d",
@@ -943,7 +943,7 @@ static int BRI_card_ioctl(xpd_t *xpd, int pos, unsigned int cmd, unsigned long a
 
 static int BRI_card_close(xpd_t *xpd, lineno_t pos)
 {
-	struct dahdi_chan	*chan = &xpd->span.chans[pos];
+	struct dahdi_chan	*chan = xpd->span.chans[pos];
 
 	/* Clear D-Channel pending data */
 	chan->bytes2receive = 0;
@@ -1029,7 +1029,7 @@ static int bri_startup(struct dahdi_span *span)
 	// Turn on all channels
 	CALL_XMETHOD(XPD_STATE, xpd->xbus, xpd, 1);
 	if(SPAN_REGISTERED(xpd)) {
-		dchan = &span->chans[2];
+		dchan = span->chans[2];
 		span->flags |= DAHDI_FLAG_RUNNING;
 		/*
 		 * Dahdi (wrongly) assume that D-Channel need HDLC decoding
@@ -1067,7 +1067,7 @@ static int bri_shutdown(struct dahdi_span *span)
 static void BRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t wanted_lines, xpacket_t *pack)
 {
 	byte		*pcm;
-	struct dahdi_chan	*chans;
+	struct dahdi_chan	**chans;
 	unsigned long	flags;
 	int		i;
 	int		subunit;
@@ -1094,7 +1094,7 @@ static void BRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t wanted_li
 						memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 					else
 #endif
-						memcpy((u_char *)pcm, chans[i].writechunk, DAHDI_CHUNKSIZE);
+						memcpy((u_char *)pcm, chans[i]->writechunk, DAHDI_CHUNKSIZE);
 					// fill_beep((u_char *)pcm, tmp_xpd->addr.subunit, 2);
 				} else
 					memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
@@ -1139,7 +1139,7 @@ static void BRI_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 			volatile u_char	*r;
 
 			if(IS_SET(tmp_mask, i)) {
-				r = tmp_xpd->span.chans[i].readchunk;
+				r = tmp_xpd->span.chans[i]->readchunk;
 				// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
 				// fill_beep((u_char *)r, 1, 1);	// DEBUG: BEEP
 				memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);

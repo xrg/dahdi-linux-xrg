@@ -892,6 +892,7 @@ static int dahdi_register_xpd(xpd_t *xpd)
 	struct dahdi_span	*span;
 	xbus_t		*xbus;
 	int		cn;
+	int		i;
 	const xops_t	*xops;
 
 	BUG_ON(!xpd);
@@ -904,8 +905,10 @@ static int dahdi_register_xpd(xpd_t *xpd)
 	}
 	cn = xpd->channels;
 	XPD_DBG(DEVICES, xpd, "Initializing span: %d channels.\n", cn);
-	memset(xpd->chans, 0, sizeof(struct dahdi_chan)*cn);
 	memset(&xpd->span, 0, sizeof(struct dahdi_span));
+	for(i = 0; i < cn; i++) {
+		memset(xpd->chans[i], 0, sizeof(struct dahdi_chan));
+	}
 
 	span = &xpd->span;
 	snprintf(span->name, MAX_SPANNAME, "%s/%s", xbus->busname, xpd->xpdname);
