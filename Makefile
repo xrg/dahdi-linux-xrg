@@ -5,20 +5,6 @@
 #
 #
 
-# This Makefile is used both by the kernel build system (to set
-# a number of variables before descending into the real module
-# build directory) and by the top-level 'make' process. We can
-# determine which mode is needed by checking the KBUILD_EXTMOD
-# variable, although on reasonably new kernels the kernel build
-# system won't even use this file, it will just use the Kbuild
-# file directly.
-
-ifdef KBUILD_EXTMOD
-
-include $(src)/Kbuild
-
-else
-
 PWD:=$(shell pwd)
 
 ifndef ARCH
@@ -69,7 +55,7 @@ endif
 
 MODULE_ALIASES=wcfxs wctdm8xxp wct2xxp
 
-KMAKE = $(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD) DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
+KMAKE=$(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 
 ifneq (,$(wildcard $(DESTDIR)/etc/udev/rules.d))
   DYNFS=yes
@@ -81,7 +67,7 @@ ifneq ($(wildcard .version),)
   DAHDIVERSION:=$(shell cat .version)
 else
 ifneq ($(wildcard .svn),)
-  DAHDIVERSION=$(shell build_tools/make_version . dahdi/linux)
+  DAHDIVERSION:=$(shell build_tools/make_version . dahdi/linux)
 endif
 endif
 
@@ -167,9 +153,9 @@ uninstall-hotplug:
 	$(MAKE) -C drivers/dahdi/firmware hotplug-uninstall DESTDIR=$(DESTDIR)
 
 uninstall-modules:
-	@./build_tools/uninstall-modules $(DESTDIR)/lib/modules/$(KVERS) $(ALL_MODULES)
+	@build_tools/uninstall-modules $(DESTDIR)/lib/modules/$(KVERS)
 
-install-modules: modules
+install-modules: modules  #uninstall-modules
 	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 
@@ -197,6 +183,10 @@ dist-clean: clean
 	@rm -f include/dahdi/version.h
 	@$(MAKE) -C drivers/dahdi/firmware dist-clean
 
-.PHONY: distclean dist-clean clean version.h all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules
+firmware-download:
+	@$(MAKE) -C drivers/dahdi/firmware all
 
-endif # ifdef KBUILD_EXTMOD
+test:
+	./test-script $(DESTDIR)/lib/modules/$(KVERS) dahdi
+
+.PHONY: distclean dist-clean clean version.h all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules firmware-download

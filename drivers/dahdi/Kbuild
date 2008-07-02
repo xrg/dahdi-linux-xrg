@@ -26,7 +26,7 @@ obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_STEVE2)	+= dahdi_echocan_sec2.o
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_KB1)	+= dahdi_echocan_kb1.o
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_ECHOCAN_MG2)	+= dahdi_echocan_mg2.o
 
-CFLAGS_MODULE += -I$(src)
+CFLAGS_MODULE += -I$(DAHDI_INCLUDE) -I$(src)
 
 ifndef HOTPLUG_FIRMWARE
 ifneq (,$(filter y m,$(CONFIG_FW_LOADER)))
