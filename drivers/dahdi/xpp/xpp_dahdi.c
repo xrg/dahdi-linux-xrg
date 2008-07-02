@@ -918,7 +918,6 @@ static int dahdi_register_xpd(xpd_t *xpd)
 	span->hooksig = xpp_hooksig;	/* Only with RBS bits */
 	span->ioctl = xpp_ioctl;
 	span->maint = xpp_maint;
-#ifdef DAHDI_SPANSTAT_V2 
 	/*
 	 * This actually describe the dahdi_spaninfo version 3
 	 * A bunch of unrelated data exported via a modified ioctl()
@@ -951,7 +950,6 @@ static int dahdi_register_xpd(xpd_t *xpd)
 	 * No irq's for you today!
 	 */
 	span->irq = 0;
-#endif 
 #ifdef	DAHDI_SYNC_TICK
 	span->sync_tick = dahdi_sync_tick;
 #endif

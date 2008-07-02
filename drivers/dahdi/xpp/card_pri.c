@@ -885,9 +885,7 @@ static int PRI_card_dahdi_preregistration(xpd_t *xpd, bool on)
 		/* Nothing to do yet */
 		return 0;
 	}
-#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = pri_protocol_name(priv->pri_protocol);
-#endif 
 	xpd->span.linecompat = pri_linecompat(priv->pri_protocol);
 	xpd->span.deflaw = priv->deflaw;
 	for_each_line(xpd, i) {

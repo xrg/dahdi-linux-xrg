@@ -673,9 +673,7 @@ static int BRI_card_dahdi_preregistration(xpd_t *xpd, bool on)
 		/* Nothing to do yet */
 		return 0;
 	}
-#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = "BRI";
-#endif 
 	xpd->span.linecompat = DAHDI_CONFIG_AMI | DAHDI_CONFIG_CCS;
 	xpd->span.deflaw = DAHDI_LAW_ALAW;
 	BIT_SET(xpd->digital_signalling, 2);	/* D-Channel */

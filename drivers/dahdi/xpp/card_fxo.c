@@ -500,9 +500,7 @@ static int FXO_card_dahdi_preregistration(xpd_t *xpd, bool on)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"ON":"OFF");
-#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = "FXO";
-#endif 
 	for_each_line(xpd, i) {
 		struct dahdi_chan	*cur_chan = &xpd->chans[i];
 
