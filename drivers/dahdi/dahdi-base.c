@@ -155,12 +155,29 @@ EXPORT_SYMBOL(dahdi_set_hpec_ioctl);
 static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS]; 
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#define CLASS_DEV_CREATE(class, devt, device, name) \
+	device_create(class, device, devt, name)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
 #define CLASS_DEV_CREATE(class, devt, device, name) \
         class_device_create(class, NULL, devt, device, name)
-#else
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
 #define CLASS_DEV_CREATE(class, devt, device, name) \
         class_device_create(class, devt, device, name)
+#else
+#define CLASS_DEV_CREATE(class, devt, device, name) \
+        class_simple_device_add(class, devt, device, name)
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#define CLASS_DEV_DESTROY(class, devt) \
+	device_destroy(class, devt)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
+#define CLASS_DEV_DESTROY(class, devt) \
+	class_device_destroy(class, devt)
+#else
+#define CLASS_DEV_DESTROY(class, devt) \
+	class_simple_device_remove(class, devt)
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
@@ -169,8 +186,6 @@ static struct class *dahdi_class = NULL;
 static struct class_simple *dahdi_class = NULL;
 #define class_create class_simple_create
 #define class_destroy class_simple_destroy
-#define class_device_create class_simple_device_add
-#define class_device_destroy(a, b) class_simple_device_remove(b)
 #endif
 
 static int deftaps = 64;
@@ -5252,7 +5267,7 @@ int dahdi_unregister(struct dahdi_span *span)
 
 	for (x = 0; x < span->channels; x++) {
 		if (span->chans[x]->channo < 250)
-			class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x]->channo));
+			CLASS_DEV_DESTROY(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x]->channo));
 	}
 
 	spans[span->spanno] = NULL;
@@ -7633,7 +7648,7 @@ int dahdi_register_chardev(struct dahdi_chardev *dev)
 
 int dahdi_unregister_chardev(struct dahdi_chardev *dev)
 {
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, dev->minor));
+	CLASS_DEV_DESTROY(dahdi_class, MKDEV(DAHDI_MAJOR, dev->minor));
 
 	return 0;
 }
@@ -7670,10 +7685,10 @@ static int __init dahdi_init(void) {
 static void __exit dahdi_cleanup(void) {
 	int x;
 
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 255)); /* pseudo */
-	class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
+	CLASS_DEV_DESTROY(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
+	CLASS_DEV_DESTROY(dahdi_class, MKDEV(DAHDI_MAJOR, 254)); /* channel */
+	CLASS_DEV_DESTROY(dahdi_class, MKDEV(DAHDI_MAJOR, 255)); /* pseudo */
+	CLASS_DEV_DESTROY(dahdi_class, MKDEV(DAHDI_MAJOR, 0)); /* ctl */
 	class_destroy(dahdi_class);
 
 	unregister_chrdev(DAHDI_MAJOR, "dahdi");
