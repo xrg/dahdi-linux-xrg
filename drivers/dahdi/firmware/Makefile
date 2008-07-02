@@ -89,7 +89,7 @@ hotplug-dirs:
 			echo "### neither of these directories exist on your system: "; \
 		fi; \
 		echo "### /usr/lib/hotplug/firmware "; \
-		echo "### lib/firmware "; \
+		echo "### /lib/firmware "; \
 		echo "###"; \
 		echo "###################################################"; \
 		exit 1; \
