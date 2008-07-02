@@ -11,9 +11,7 @@
 # the GNU General Public License
 #
 
-.PHONY: dist-clean all uninstall have_download install
-
-PWD:=$(shell pwd)
+.PHONY: dist-clean clean all uninstall have_download install object-build hotplug-install hotplug-dirs hotplug-uninstall make_firmware_object
 
 OCT6114_064_VERSION:=1.05.01
 OCT6114_128_VERSION:=1.05.01
@@ -64,7 +62,7 @@ clean:
 	rm -f dahdi-fw-*.o
 
 # Download and extract firmware tarballs
-dahdi-fw-oct6114-%.tar.gz dahdi-fw-tc400m-%.tar.gz dahdi-fw-vpmadt032-%.tar.gz:
+dahdi-fw-%.tar.gz:
 ifeq ($(shell if ( [ "$(HOTPLUG_FIRMWARE)" = "no" ] ) || ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.$(subst .tar.gz,,$*) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.$(subst .tar.gz,,$*) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Attempting to download $@"
 	@if test ! -f $@; then $(DOWNLOAD) $(WGET_ARGS) $(FIRMWARE_URL)/$@; fi;
@@ -75,8 +73,30 @@ endif
 # Create object files suitable for linking against
 object-build: $(FIRMWARE) $(OBJECT_FILES)
 
+# Ensure that we can find at least one hotplug firmware directory to install into
+hotplug-dirs:
+	@if [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] || [ -d $(DESTDIR)/lib/firmware ]; then \
+		exit 0; \
+	else \
+		echo "###################################################"; \
+		echo "###"; \
+		echo "### The hotplug firmware cannot be installed, because "; \
+		if [ -n "$(DESTDIR)" ]; then \
+			echo "### the destination directory at: "; \
+			echo "### $(DESTDIR)"; \
+			echo "### does not have either of the following directories: "; \
+		else \
+			echo "### neither of these directories exist on your system: "; \
+		fi; \
+		echo "### /usr/lib/hotplug/firmware "; \
+		echo "### lib/firmware "; \
+		echo "###"; \
+		echo "###################################################"; \
+		exit 1; \
+	fi
+
 # Install all downloaded firmware images for hotplug usage
-hotplug-install: $(FIRMWARE)
+hotplug-install: hotplug-dirs $(FIRMWARE)
 ifeq ($(HOTPLUG_FIRMWARE),yes)
 ifeq ($(shell if ( [ -d $(DESTDIR)/usr/lib/hotplug/firmware ] && ! [ -f $(DESTDIR)/usr/lib/hotplug/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ) || ( [ -d $(DESTDIR)/lib/firmware ] && ! [ -f $(DESTDIR)/lib/firmware/.dahdi-fw-oct6114-064-$(OCT6114_064_VERSION) ] ); then echo "yes"; else echo "no"; fi),yes)
 	@echo "Installing dahdi-fw-oct6114-064.bin to hotplug firmware directories"
