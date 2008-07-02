@@ -889,7 +889,7 @@ static int PRI_card_dahdi_preregistration(xpd_t *xpd, bool on)
 	xpd->span.linecompat = pri_linecompat(priv->pri_protocol);
 	xpd->span.deflaw = priv->deflaw;
 	for_each_line(xpd, i) {
-		struct dahdi_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = xpd->chans[i];
 		bool		is_dchan = i == PRI_DCHAN_IDX(priv);
 
 		XPD_DBG(GENERAL, xpd, "setting PRI channel %d (%s)\n", i,
@@ -953,9 +953,9 @@ static void dchan_state(xpd_t *xpd, bool up)
 		if(SPAN_REGISTERED(xpd) && d >= 0 && d < xpd->channels) {
 			byte	*pcm;
 
-			pcm = (byte *)xpd->span.chans[d].readchunk;
+			pcm = (byte *)xpd->span.chans[d]->readchunk;
 			pcm[0] = 0x00;
-			pcm = (byte *)xpd->span.chans[d].writechunk;
+			pcm = (byte *)xpd->span.chans[d]->writechunk;
 			pcm[0] = 0x00;
 		}
 		XPD_DBG(SIGNAL, xpd, "STATE CHANGE: D-Channel STOPPED\n");
@@ -1146,7 +1146,7 @@ static void PRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xp
 {
 	struct PRI_priv_data	*priv;
 	byte			*pcm;
-	struct dahdi_chan		*chans;
+	struct dahdi_chan	**chans;
 	unsigned long		flags;
 	int			i;
 	int			physical_chan;
@@ -1177,10 +1177,10 @@ static void PRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xp
 			physical_mask |= BIT(physical_chan);
 			if(SPAN_REGISTERED(xpd)) {
 				if(i == PRI_DCHAN_IDX(priv)) {
-					if(priv->dchan_tx_sample != chans[i].writechunk[0]) {
-						priv->dchan_tx_sample = chans[i].writechunk[0];
+					if(priv->dchan_tx_sample != chans[i]->writechunk[0]) {
+						priv->dchan_tx_sample = chans[i]->writechunk[0];
 						priv->dchan_tx_counter++;
-					} else if(chans[i].writechunk[0] == 0xFF)
+					} else if(chans[i]->writechunk[0] == 0xFF)
 						dchan_state(xpd, 0);
 				}
 #ifdef	DEBUG_PCMTX
@@ -1188,7 +1188,7 @@ static void PRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xp
 					memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 				else
 #endif
-					memcpy((u_char *)pcm, chans[i].writechunk, DAHDI_CHUNKSIZE);
+					memcpy((u_char *)pcm, chans[i]->writechunk, DAHDI_CHUNKSIZE);
 				// fill_beep((u_char *)pcm, xpd->addr.subunit, 2);
 			} else
 				memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
@@ -1215,7 +1215,7 @@ static void PRI_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 {
 	struct PRI_priv_data	*priv;
 	byte			*pcm;
-	struct dahdi_chan		*chans;
+	struct dahdi_chan	**chans;
 	xpp_line_t		physical_mask;
 	unsigned long		flags;
 	int			i;
@@ -1255,7 +1255,7 @@ static void PRI_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 				dchan_state(xpd, 0);
 		}
 		if(IS_SET(physical_mask, i)) {
-			r = chans[logical_chan].readchunk;
+			r = chans[logical_chan]->readchunk;
 			// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
 			// fill_beep((u_char *)r, 1, 1);	// DEBUG: BEEP
 			memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);

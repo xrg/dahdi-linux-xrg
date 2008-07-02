@@ -190,7 +190,8 @@ err:
 
 void xpd_free(xpd_t *xpd)
 {
-	xbus_t	*xbus = NULL;
+	xbus_t		*xbus = NULL;
+	unsigned int	x;
 
 	if(!xpd)
 		return;
@@ -203,6 +204,11 @@ void xpd_free(xpd_t *xpd)
 	XPD_DBG(DEVICES, xpd, "\n");
 	xpd_proc_remove(xbus, xpd);
 	xbus_unregister_xpd(xbus, xpd);
+	for (x = 0; x < xpd->channels; x++) {
+		if (xpd->chans[x]) {
+			kfree(xpd->chans[x]);
+		}
+	}
 	KZFREE(xpd);
 }
 
@@ -350,7 +356,7 @@ static int xpd_read_proc(char *page, char **start, off_t off, int count, int *eo
 	if(SPAN_REGISTERED(xpd)) {
 		len += sprintf(page + len, "\nPCM:\n            |         [readchunk]       |         [writechunk]      | W D");
 		for_each_line(xpd, i) {
-			struct dahdi_chan	*chans = xpd->span.chans;
+			struct dahdi_chan	*chan = xpd->span.chans[i];
 			byte	rchunk[DAHDI_CHUNKSIZE];
 			byte	wchunk[DAHDI_CHUNKSIZE];
 			byte	*rp;
@@ -363,8 +369,8 @@ static int xpd_read_proc(char *page, char **start, off_t off, int count, int *eo
 				continue;
 			if(IS_SET(xpd->digital_signalling, i))
 				continue;
-			rp = chans[i].readchunk;
-			wp = chans[i].writechunk;
+			rp = chan->readchunk;
+			wp = chan->writechunk;
 			memcpy(rchunk, rp, DAHDI_CHUNKSIZE);
 			memcpy(wchunk, wp, DAHDI_CHUNKSIZE);
 			len += sprintf(page + len, "\n  port %2d>  |  ", i);
@@ -421,6 +427,7 @@ xpd_t *xpd_alloc(size_t privsize, const xproto_table_t *proto_table, int channel
 	xpd_t		*xpd = NULL;
 	size_t		alloc_size = sizeof(xpd_t) + privsize;
 	int		type = proto_table->type;
+	unsigned int	x;
 
 	BUG_ON(!proto_table);
 	DBG(DEVICES, "type=%d channels=%d (alloc_size=%zd)\n",
@@ -438,10 +445,8 @@ xpd_t *xpd_alloc(size_t privsize, const xproto_table_t *proto_table, int channel
 	}
 	xpd->priv = (byte *)xpd + sizeof(xpd_t);
 	spin_lock_init(&xpd->lock);
-	xpd->xbus = NULL;
 	xpd->xbus_idx = -1;
 	xpd->channels = channels;
-	xpd->chans = NULL;
 	xpd->card_present = 0;
 	xpd->offhook = 0x0;	/* ONHOOK */
 	xpd->type = proto_table->type;
@@ -453,28 +458,26 @@ xpd_t *xpd_alloc(size_t privsize, const xproto_table_t *proto_table, int channel
 	atomic_set(&xpd->dahdi_registered, 0);
 	atomic_set(&xpd->open_counter, 0);
 
-	xpd->chans = kmalloc(sizeof(struct dahdi_chan)*xpd->channels, GFP_KERNEL);
-	if (xpd->chans == NULL) {
-		ERR("%s: Unable to allocate channels\n", __FUNCTION__);
-		goto err;
+	for (x = 0; x < xpd->channels; x++) {
+		if (!(xpd->chans[x] = kmalloc(sizeof(*xpd->chans[x]), GFP_KERNEL))) {
+			ERR("%s: Unable to allocate channel %d\n", __FUNCTION__, x);
+			goto err;
+		}
 	}
+
 	xproto_get(type);	/* will be returned in xpd_free() */
 	return xpd;
 err:
 	if(xpd) {
-		if(xpd->chans)
-			kfree((void *)xpd->chans);
-		kfree(xpd);
+		for (x = 0; x < xpd->channels; x++) {
+			if (xpd->chans[x]) {
+				kfree(xpd->chans[x]);
+			}
+		}
+		KZFREE(xpd);
 	}
 	return NULL;
 }
-
-/* FIXME: this should be removed once digium patch their dahdi.h
- * I simply wish to avoid changing dahdi.h in the xpp patches.
- */
-#ifndef DAHDI_EVENT_REMOVED
-#define DAHDI_EVENT_REMOVED (20)
-#endif
 
 void xpd_disconnect(xpd_t *xpd)
 {
@@ -494,7 +497,7 @@ void xpd_disconnect(xpd_t *xpd)
 		/* TODO: Should this be done before releasing the spinlock? */
 		XPD_DBG(DEVICES, xpd, "Queuing DAHDI_EVENT_REMOVED on all channels to ask user to release them\n");
 		for (i=0; i<xpd->span.channels; i++)
-			dahdi_qevent_lock(&xpd->chans[i],DAHDI_EVENT_REMOVED);
+			dahdi_qevent_lock(xpd->chans[i],DAHDI_EVENT_REMOVED);
 	}
 out:
 	spin_unlock_irqrestore(&xpd->lock, flags);
@@ -563,7 +566,7 @@ void update_line_status(xpd_t *xpd, int pos, bool to_offhook)
 	 */
 	LINE_DBG(SIGNAL, xpd, pos, "rxsig=%s\n", (rxsig == DAHDI_RXSIG_ONHOOK) ? "ONHOOK" : "OFFHOOK");
 	if(SPAN_REGISTERED(xpd))
-		dahdi_hooksig(&xpd->chans[pos], rxsig);
+		dahdi_hooksig(xpd->chans[pos], rxsig);
 }
 
 #ifdef CONFIG_PROC_FS

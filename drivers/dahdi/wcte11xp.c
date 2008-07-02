@@ -178,7 +178,7 @@ struct t1 {
 	unsigned char ec_chunk2[32][DAHDI_CHUNKSIZE];
 	unsigned char tempo[33];
 	struct dahdi_span span;						/* Span */
-	struct dahdi_chan chans[32];					/* Channels */
+	struct dahdi_chan *chans[32];					/* Channels */
 };
 
 #define CANARY 0xca1e
@@ -342,7 +342,12 @@ static inline void t1_framer_out(struct t1 *wc, const unsigned int addr, const u
 
 static void t1xxp_release(struct t1 *wc)
 {
+	unsigned int x;
+
 	dahdi_unregister(&wc->span);
+	for (x = 0; x < (wc->spantype == TYPE_E1 ? 31 : 24); x++) {
+		kfree(wc->chans[x]);
+	}
 	kfree(wc);
 	printk("Freed a Wildcard\n");
 }
@@ -400,7 +405,7 @@ static void __t1xxp_set_clear(struct t1 *wc)
 	unsigned short val=0;
 	for (i=0;i<24;i++) {
 		j = (i/8);
-		if (wc->span.chans[i].flags & DAHDI_FLAG_CLEAR) 
+		if (wc->span.chans[i]->flags & DAHDI_FLAG_CLEAR) 
 			val |= 1 << (7 - (i % 8));
 		if ((i % 8)==7) {
 			if (debug > 1)
@@ -564,18 +569,18 @@ static void t1_check_sigbits(struct t1 *wc)
 			a = __t1_framer_in(wc, 0x71 + i);
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(wc->span.chans[i+16].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i+16].rxsig != rxs) {
+			if (!(wc->span.chans[i+16]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i+16]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i+16], rxs);
+					dahdi_rbsbits(wc->span.chans[i+16], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(wc->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i].rxsig != rxs) {
+			if (!(wc->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i], rxs);
+					dahdi_rbsbits(wc->span.chans[i], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
@@ -585,34 +590,34 @@ static void t1_check_sigbits(struct t1 *wc)
 			a = __t1_framer_in(wc, 0x70 + (i>>2));
 			/* Get high channel in low bits */
 			rxs = (a & 0x3) << 2;
-			if (!(wc->span.chans[i+3].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i+3].rxsig != rxs) {
+			if (!(wc->span.chans[i+3]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i+3]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i+3], rxs);
+					dahdi_rbsbits(wc->span.chans[i+3], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
 			rxs = (a & 0xc);
-			if (!(wc->span.chans[i+2].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i+2].rxsig != rxs) {
+			if (!(wc->span.chans[i+2]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i+2]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i+2], rxs);
+					dahdi_rbsbits(wc->span.chans[i+2], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
 			rxs = (a >> 2) & 0xc;
-			if (!(wc->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i+1].rxsig != rxs) {
+			if (!(wc->span.chans[i+1]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i+1]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i+1], rxs);
+					dahdi_rbsbits(wc->span.chans[i+1], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
 			rxs = (a >> 4) & 0xc;
-			if (!(wc->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i].rxsig != rxs) {
+			if (!(wc->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i], rxs);
+					dahdi_rbsbits(wc->span.chans[i], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
@@ -622,18 +627,18 @@ static void t1_check_sigbits(struct t1 *wc)
 			a = __t1_framer_in(wc, 0x70 + (i>>1));
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(wc->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i+1].rxsig != rxs) {
+			if (!(wc->span.chans[i+1]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i+1]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i+1], rxs);
+					dahdi_rbsbits(wc->span.chans[i+1], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(wc->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->span.chans[i].rxsig != rxs) {
+			if (!(wc->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->span.chans[i]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->span.chans[i], rxs);
+					dahdi_rbsbits(wc->span.chans[i], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
@@ -888,9 +893,9 @@ static int t1xxp_startup(struct dahdi_span *span)
 	for(i = 0; i < span->channels; i++)
 	{
 		memset(wc->ec_chunk1[i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 		memset(wc->ec_chunk2[i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 	}
 
 	/* Reset framer with proper parameters and start */
@@ -998,13 +1003,13 @@ static int t1xxp_software_init(struct t1 *wc)
 	wc->span.pvt = wc;
 	init_waitqueue_head(&wc->span.maintq);
 	for (x=0;x<wc->span.channels;x++) {
-		sprintf(wc->chans[x].name, "WCT1/%d/%d", wc->num, x + 1);
-		wc->chans[x].sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_EM_E1 | 
+		sprintf(wc->chans[x]->name, "WCT1/%d/%d", wc->num, x + 1);
+		wc->chans[x]->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_EM_E1 | 
 				      DAHDI_SIG_FXSLS | DAHDI_SIG_FXSGS | DAHDI_SIG_MTP2 |
 				      DAHDI_SIG_FXSKS | DAHDI_SIG_FXOLS | DAHDI_SIG_DACS_RBS |
 				      DAHDI_SIG_FXOGS | DAHDI_SIG_FXOKS | DAHDI_SIG_CAS | DAHDI_SIG_SF;
-		wc->chans[x].pvt = wc;
-		wc->chans[x].chanpos = x + 1;
+		wc->chans[x]->pvt = wc;
+		wc->chans[x]->chanpos = x + 1;
 	}
 	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with DAHDI\n");
@@ -1087,9 +1092,9 @@ static void t1xxp_transmitprep(struct t1 *wc, int ints)
 			pos = y * 32 + wc->chanmap[x] + wc->offset;
 			/* Put channel number as outgoing data */
 			if (pos < 32 * DAHDI_CHUNKSIZE)
-				txbuf[pos] = wc->chans[x].writechunk[y];
+				txbuf[pos] = wc->chans[x]->writechunk[y];
 			else
-				wc->tempo[pos - 32 * DAHDI_CHUNKSIZE] = wc->chans[x].writechunk[y];
+				wc->tempo[pos - 32 * DAHDI_CHUNKSIZE] = wc->chans[x]->writechunk[y];
 		}
 	}
 }
@@ -1122,7 +1127,7 @@ static void t1xxp_receiveprep(struct t1 *wc, int ints)
 		for (x=0;x<wc->span.channels;x++) {
 			/* XXX Optimize, remove * and + XXX */
 			/* Must map received channels into appropriate data */
-			wc->chans[x].readchunk[y] = 
+			wc->chans[x]->readchunk[y] = 
 				rxbuf[32 * y + ((wc->chanmap[x] + WC_OFFSET + wc->offset) & 0x1f)];
 		}
 		if (wc->spantype != TYPE_E1) {
@@ -1161,10 +1166,9 @@ static void t1xxp_receiveprep(struct t1 *wc, int ints)
 	canary = (unsigned int *)(rxbuf + DAHDI_CHUNKSIZE * 32 - 4);
 	*canary = (wc->canary++) | (CANARY << 16);
 	for (x=0;x<wc->span.channels;x++) {
-		dahdi_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, 
-			wc->ec_chunk2[x]);
+		dahdi_ec_chunk(wc->chans[x], wc->chans[x]->readchunk, wc->ec_chunk2[x]);
 		memcpy(wc->ec_chunk2[x],wc->ec_chunk1[x],DAHDI_CHUNKSIZE);
-		memcpy(wc->ec_chunk1[x],wc->chans[x].writechunk,DAHDI_CHUNKSIZE);
+		memcpy(wc->ec_chunk1[x],wc->chans[x]->writechunk,DAHDI_CHUNKSIZE);
 	}
 	dahdi_receive(&wc->span);
 }
@@ -1238,8 +1242,8 @@ static void t1_check_alarms(struct t1 *wc)
 
 	if (wc->span.lineconfig & DAHDI_CONFIG_NOTOPEN) {
 		for (x=0,j=0;x < wc->span.channels;x++)
-			if ((wc->span.chans[x].flags & DAHDI_FLAG_OPEN) ||
-			    (wc->span.chans[x].flags & DAHDI_FLAG_NETDEV))
+			if ((wc->span.chans[x]->flags & DAHDI_FLAG_OPEN) ||
+			    (wc->span.chans[x]->flags & DAHDI_FLAG_NETDEV))
 				j++;
 		if (!j)
 			alarms |= DAHDI_ALARM_NOTOPEN;
@@ -1466,67 +1470,78 @@ static int t1xxp_hardware_init(struct t1 *wc)
 
 static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
-	int res;
 	struct t1 *wc;
 	unsigned int *canary;
+	unsigned int x;
 	
 	if (pci_enable_device(pdev)) {
-		res = -EIO;
-	} else {
-		wc = kmalloc(sizeof(struct t1), GFP_KERNEL);
-		if (wc) {
-			memset(wc, 0x0, sizeof(struct t1));
-			spin_lock_init(&wc->lock);
-			wc->ioaddr = pci_resource_start(pdev, 0);
-			wc->dev = pdev;
-			wc->offset = 28;	/* And you thought 42 was the answer */
+		return -EIO;
+	}
+	if (!(wc = kmalloc(sizeof(*wc), GFP_KERNEL))) {
+		return -ENOMEM;
+	}
 
-			wc->writechunk = 
-				/* 32 channels, Double-buffer, Read/Write */
-				(unsigned char *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
-			if (!wc->writechunk) {
+	memset(wc, 0x0, sizeof(*wc));
+	spin_lock_init(&wc->lock);
+	wc->ioaddr = pci_resource_start(pdev, 0);
+	wc->dev = pdev;
+	wc->offset = 28;	/* And you thought 42 was the answer */
+	
+	wc->writechunk = 
+		/* 32 channels, Double-buffer, Read/Write */
+		(unsigned char *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
+	if (!wc->writechunk) {
 				printk("wcte11xp: Unable to allocate DMA-able memory\n");
 				return -ENOMEM;
-			}
-
-			/* Read is after the whole write piece (in bytes) */
-			wc->readchunk = wc->writechunk + DAHDI_CHUNKSIZE * 32 * 2;
-
-			/* Same thing...  */
-			wc->readdma = wc->writedma + DAHDI_CHUNKSIZE * 32 * 2;
-
-			/* Initialize Write/Buffers to all blank data */
-			memset((void *)wc->writechunk,0x00,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32);
-			/* Initialize canary */
-			canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 - 4);
-			*canary = (CANARY << 16) | (0xffff);
-
-			/* Enable bus mastering */
-			pci_set_master(pdev);
-
-			/* Keep track of which device we are */
-			pci_set_drvdata(pdev, wc);
-
-			if (request_irq(pdev->irq, t1xxp_interrupt, DAHDI_IRQ_SHARED_DISABLED, "wcte11xp", wc)) {
-				printk("wcte11xp: Unable to request IRQ %d\n", pdev->irq);
-				kfree(wc);
-				return -EIO;
-			}
-			/* Initialize hardware */
-			t1xxp_hardware_init(wc);
-
-			/* We now know which version of card we have */
-			wc->variety = "Digium Wildcard TE110P T1/E1";
-
-			/* Misc. software stuff */
-			t1xxp_software_init(wc);
-
-			printk("Found a Wildcard: %s\n", wc->variety);
-			res = 0;
-		} else
-			res = -ENOMEM;
 	}
-	return res;
+	
+	/* Read is after the whole write piece (in bytes) */
+	wc->readchunk = wc->writechunk + DAHDI_CHUNKSIZE * 32 * 2;
+	
+	/* Same thing...  */
+	wc->readdma = wc->writedma + DAHDI_CHUNKSIZE * 32 * 2;
+	
+	/* Initialize Write/Buffers to all blank data */
+	memset((void *)wc->writechunk,0x00,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32);
+	/* Initialize canary */
+	canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 - 4);
+	*canary = (CANARY << 16) | (0xffff);
+	
+	/* Enable bus mastering */
+	pci_set_master(pdev);
+	
+	/* Keep track of which device we are */
+	pci_set_drvdata(pdev, wc);
+	
+	if (request_irq(pdev->irq, t1xxp_interrupt, DAHDI_IRQ_SHARED_DISABLED, "wcte11xp", wc)) {
+		printk("wcte11xp: Unable to request IRQ %d\n", pdev->irq);
+		kfree(wc);
+		return -EIO;
+	}
+	/* Initialize hardware */
+	t1xxp_hardware_init(wc);
+	
+	/* We now know which version of card we have */
+	wc->variety = "Digium Wildcard TE110P T1/E1";
+	
+	for (x = 0; x < (wc->spantype == TYPE_E1 ? 31 : 24); x++) {
+		if (!(wc->chans[x] = kmalloc(sizeof(*wc->chans[x]), GFP_KERNEL))) {
+			while (x) {
+				kfree(wc->chans[--x]);
+			}
+
+			kfree(wc);
+			return -ENOMEM;
+		}
+		memset(wc->chans[x], 0, sizeof(*wc->chans[x]));
+	}
+
+	/* Misc. software stuff */
+	t1xxp_software_init(wc);
+	
+	printk("Found a Wildcard: %s\n", wc->variety);
+
+	return 0;
 }
 
 static void t1xxp_stop_stuff(struct t1 *wc)

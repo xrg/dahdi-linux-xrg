@@ -649,7 +649,7 @@ static void vpm150m_dtmf_bh(struct work_struct *data)
 				debug_printk(1, "Channel %d: Detected DTMF tone %d of duration %d\n", channel + 1, tone, duration);
 
 				if (test_bit(channel, &wc->dtmfmask) && (eventdata.toneEvent.ToneDuration > 0)) {
-					struct dahdi_chan *chan = &wc->chans[channel];
+					struct dahdi_chan *chan = wc->chans[channel];
 
 					module_printk("DTMF detected channel=%d tone=%d duration=%d\n", channel + 1, tone, duration);
 

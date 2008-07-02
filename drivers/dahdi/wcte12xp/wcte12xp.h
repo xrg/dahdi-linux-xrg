@@ -140,7 +140,7 @@ struct t1 {
 	unsigned char ec_chunk1[32][DAHDI_CHUNKSIZE];
 	unsigned char ec_chunk2[32][DAHDI_CHUNKSIZE];
 	struct dahdi_span span;						/* Span */
-	struct dahdi_chan chans[32];					/* Channels */
+	struct dahdi_chan *chans[32];					/* Channels */
 	wait_queue_head_t regq;
 	struct cmdq	cmdq;
 	struct command dummy;	/* preallocate for dummy noop command */

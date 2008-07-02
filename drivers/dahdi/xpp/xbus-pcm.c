@@ -648,7 +648,7 @@ void fill_beep(u_char *buf, int num, int duration)
 
 static void do_ec(xpd_t *xpd)
 {
-	struct dahdi_chan	*chans = xpd->span.chans;
+	struct dahdi_chan **chans = xpd->span.chans;
 	int		i;
 
 	for (i = 0;i < xpd->span.channels; i++) {
@@ -656,9 +656,9 @@ static void do_ec(xpd_t *xpd)
 			continue;
 		if(!IS_SET(xpd->wanted_pcm_mask, i))			/* No ec for unwanted PCM */
 			continue;
-		dahdi_ec_chunk(&chans[i], chans[i].readchunk, xpd->ec_chunk2[i]);
+		dahdi_ec_chunk(chans[i], chans[i]->readchunk, xpd->ec_chunk2[i]);
 		memcpy(xpd->ec_chunk2[i], xpd->ec_chunk1[i], DAHDI_CHUNKSIZE);
-		memcpy(xpd->ec_chunk1[i], chans[i].writechunk, DAHDI_CHUNKSIZE);
+		memcpy(xpd->ec_chunk1[i], chans[i]->writechunk, DAHDI_CHUNKSIZE);
 	}
 }
 
@@ -764,10 +764,10 @@ dropit:
  */
 void generic_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xpacket_t *pack)
 {
-	byte		*pcm;
-	struct dahdi_chan	*chans;
-	unsigned long	flags;
-	int		i;
+	byte			*pcm;
+	struct dahdi_chan	**chans;
+	unsigned long		flags;
+	int			i;
 
 	BUG_ON(!xbus);
 	BUG_ON(!xpd);
@@ -784,7 +784,7 @@ void generic_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xpack
 					memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 				else
 #endif
-					memcpy((u_char *)pcm, chans[i].writechunk, DAHDI_CHUNKSIZE);
+					memcpy((u_char *)pcm, chans[i]->writechunk, DAHDI_CHUNKSIZE);
 				// fill_beep((u_char *)pcm, xpd->addr.subunit, 2);
 			} else
 				memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
@@ -808,7 +808,7 @@ void generic_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 	if(!SPAN_REGISTERED(xpd))
 		goto out;
 	for (i = 0; i < xpd->channels; i++) {
-		volatile u_char	*r = xpd->span.chans[i].readchunk;
+		volatile u_char	*r = xpd->span.chans[i]->readchunk;
 
 		if(!IS_SET(xpd->wanted_pcm_mask, i)) {
 			if(IS_SET(xpd->silence_pcm, i)) {

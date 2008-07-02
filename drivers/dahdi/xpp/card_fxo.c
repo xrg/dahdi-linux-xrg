@@ -280,7 +280,7 @@ static void update_dahdi_ring(xpd_t *xpd, int pos, bool on)
 	 * a nested spinlock scenario
 	 */
 	if(SPAN_REGISTERED(xpd))
-		dahdi_hooksig(&xpd->chans[pos], rxsig);
+		dahdi_hooksig(xpd->chans[pos], rxsig);
 }
 
 static void mark_ring(xpd_t *xpd, lineno_t pos, bool on, bool update_dahdi)
@@ -502,7 +502,7 @@ static int FXO_card_dahdi_preregistration(xpd_t *xpd, bool on)
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"ON":"OFF");
 	xpd->span.spantype = "FXO";
 	for_each_line(xpd, i) {
-		struct dahdi_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = xpd->chans[i];
 
 		XPD_DBG(GENERAL, xpd, "setting FXO channel %d\n", i);
 		snprintf(cur_chan->name, MAX_CHANNAME, "XPP_FXO/%02d/%1d%1d/%d",
@@ -582,11 +582,11 @@ static void dahdi_report_battery(xpd_t *xpd, lineno_t chan)
 				break;
 			case BATTERY_OFF:
 				LINE_DBG(SIGNAL, xpd, chan, "Send DAHDI_ALARM_RED\n");
-				dahdi_alarm_channel(&xpd->chans[chan], DAHDI_ALARM_RED);
+				dahdi_alarm_channel(xpd->chans[chan], DAHDI_ALARM_RED);
 				break;
 			case BATTERY_ON:
 				LINE_DBG(SIGNAL, xpd, chan, "Send DAHDI_ALARM_NONE\n");
-				dahdi_alarm_channel(&xpd->chans[chan], DAHDI_ALARM_NONE);
+				dahdi_alarm_channel(xpd->chans[chan], DAHDI_ALARM_NONE);
 				break;
 		}
 	}
@@ -927,7 +927,7 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 			if(SPAN_REGISTERED(xpd)) {
 				LINE_DBG(SIGNAL, xpd, portno,
 					"Send DAHDI_EVENT_POLARITY: %s\n", polname);
-				dahdi_qevent_lock(&xpd->chans[portno], DAHDI_EVENT_POLARITY);
+				dahdi_qevent_lock(xpd->chans[portno], DAHDI_EVENT_POLARITY);
 			}
 		}
 		priv->polarity[portno] = pol;

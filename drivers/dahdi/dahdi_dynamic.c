@@ -236,7 +236,7 @@ static void __ztdynamic_run(void)
 			/* Ignore dead spans */
 			for (y=0;y<z->span.channels;y++) {
 				/* Echo cancel double buffered data */
-				dahdi_ec_chunk(&z->span.chans[y], z->span.chans[y].readchunk, z->span.chans[y].writechunk);
+				dahdi_ec_chunk(z->span.chans[y], z->span.chans[y]->readchunk, z->span.chans[y]->writechunk);
 			}
 			dahdi_receive(&z->span);
 			dahdi_transmit(&z->span);
@@ -368,15 +368,15 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 			sig = (bits >> ((x % 4) << 2)) & 0xff;
 			
 			/* Update signalling if appropriate */
-			if (sig != span->chans[x].rxsig)
-				dahdi_rbsbits(&span->chans[x], sig);
+			if (sig != span->chans[x]->rxsig)
+				dahdi_rbsbits(span->chans[x], sig);
 				
 		}
 	}
 	
 	/* Record data for channels */
 	for (x=0;x<nchans;x++) {
-		memcpy(span->chans[x].readchunk, msg, DAHDI_CHUNKSIZE);
+		memcpy(span->chans[x]->readchunk, msg, DAHDI_CHUNKSIZE);
 		msg += DAHDI_CHUNKSIZE;
 	}
 

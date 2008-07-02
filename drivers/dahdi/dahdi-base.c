@@ -3113,7 +3113,7 @@ void dahdi_alarm_notify(struct dahdi_span *span)
 	if ((!span->alarms) != (!span->lastalarms)) {
 		span->lastalarms = span->alarms;
 		for (x = 0; x < span->channels; x++)
-			dahdi_alarm_channel(&span->chans[x], span->alarms);
+			dahdi_alarm_channel(span->chans[x], span->alarms);
 		/* Switch to other master if current master in alarm */
 		for (x=1; x<maxspans; x++) {
 			if (spans[x] && !spans[x]->alarms && (spans[x]->flags & DAHDI_FLAG_RUNNING)) {
@@ -3424,7 +3424,7 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		stack.spaninfo.totalchans = spans[i]->channels;
 		stack.spaninfo.numchans = 0;
 		for (j = 0; j < spans[i]->channels; j++) {
-			if (spans[i]->chans[j].sig)
+			if (spans[i]->chans[j]->sig)
 				stack.spaninfo.numchans++;
 		}
 		stack.spaninfo.lbo = spans[i]->lbo;
@@ -3536,13 +3536,13 @@ static void recalc_slaves(struct dahdi_chan *chan)
 
 	/* Link all slaves appropriately */
 	for (x=chan->chanpos;x<chan->span->channels;x++)
-		if (chan->span->chans[x].master == chan) {
+		if (chan->span->chans[x]->master == chan) {
 #ifdef CONFIG_DAHDI_DEBUG
 			module_printk(KERN_NOTICE, "Channel %s, slave to %s, last is %s, its next will be %d\n", 
 				      chan->span->chans[x].name, chan->name, last->name, x);
 #endif
 			last->nextslave = x;
-			last = &chan->span->chans[x];
+			last = chan->span->chans[x];
 		}
 	/* Terminate list */
 	last->nextslave = 0;
@@ -3600,12 +3600,12 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			/* Mark as running and hangup any channels */
 			spans[j]->flags |= DAHDI_FLAG_RUNNING;
 			for (x=0;x<spans[j]->channels;x++) {
-				y = dahdi_q_sig(&spans[j]->chans[x]) & 0xff;
-				if (y >= 0) spans[j]->chans[x].rxsig = (unsigned char)y;
-				spin_lock_irqsave(&spans[j]->chans[x].lock, flags);
-				dahdi_hangup(&spans[j]->chans[x]);
-				spin_unlock_irqrestore(&spans[j]->chans[x].lock, flags);
-				spans[j]->chans[x].rxhooksig = DAHDI_RXSIG_INITIAL;
+				y = dahdi_q_sig(spans[j]->chans[x]) & 0xff;
+				if (y >= 0) spans[j]->chans[x]->rxsig = (unsigned char)y;
+				spin_lock_irqsave(&spans[j]->chans[x]->lock, flags);
+				dahdi_hangup(spans[j]->chans[x]);
+				spin_unlock_irqrestore(&spans[j]->chans[x]->lock, flags);
+				spans[j]->chans[x]->rxhooksig = DAHDI_RXSIG_INITIAL;
 			}
 		}
 		return 0;
@@ -5193,8 +5193,8 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 	}
 
 	for (x=0;x<span->channels;x++) {
-		span->chans[x].span = span;
-		dahdi_chan_reg(&span->chans[x]); 
+		span->chans[x]->span = span;
+		dahdi_chan_reg(span->chans[x]); 
 	}
 
 #ifdef CONFIG_PROC_FS
@@ -5204,9 +5204,9 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 
 	for (x = 0; x < span->channels; x++) {
 		char chan_name[50];
-		if (span->chans[x].channo < 250) {
-			sprintf(chan_name, "dahdi%d", span->chans[x].channo);
-			CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo), NULL, chan_name);
+		if (span->chans[x]->channo < 250) {
+			sprintf(chan_name, "dahdi%d", span->chans[x]->channo);
+			CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x]->channo), NULL, chan_name);
 		}
 	}
 
@@ -5251,15 +5251,15 @@ int dahdi_unregister(struct dahdi_span *span)
 #endif /* CONFIG_PROC_FS */
 
 	for (x = 0; x < span->channels; x++) {
-		if (span->chans[x].channo < 250)
-			class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x].channo));
+		if (span->chans[x]->channo < 250)
+			class_device_destroy(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x]->channo));
 	}
 
 	spans[span->spanno] = NULL;
 	span->spanno = 0;
 	span->flags &= ~DAHDI_FLAG_REGISTERED;
 	for (x=0;x<span->channels;x++)
-		dahdi_chan_unreg(&span->chans[x]);
+		dahdi_chan_unreg(span->chans[x]);
 	new_maxspans = 0;
 	new_master = master; /* FIXME: locking */
 	if (master == span)
@@ -6322,8 +6322,8 @@ void dahdi_ec_span(struct dahdi_span *span)
 {
 	int x;
 	for (x = 0; x < span->channels; x++) {
-		if (span->chans[x].ec_current)
-			__dahdi_ec_chunk(&span->chans[x], span->chans[x].readchunk, span->chans[x].writechunk);
+		if (span->chans[x]->ec_current)
+			__dahdi_ec_chunk(span->chans[x], span->chans[x]->readchunk, span->chans[x]->writechunk);
 	}
 }
 
@@ -7309,22 +7309,22 @@ int dahdi_transmit(struct dahdi_span *span)
 
 #if 1
 	for (x=0;x<span->channels;x++) {
-		spin_lock_irqsave(&span->chans[x].lock, flags);
-		if (span->chans[x].flags & DAHDI_FLAG_NOSTDTXRX) {
-			spin_unlock_irqrestore(&span->chans[x].lock, flags);
+		spin_lock_irqsave(&span->chans[x]->lock, flags);
+		if (span->chans[x]->flags & DAHDI_FLAG_NOSTDTXRX) {
+			spin_unlock_irqrestore(&span->chans[x]->lock, flags);
 			continue;
 		}
-		if (&span->chans[x] == span->chans[x].master) {
-			if (span->chans[x].otimer) {
-				span->chans[x].otimer -= DAHDI_CHUNKSIZE;
-				if (span->chans[x].otimer <= 0) {
-					__rbs_otimer_expire(&span->chans[x]);
+		if (span->chans[x] == span->chans[x]->master) {
+			if (span->chans[x]->otimer) {
+				span->chans[x]->otimer -= DAHDI_CHUNKSIZE;
+				if (span->chans[x]->otimer <= 0) {
+					__rbs_otimer_expire(span->chans[x]);
 				}
 			}
-			if (span->chans[x].flags & DAHDI_FLAG_AUDIO) {
-				__dahdi_real_transmit(&span->chans[x]);
+			if (span->chans[x]->flags & DAHDI_FLAG_AUDIO) {
+				__dahdi_real_transmit(span->chans[x]);
 			} else {
-				if (span->chans[x].nextslave) {
+				if (span->chans[x]->nextslave) {
 					u_char data[DAHDI_CHUNKSIZE];
 					int pos=DAHDI_CHUNKSIZE;
 					/* Process master/slaves one way */
@@ -7334,30 +7334,30 @@ int dahdi_transmit(struct dahdi_span *span)
 						do {
 							if (pos==DAHDI_CHUNKSIZE) {
 								/* Get next chunk */
-								__dahdi_transmit_chunk(&span->chans[x], data);
+								__dahdi_transmit_chunk(span->chans[x], data);
 								pos = 0;
 							}
-							span->chans[z].writechunk[y] = data[pos++]; 
-							z = span->chans[z].nextslave;
+							span->chans[z]->writechunk[y] = data[pos++]; 
+							z = span->chans[z]->nextslave;
 						} while(z);
 					}
 				} else {
 					/* Process independents elsewise */
-					__dahdi_real_transmit(&span->chans[x]);
+					__dahdi_real_transmit(span->chans[x]);
 				}
 			}
-			if (span->chans[x].sig == DAHDI_SIG_DACS_RBS) {
-				if (chans[span->chans[x].confna]) {
+			if (span->chans[x]->sig == DAHDI_SIG_DACS_RBS) {
+				if (chans[span->chans[x]->confna]) {
 				    	/* Just set bits for our destination */
-					if (span->chans[x].txsig != chans[span->chans[x].confna]->rxsig) {
-						span->chans[x].txsig = chans[span->chans[x].confna]->rxsig;
-						span->rbsbits(&span->chans[x], chans[span->chans[x].confna]->rxsig);
+					if (span->chans[x]->txsig != chans[span->chans[x]->confna]->rxsig) {
+						span->chans[x]->txsig = chans[span->chans[x]->confna]->rxsig;
+						span->rbsbits(span->chans[x], chans[span->chans[x]->confna]->rxsig);
 					}
 				}
 			}
 
 		}
-		spin_unlock_irqrestore(&span->chans[x].lock, flags);
+		spin_unlock_irqrestore(&span->chans[x]->lock, flags);
 	}
 	if (span->mainttimer) {
 		span->mainttimer -= DAHDI_CHUNKSIZE;
@@ -7383,9 +7383,9 @@ int dahdi_receive(struct dahdi_span *span)
 	span->watchcounter--;
 #endif	
 	for (x=0;x<span->channels;x++) {
-		if (span->chans[x].master == &span->chans[x]) {
-			spin_lock_irqsave(&span->chans[x].lock, flags);
-			if (span->chans[x].nextslave) {
+		if (span->chans[x]->master == span->chans[x]) {
+			spin_lock_irqsave(&span->chans[x]->lock, flags);
+			if (span->chans[x]->nextslave) {
 				/* Must process each slave at the same time */
 				u_char data[DAHDI_CHUNKSIZE];
 				int pos = 0;
@@ -7393,65 +7393,65 @@ int dahdi_receive(struct dahdi_span *span)
 					/* Put all its slaves, too */
 					z = x;
 					do {
-						data[pos++] = span->chans[z].readchunk[y];
+						data[pos++] = span->chans[z]->readchunk[y];
 						if (pos == DAHDI_CHUNKSIZE) {
-							if(!(span->chans[x].flags & DAHDI_FLAG_NOSTDTXRX))
-								__dahdi_receive_chunk(&span->chans[x], data);
+							if(!(span->chans[x]->flags & DAHDI_FLAG_NOSTDTXRX))
+								__dahdi_receive_chunk(span->chans[x], data);
 							pos = 0;
 						}
-						z=span->chans[z].nextslave;
+						z=span->chans[z]->nextslave;
 					} while(z);
 				}
 			} else {
 				/* Process a normal channel */
-				if (!(span->chans[x].flags & DAHDI_FLAG_NOSTDTXRX))
-					__dahdi_real_receive(&span->chans[x]);
+				if (!(span->chans[x]->flags & DAHDI_FLAG_NOSTDTXRX))
+					__dahdi_real_receive(span->chans[x]);
 			}
-			if (span->chans[x].itimer) {
-				span->chans[x].itimer -= DAHDI_CHUNKSIZE;
-				if (span->chans[x].itimer <= 0) {
-					rbs_itimer_expire(&span->chans[x]);
+			if (span->chans[x]->itimer) {
+				span->chans[x]->itimer -= DAHDI_CHUNKSIZE;
+				if (span->chans[x]->itimer <= 0) {
+					rbs_itimer_expire(span->chans[x]);
 				}
 			}
-			if (span->chans[x].ringdebtimer)
-				span->chans[x].ringdebtimer--;
-			if (span->chans[x].sig & __DAHDI_SIG_FXS) {
-				if (span->chans[x].rxhooksig == DAHDI_RXSIG_RING)
-					span->chans[x].ringtrailer = DAHDI_RINGTRAILER;
-				else if (span->chans[x].ringtrailer) {
-					span->chans[x].ringtrailer-= DAHDI_CHUNKSIZE;
+			if (span->chans[x]->ringdebtimer)
+				span->chans[x]->ringdebtimer--;
+			if (span->chans[x]->sig & __DAHDI_SIG_FXS) {
+				if (span->chans[x]->rxhooksig == DAHDI_RXSIG_RING)
+					span->chans[x]->ringtrailer = DAHDI_RINGTRAILER;
+				else if (span->chans[x]->ringtrailer) {
+					span->chans[x]->ringtrailer-= DAHDI_CHUNKSIZE;
 					/* See if RING trailer is expired */
-					if (!span->chans[x].ringtrailer && !span->chans[x].ringdebtimer) 
-						__qevent(&span->chans[x],DAHDI_EVENT_RINGOFFHOOK);
+					if (!span->chans[x]->ringtrailer && !span->chans[x]->ringdebtimer) 
+						__qevent(span->chans[x],DAHDI_EVENT_RINGOFFHOOK);
 				}
 			}
-			if (span->chans[x].pulsetimer)
+			if (span->chans[x]->pulsetimer)
 			{
-				span->chans[x].pulsetimer--;
-				if (span->chans[x].pulsetimer <= 0)
+				span->chans[x]->pulsetimer--;
+				if (span->chans[x]->pulsetimer <= 0)
 				{
-					if (span->chans[x].pulsecount)
+					if (span->chans[x]->pulsecount)
 					{
-						if (span->chans[x].pulsecount > 12) {
+						if (span->chans[x]->pulsecount > 12) {
 						
 							module_printk(KERN_NOTICE, "Got pulse digit %d on %s???\n",
-						    span->chans[x].pulsecount,
-							span->chans[x].name);
-						} else if (span->chans[x].pulsecount > 11) {
-							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | '#');
-						} else if (span->chans[x].pulsecount > 10) {
-							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | '*');
-						} else if (span->chans[x].pulsecount > 9) {
-							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | '0');
+						    span->chans[x]->pulsecount,
+							span->chans[x]->name);
+						} else if (span->chans[x]->pulsecount > 11) {
+							__qevent(span->chans[x], DAHDI_EVENT_PULSEDIGIT | '#');
+						} else if (span->chans[x]->pulsecount > 10) {
+							__qevent(span->chans[x], DAHDI_EVENT_PULSEDIGIT | '*');
+						} else if (span->chans[x]->pulsecount > 9) {
+							__qevent(span->chans[x], DAHDI_EVENT_PULSEDIGIT | '0');
 						} else {
-							__qevent(&span->chans[x], DAHDI_EVENT_PULSEDIGIT | ('0' + 
-								span->chans[x].pulsecount));
+							__qevent(span->chans[x], DAHDI_EVENT_PULSEDIGIT | ('0' + 
+								span->chans[x]->pulsecount));
 						}
-						span->chans[x].pulsecount = 0;
+						span->chans[x]->pulsecount = 0;
 					}
 				}
 			}
-			spin_unlock_irqrestore(&span->chans[x].lock, flags);
+			spin_unlock_irqrestore(&span->chans[x]->lock, flags);
 		}
 	}
 

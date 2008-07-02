@@ -1531,7 +1531,7 @@ struct dahdi_span {
 
 	int timingslips;			/* Clock slips */
 
-	struct dahdi_chan *chans;		/* Member channel structures */
+	struct dahdi_chan **chans;		/* Member channel structures */
 
 	/*   ==== Span Callback Operations ====   */
 	/* Req: Set the requested chunk size.  This is the unit in which you must

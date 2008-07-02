@@ -437,7 +437,7 @@ static void __t1xxp_set_clear(struct t1 *wc, int channo)
 	
 	for (i = 0; i < 24; i++) {
 		j = (i / 8);
-		if (wc->span.chans[i].flags & DAHDI_FLAG_CLEAR) 
+		if (wc->span.chans[i]->flags & DAHDI_FLAG_CLEAR) 
 			val |= 1 << (7 - (i % 8));
 		if (((i % 8)==7) &&  /* write byte every 8 channels */
 		    ((channo < 0) ||    /* channo=-1 means all channels */ 
@@ -452,7 +452,12 @@ static void __t1xxp_set_clear(struct t1 *wc, int channo)
 
 static void t1_release(struct t1 *wc)
 {
+	unsigned int x;
+
 	dahdi_unregister(&wc->span);
+	for (x = 0; x < (wc->spantype == TYPE_E1 ? 31 : 24); x++) {
+		kfree(wc->chans[x]);
+	}
 	kfree(wc);
 	printk("Freed a Wildcard TE12xP\n");
 }
@@ -688,8 +693,8 @@ static int t1xxp_startup(struct dahdi_span *span)
 
 	/* initialize the start value for the entire chunk of last ec buffer */
 	for (i = 0; i < span->channels; i++) {
-		memset(wc->ec_chunk1[i], DAHDI_LIN2X(0, &span->chans[i]), DAHDI_CHUNKSIZE);
-		memset(wc->ec_chunk2[i], DAHDI_LIN2X(0, &span->chans[i]), DAHDI_CHUNKSIZE);
+		memset(wc->ec_chunk1[i], DAHDI_LIN2X(0, span->chans[i]), DAHDI_CHUNKSIZE);
+		memset(wc->ec_chunk2[i], DAHDI_LIN2X(0, span->chans[i]), DAHDI_CHUNKSIZE);
 	}
 
 	/* Reset framer with proper parameters and start */
@@ -831,18 +836,18 @@ static inline void __t1_check_sigbits(struct t1 *wc)
 			if (a > -1) {
 				/* Get high channel in low bits */
 				rxs = (a & 0xf);
-				if (!(wc->span.chans[i+16].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i+16].rxsig != rxs) {
+				if (!(wc->span.chans[i+16]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i+16]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i+16], rxs);
+						dahdi_rbsbits(wc->span.chans[i+16], rxs);
 						spin_lock(&wc->reglock);
 					}
 				}
 				rxs = (a >> 4) & 0xf;
-				if (!(wc->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i].rxsig != rxs) {
+				if (!(wc->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i], rxs);
+						dahdi_rbsbits(wc->span.chans[i], rxs);
 						spin_lock(&wc->reglock);
 					}
 				}
@@ -854,34 +859,34 @@ static inline void __t1_check_sigbits(struct t1 *wc)
 			if (a > -1) {
 				/* Get high channel in low bits */
 				rxs = (a & 0x3) << 2;
-				if (!(wc->span.chans[i+3].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i+3].rxsig != rxs) {
+				if (!(wc->span.chans[i+3]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i+3]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i+3], rxs);
+						dahdi_rbsbits(wc->span.chans[i+3], rxs);
 						spin_lock(&wc->reglock);
 					}
 				}
 				rxs = (a & 0xc);
-				if (!(wc->span.chans[i+2].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i+2].rxsig != rxs) {
+				if (!(wc->span.chans[i+2]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i+2]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i+2], rxs);
+						dahdi_rbsbits(wc->span.chans[i+2], rxs);
 						spin_lock(&wc->reglock);
 					}
 				}
 				rxs = (a >> 2) & 0xc;
-				if (!(wc->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i+1].rxsig != rxs) {
+				if (!(wc->span.chans[i+1]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i+1]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i+1], rxs);
+						dahdi_rbsbits(wc->span.chans[i+1], rxs);
 						spin_lock(&wc->reglock);
 					}
 				}
 				rxs = (a >> 4) & 0xc;
-				if (!(wc->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i].rxsig != rxs) {
+				if (!(wc->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i], rxs);
+						dahdi_rbsbits(wc->span.chans[i], rxs);
 						spin_lock(&wc->reglock);
 					}	
 				}
@@ -893,18 +898,18 @@ static inline void __t1_check_sigbits(struct t1 *wc)
 			if (a > -1) {
 				/* Get high channel in low bits */
 				rxs = (a & 0xf);
-				if (!(wc->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i+1].rxsig != rxs) {
+				if (!(wc->span.chans[i+1]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i+1]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i+1], rxs);
+						dahdi_rbsbits(wc->span.chans[i+1], rxs);
 						spin_lock(&wc->reglock);
 					}
 				}
 				rxs = (a >> 4) & 0xf;
-				if (!(wc->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-					if (wc->span.chans[i].rxsig != rxs) {
+				if (!(wc->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+					if (wc->span.chans[i]->rxsig != rxs) {
 						spin_unlock(&wc->reglock);
-						dahdi_rbsbits(&wc->span.chans[i], rxs);
+						dahdi_rbsbits(wc->span.chans[i], rxs);
 						spin_lock(&wc->reglock);
 					}
 				}
@@ -1152,13 +1157,13 @@ static int t1_software_init(struct t1 *wc)
 	wc->span.pvt = wc;
 	init_waitqueue_head(&wc->span.maintq);
 	for (x = 0; x < wc->span.channels; x++) {
-		sprintf(wc->chans[x].name, "WCT1/%d/%d", wc->num, x + 1);
-		wc->chans[x].sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_EM_E1 | 
+		sprintf(wc->chans[x]->name, "WCT1/%d/%d", wc->num, x + 1);
+		wc->chans[x]->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_EM_E1 | 
 				      DAHDI_SIG_FXSLS | DAHDI_SIG_FXSGS | DAHDI_SIG_MTP2 |
 				      DAHDI_SIG_FXSKS | DAHDI_SIG_FXOLS | DAHDI_SIG_DACS_RBS |
 				      DAHDI_SIG_FXOGS | DAHDI_SIG_FXOKS | DAHDI_SIG_CAS | DAHDI_SIG_SF;
-		wc->chans[x].pvt = wc;
-		wc->chans[x].chanpos = x + 1;
+		wc->chans[x]->pvt = wc;
+		wc->chans[x]->chanpos = x + 1;
 	}
 	if (dahdi_register(&wc->span, 0)) {
 		module_printk("Unable to register span with DAHDI\n");
@@ -1318,8 +1323,8 @@ static inline void __t1_check_alarms(struct t1 *wc)
 
 	if (wc->span.lineconfig & DAHDI_CONFIG_NOTOPEN) {
 		for (x=0,j=0;x < wc->span.channels;x++)
-			if ((wc->span.chans[x].flags & DAHDI_FLAG_OPEN) ||
-			    (wc->span.chans[x].flags & DAHDI_FLAG_NETDEV))
+			if ((wc->span.chans[x]->flags & DAHDI_FLAG_OPEN) ||
+			    (wc->span.chans[x]->flags & DAHDI_FLAG_NETDEV))
 				j++;
 		if (!j)
 			alarms |= DAHDI_ALARM_NOTOPEN;
@@ -1460,7 +1465,7 @@ static inline void t1_transmitprep(struct t1 *wc, unsigned char* writechunk)
 	for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
 		if (likely(wc->initialized)) {
 			for (chan = 0; chan < wc->span.channels; chan++)
-				writechunk[(chan+1)*2] = wc->chans[chan].writechunk[x];	
+				writechunk[(chan+1)*2] = wc->chans[chan]->writechunk[x];	
 		}
 
 		/* process the command queue */
@@ -1501,7 +1506,7 @@ static inline void t1_receiveprep(struct t1 *wc, unsigned char* readchunk)
 	for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
 		if (likely(wc->initialized)) {
 			for (chan = 0; chan < wc->span.channels; chan++) {
-				wc->chans[chan].readchunk[x]= readchunk[(chan+1)*2];
+				wc->chans[chan]->readchunk[x]= readchunk[(chan+1)*2];
 			}
 		}
 		if (x < DAHDI_CHUNKSIZE - 1) {
@@ -1527,9 +1532,9 @@ static inline void t1_receiveprep(struct t1 *wc, unsigned char* readchunk)
 	if (likely(wc->initialized)) {
 		spin_unlock(&wc->reglock);
 		for (x = 0; x < wc->span.channels; x++) {
-			dahdi_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, wc->ec_chunk2[x]);
+			dahdi_ec_chunk(wc->chans[x], wc->chans[x]->readchunk, wc->ec_chunk2[x]);
 			memcpy(wc->ec_chunk2[x],wc->ec_chunk1[x],DAHDI_CHUNKSIZE);
-			memcpy(wc->ec_chunk1[x],wc->chans[x].writechunk,DAHDI_CHUNKSIZE);
+			memcpy(wc->ec_chunk1[x],wc->chans[x]->writechunk,DAHDI_CHUNKSIZE);
 		}
 		dahdi_receive(&wc->span);
 		spin_lock(&wc->reglock);
@@ -1588,9 +1593,9 @@ static int __devinit te12xp_init_one(struct pci_dev *pdev, const struct pci_devi
 	}
 	
 retry:
-	wc = kmalloc(sizeof(*wc), GFP_KERNEL);
-	if (!wc)
+	if (!(wc = kmalloc(sizeof(*wc), GFP_KERNEL))) {
 		return -ENOMEM;
+	}
 
 	ifaces[x] = wc;
 	memset(wc, 0, sizeof(*wc));
@@ -1600,9 +1605,8 @@ retry:
 
 	init_waitqueue_head(&wc->regq);
 	snprintf(wc->name, sizeof(wc->name)-1, "wcte12xp%d", x);
-	if ((res=voicebus_init(pdev, SFRAME_SIZE, wc->name,
-		t1_handle_receive, t1_handle_transmit, wc, &wc->vb))) 
-	{
+	if ((res = voicebus_init(pdev, SFRAME_SIZE, wc->name,
+				 t1_handle_receive, t1_handle_transmit, wc, &wc->vb))) {
 		WARN_ON(1);
 		kfree(wc);
 		return res;
@@ -1616,6 +1620,19 @@ retry:
 	voicebus_start(wc->vb);
 	startinglatency = voicebus_current_latency(wc->vb);
 	t1_hardware_post_init(wc);
+
+	for (x = 0; x < (wc->spantype == TYPE_E1 ? 31 : 24); x++) {
+		if (!(wc->chans[x] = kmalloc(sizeof(*wc->chans[x]), GFP_KERNEL))) {
+			while (x) {
+				kfree(wc->chans[--x]);
+			}
+
+			kfree(wc);
+			return -ENOMEM;
+		}
+		memset(wc->chans[x], 0, sizeof(*wc->chans[x]));
+	}
+
 	t1_software_init(wc);
 	if (voicebus_current_latency(wc->vb) > startinglatency) {
 		/* The voicebus library increased the latency during
@@ -1633,6 +1650,7 @@ retry:
 		wc = NULL;
 		goto retry;
 	}
+
 	module_printk("Found a %s\n", wc->variety);
 
 	return 0;
