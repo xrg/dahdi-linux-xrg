@@ -96,9 +96,8 @@ install: all devices install-modules install-include install-firmware
 	@echo "###################################################"
 	@echo "###"
 	@echo "### DAHDI installed successfully."
-	@echo "### If you have not done so before, install init scripts with:"
-	@echo "###"
-	@echo "###   make config"
+	@echo "### If you have not done so before, install the packsge"
+	@echo "### DAHDI-tools."
 	@echo "###"
 	@echo "###################################################"
 
