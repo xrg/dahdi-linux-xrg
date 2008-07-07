@@ -3809,6 +3809,15 @@ retry:
 
 	init_waitqueue_head(&wc->regq);
 
+	for (i = 0; i < wc->cards; i++) {
+		if (!(wc->chans[i] = kmalloc(sizeof(*wc->chans[i]), GFP_KERNEL))) {
+			free_wc(wc);
+			return -ENOMEM;
+		}
+		memset(wc->chans[i], 0, sizeof(*wc->chans[i]));
+	}
+
+
 	if (wctdm_initialize(wc)) {
 		voicebus_release(wc->vb);
 		wc->vb = NULL;
@@ -3843,14 +3852,6 @@ retry:
 	/* Final initialization */
 	wctdm_post_initialize(wc);
 	
-	for (i = 0; i < wc->cards; i++) {
-		if (!(wc->chans[i] = kmalloc(sizeof(*wc->chans[i]), GFP_KERNEL))) {
-			free_wc(wc);
-			return -ENOMEM;
-		}
-		memset(wc->chans[i], 0, sizeof(*wc->chans[i]));
-	}
-
 	/* We should be ready for DAHDI to come in now. */
 	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with DAHDI\n");
