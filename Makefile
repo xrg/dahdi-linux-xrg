@@ -97,7 +97,7 @@ install: all devices install-modules install-include install-firmware
 	@echo "###"
 	@echo "### DAHDI installed successfully."
 	@echo "### If you have not done so before, install the package"
-	@echo "### DAHDI-tools."
+	@echo "### dahdi-tools."
 	@echo "###"
 	@echo "###################################################"
 
