@@ -253,7 +253,7 @@ struct wctdm {
 	volatile unsigned int *writechunk;				/* Double-word aligned write memory */
 	volatile unsigned int *readchunk;				/* Double-word aligned read memory */
 	struct dahdi_chan _chans[NUM_CARDS];
-	struct dahdi_chan *chans;
+	struct dahdi_chan *chans[NUM_CARDS];
 };
 
 
@@ -312,22 +312,22 @@ static inline void wctdm_transmitprep(struct wctdm *wc, unsigned char ints)
 		writechunk[x] = 0;
 #ifdef __BIG_ENDIAN
 		if (wc->cardflag & (1 << 3))
-			writechunk[x] |= (wc->chans[3].writechunk[x]);
+			writechunk[x] |= (wc->chans[3]->writechunk[x]);
 		if (wc->cardflag & (1 << 2))
-			writechunk[x] |= (wc->chans[2].writechunk[x] << 8);
+			writechunk[x] |= (wc->chans[2]->writechunk[x] << 8);
 		if (wc->cardflag & (1 << 1))
-			writechunk[x] |= (wc->chans[1].writechunk[x] << 16);
+			writechunk[x] |= (wc->chans[1]->writechunk[x] << 16);
 		if (wc->cardflag & (1 << 0))
-			writechunk[x] |= (wc->chans[0].writechunk[x] << 24);
+			writechunk[x] |= (wc->chans[0]->writechunk[x] << 24);
 #else
 		if (wc->cardflag & (1 << 3))
-			writechunk[x] |= (wc->chans[3].writechunk[x] << 24);
+			writechunk[x] |= (wc->chans[3]->writechunk[x] << 24);
 		if (wc->cardflag & (1 << 2))
-			writechunk[x] |= (wc->chans[2].writechunk[x] << 16);
+			writechunk[x] |= (wc->chans[2]->writechunk[x] << 16);
 		if (wc->cardflag & (1 << 1))
-			writechunk[x] |= (wc->chans[1].writechunk[x] << 8);
+			writechunk[x] |= (wc->chans[1]->writechunk[x] << 8);
 		if (wc->cardflag & (1 << 0))
-			writechunk[x] |= (wc->chans[0].writechunk[x]);
+			writechunk[x] |= (wc->chans[0]->writechunk[x]);
 #endif		
 	}
 
@@ -406,13 +406,13 @@ static inline void wctdm_receiveprep(struct wctdm *wc, unsigned char ints)
 			wc->chans[0].readchunk[x] = (readchunk[x] >> 24) & 0xff;
 #else
 		if (wc->cardflag & (1 << 3))
-			wc->chans[3].readchunk[x] = (readchunk[x] >> 24) & 0xff;
+			wc->chans[3]->readchunk[x] = (readchunk[x] >> 24) & 0xff;
 		if (wc->cardflag & (1 << 2))
-			wc->chans[2].readchunk[x] = (readchunk[x] >> 16) & 0xff;
+			wc->chans[2]->readchunk[x] = (readchunk[x] >> 16) & 0xff;
 		if (wc->cardflag & (1 << 1))
-			wc->chans[1].readchunk[x] = (readchunk[x] >> 8) & 0xff;
+			wc->chans[1]->readchunk[x] = (readchunk[x] >> 8) & 0xff;
 		if (wc->cardflag & (1 << 0))
-			wc->chans[0].readchunk[x] = (readchunk[x]) & 0xff;
+			wc->chans[0]->readchunk[x] = (readchunk[x]) & 0xff;
 #endif
 	}
 #ifdef AUDIO_RINGCHECK
@@ -422,7 +422,7 @@ static inline void wctdm_receiveprep(struct wctdm *wc, unsigned char ints)
 	/* XXX We're wasting 8 taps.  We should get closer :( */
 	for (x = 0; x < NUM_CARDS; x++) {
 		if (wc->cardflag & (1 << x))
-			dahdi_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, wc->chans[x].writechunk);
+			dahdi_ec_chunk(wc->chans[x], wc->chans[x]->readchunk, wc->chans[x]->writechunk);
 	}
 	dahdi_receive(&wc->span);
 }
@@ -780,7 +780,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 1;
 						if (debug)
 							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
-						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_RING);
+						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_RING);
 					}
 					fxo->lastrdtx = res;
 					fxo->ringdebounce = 10;
@@ -789,7 +789,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 0;
 						if (debug)
 							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
-						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
+						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 					}
 				}
 			} else if (res && (fxo->battery == BATTERY_PRESENT)) {
@@ -803,7 +803,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				if (fxo->ringdebounce >= DAHDI_CHUNKSIZE * ringdebounce) {
 					if (!fxo->wasringing) {
 						fxo->wasringing = 1;
-						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_RING);
+						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_RING);
 						if (debug)
 							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
@@ -814,7 +814,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				if (fxo->ringdebounce <= 0) {
 					if (fxo->wasringing) {
 						fxo->wasringing = 0;
-						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
+						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 						if (debug)
 							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
@@ -857,7 +857,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 #endif
 					}
 #else
-					dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
+					dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_ONHOOK);
 					/* set the alarm timer, taking into account that part of its time
 					   period has already passed while debouncing occurred */
 					fxo->battalarm = (battalarm - battdebounce) / MS_PER_CHECK_HOOK;
@@ -898,7 +898,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 							printk("Signalled Off Hook\n");
 					}
 #else
-					dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
+					dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 #endif
 					/* set the alarm timer, taking into account that part of its time
 					   period has already passed while debouncing occurred */
@@ -928,7 +928,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		if (--fxo->battalarm == 0) {
 			/* the alarm timer has expired, so update the battery alarm state
 			   for this channel */
-			dahdi_alarm_channel(&wc->chans[card], fxo->battery ? DAHDI_ALARM_NONE : DAHDI_ALARM_RED);
+			dahdi_alarm_channel(wc->chans[card], fxo->battery ? DAHDI_ALARM_NONE : DAHDI_ALARM_RED);
 		}
 	}
 
@@ -940,7 +940,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				       fxo->polarity, 
 				       fxo->lastpol);
 				if (fxo->polarity)
-					dahdi_qevent_lock(&wc->chans[card], DAHDI_EVENT_POLARITY);
+					dahdi_qevent_lock(wc->chans[card], DAHDI_EVENT_POLARITY);
 				fxo->polarity = fxo->lastpol;
 		    }
 		}
@@ -982,7 +982,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 				if (debug)
 #endif				
 					printk("wctdm: Card %d Going off hook\n", card);
-				dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
+				dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 				if (robust)
 					wctdm_init_proslic(wc, card, 1, 0, 1);
 				wc->mod[card].fxs.oldrxhook = 1;
@@ -993,7 +993,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 				if (debug)
 #endif				
 					printk("wctdm: Card %d Going on hook\n", card);
-				dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
+				dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_ONHOOK);
 				wc->mod[card].fxs.oldrxhook = 0;
 			}
 		}
@@ -2025,13 +2025,13 @@ static int wctdm_initialize(struct wctdm *wc)
 	} else
 		wc->span.deflaw = DAHDI_LAW_MULAW;
 	for (x = 0; x < NUM_CARDS; x++) {
-		sprintf(wc->chans[x].name, "WCTDM/%d/%d", wc->pos, x);
-		wc->chans[x].sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
-		wc->chans[x].sigcap |= DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
-		wc->chans[x].chanpos = x+1;
-		wc->chans[x].pvt = wc;
+		sprintf(wc->chans[x]->name, "WCTDM/%d/%d", wc->pos, x);
+		wc->chans[x]->sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
+		wc->chans[x]->sigcap |= DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
+		wc->chans[x]->chanpos = x+1;
+		wc->chans[x]->pvt = wc;
 	}
-	wc->span.chans = &wc->chans;
+	wc->span.chans = wc->chans;
 	wc->span.channels = NUM_CARDS;
 	wc->span.hooksig = wctdm_hooksig;
 	wc->span.irq = wc->dev->irq;
@@ -2058,11 +2058,11 @@ static void wctdm_post_initialize(struct wctdm *wc)
 	for (x = 0; x < NUM_CARDS; x++) {
 		if (wc->cardflag & (1 << x)) {
 			if (wc->modtype[x] == MOD_TYPE_FXO)
-				wc->chans[x].sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
+				wc->chans[x]->sigcap = DAHDI_SIG_FXSKS | DAHDI_SIG_FXSLS | DAHDI_SIG_SF | DAHDI_SIG_CLEAR;
 			else
-				wc->chans[x].sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
-		} else if (!(wc->chans[x].sigcap & DAHDI_SIG_BROKEN)) {
-			wc->chans[x].sigcap = 0;
+				wc->chans[x]->sigcap = DAHDI_SIG_FXOKS | DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | DAHDI_SIG_EM | DAHDI_SIG_CLEAR;
+		} else if (!(wc->chans[x]->sigcap & DAHDI_SIG_BROKEN)) {
+			wc->chans[x]->sigcap = 0;
 		}
 	}
 }
@@ -2179,7 +2179,7 @@ static int wctdm_hardware_init(struct wctdm *wc)
 					printk("Module %d: Installed -- MANUAL FXS\n",x);
 				} else {
 					printk("Module %d: FAILED FXS (%s)\n", x, fxshonormode ? fxo_modes[_opermode].name : "FCC");
-					wc->chans[x].sigcap = __DAHDI_SIG_FXO | DAHDI_SIG_BROKEN;
+					wc->chans[x]->sigcap = __DAHDI_SIG_FXO | DAHDI_SIG_BROKEN;
 				} 
 			} else if (!(ret = wctdm_init_voicedaa(wc, x, 0, 0, sane))) {
 				wc->cardflag |= (1 << x);
@@ -2263,7 +2263,9 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 
 			ifaces[x] = wc;
 			memset(wc, 0, sizeof(struct wctdm));
-			wc->chans = wc->_chans;
+			for (x=0; x < sizeof(wc->chans)/sizeof(wc->chans[0]); ++x) {
+				wc->chans[x] = &wc->_chans[x];
+			}
 			spin_lock_init(&wc->lock);
 			wc->curcard = -1;
 			wc->ioaddr = pci_resource_start(pdev, 0);
