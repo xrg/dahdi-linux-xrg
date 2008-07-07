@@ -2262,8 +2262,8 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 			int cardcount = 0;
 
 			ifaces[x] = wc;
-			wc->chans = wc->_chans;
 			memset(wc, 0, sizeof(struct wctdm));
+			wc->chans = wc->_chans;
 			spin_lock_init(&wc->lock);
 			wc->curcard = -1;
 			wc->ioaddr = pci_resource_start(pdev, 0);
