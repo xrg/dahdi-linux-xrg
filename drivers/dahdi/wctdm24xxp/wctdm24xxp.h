@@ -40,7 +40,7 @@
 /*!
  * \brief Default ringer debounce (in ms)
  */
-#define DEFAULT_RING_DEBOUNCE	128
+#define DEFAULT_RING_DEBOUNCE	1024
 
 #define POLARITY_DEBOUNCE	64		/* Polarity debounce (in ms) */
 
