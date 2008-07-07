@@ -3749,7 +3749,7 @@ static void free_wc(struct wctdm *wc)
 {
 	unsigned int x;
 
-	for (x = 0; x < wc->cards; x++) {
+	for (x = 0; x < sizeof(wc->chans)/sizeof(wc->chans[0]); x++) {
 		if (wc->chans[x]) {
 			kfree(wc->chans[x]);
 		}
