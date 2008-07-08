@@ -173,6 +173,7 @@ ifndef DESTDIR
 		rm -rf /lib/modules/$(KVERS)/zaptel; \
 		echo "done."; \
 	fi
+	build_tools/uninstall-modules dahdi $(KVERS)
 endif
 	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
