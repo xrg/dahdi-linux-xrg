@@ -170,6 +170,7 @@ ifndef DESTDIR
 	@if modinfo zaptel > /dev/null 2>&1; then \
 		echo -n "Removing Zaptel modules for kernel $(KVERS), please wait..."; \
 		build_tools/uninstall-modules zaptel $(KVERS); \
+		rm -rf /lib/modules/$(KVERS)/zaptel; \
 		echo "done."; \
 	fi
 endif
@@ -181,12 +182,12 @@ ifdef DESTDIR
 	echo "Uninstalling modules is not supported with a DESTDIR specified."
 	exit 1
 else
-	@if modinfo dahdi> /dev/null 2>&1 ; then \
+	@if modinfo dahdi > /dev/null 2>&1 ; then \
 		echo -n "Removing DAHDI modules for kernel $(KVERS), please wait..."; \
 		build_tools/uninstall-modules dahdi $(KVERS); \
+		rm -rf /lib/modules/$(KVERS)/dahdi; \
 		echo "done."; \
 	fi
-	@rm -rf /lib/modules/$(KVERS)/dahdi
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 endif
 
