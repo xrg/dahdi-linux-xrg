@@ -92,7 +92,7 @@ prereq: include/dahdi/version.h
 stackcheck: checkstack modules
 	./checkstack kernel/*.ko kernel/*/*.ko
 
-install: all devices install-modules install-include install-firmware
+install: all install-modules install-devices install-include install-firmware
 	@echo "###################################################"
 	@echo "###"
 	@echo "### DAHDI installed successfully."
@@ -100,6 +100,8 @@ install: all devices install-modules install-include install-firmware
 	@echo "### dahdi-tools."
 	@echo "###"
 	@echo "###################################################"
+
+uninstall: uninstall-modules uninstall-devices uninstall-include uninstall-firmware
 
 install-modconf:
 	build_tools/genmodconf $(BUILDVER) "$(ROOT_PREFIX)" "$(filter-out dahdi dahdi_dummy xpp dahdi_transcode dahdi_dynamic,$(BUILD_MODULES)) $(MODULE_ALIASES)"
@@ -112,14 +114,24 @@ ifeq ($(HOTPLUG_FIRMWARE),yes)
 	$(MAKE) -C drivers/dahdi/firmware hotplug-install DESTDIR=$(DESTDIR) HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 endif
 
+uninstall-firmware:
+	$(MAKE) -C drivers/dahdi/firmware hotplug-uninstall DESTDIR=$(DESTDIR)
+
 install-include:
 	install -D -m 644 include/dahdi/kernel.h $(DESTDIR)/usr/include/dahdi/kernel.h
 	install -D -m 644 include/dahdi/user.h $(DESTDIR)/usr/include/dahdi/user.h
 # Include any driver-specific header files here
 	install -D -m 644 include/dahdi/wctdm_user.h $(DESTDIR)/usr/include/dahdi/wctdm_user.h
 
-devices:
-ifneq (yes,$(DYNFS))
+uninstall-include:
+	rm -f $(DESTDIR)/usr/include/dahdi/kernel.h
+	rm -f $(DESTDIR)/usr/include/dahdi/user.h
+# Include any driver-specific header files here
+	rm -f $(DESTDIR)/usr/include/dahdi/wctdm_user.h
+	-rmdir $(DESTDIR)/usr/include/dahdi
+
+install-devices:
+ifndef DYNFS
 	mkdir -p $(DESTDIR)/dev/dahdi
 	rm -f $(DESTDIR)/dev/dahdi/ctl
 	rm -f $(DESTDIR)/dev/dahdi/channel
@@ -146,24 +158,16 @@ else # DYNFS
 	build_tools/genudevrules > $(DESTDIR)/etc/udev/rules.d/dahdi.rules
 endif
 
-install-udev: devices
-
-uninstall-hotplug:
-	$(MAKE) -C drivers/dahdi/firmware hotplug-uninstall DESTDIR=$(DESTDIR)
-
-uninstall-modules:
-ifdef DESTDIR
-	echo "Uninstalling modules is not supported with a custom DESTDIR."
-	exit 1
-else
-	echo -n "Removing DAHDI modules for kernel $(KVERS), please wait..."
-	@build_tools/uninstall-modules dahdi $(KVERS)
-	echo "done."
+uninstall-devices:
+ifndef DYNFS
+	-rm -rf $(DESTDIR)/dev/dahdi
+else # DYNFS
+	rm -f $(DESTDIR)/etc/udev/rules.d/dahdi.rules
 endif
 
 install-modules: modules
 ifndef DESTDIR
-	@if modinfo zaptel 2>&1 > /dev/null; then \
+	@if modinfo zaptel > /dev/null 2>&1; then \
 		echo -n "Removing Zaptel modules for kernel $(KVERS), please wait..."; \
 		build_tools/uninstall-modules zaptel $(KVERS); \
 		echo "done."; \
@@ -171,6 +175,20 @@ ifndef DESTDIR
 endif
 	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
+
+uninstall-modules:
+ifdef DESTDIR
+	echo "Uninstalling modules is not supported with a DESTDIR specified."
+	exit 1
+else
+	@if modinfo dahdi> /dev/null 2>&1 ; then \
+		echo -n "Removing DAHDI modules for kernel $(KVERS), please wait..."; \
+		build_tools/uninstall-modules dahdi $(KVERS); \
+		echo "done."; \
+	fi
+	@rm -rf /lib/modules/$(KVERS)/dahdi
+	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
+endif
 
 update:
 	@if [ -d .svn ]; then \
