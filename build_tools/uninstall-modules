@@ -1,41 +1,61 @@
 #!/bin/sh
-# uninstall-modules
+
+# This script takes two arguments: a top-level module name, and a kernel version string
 #
-# Remove all the modules passed in on the command line from the modules
-# directory.  This script is called by the makefile.
+# It will search the entire /lib/modules directory tree for the given kernel version,
+# and find all modules that are dependent (even indirectly) on the specified module.
+# After producing that list, it will remove all those modules.
 
-KERNEL_MODULES_DIR=$1
-shift
-MODULES="$*"
+base="${1}"
+deptree="${base}"
+rmlist=""
+founddep=1
 
-usage() {
-	echo "$0: Used to delete kernel modules from the modules directory."
-	echo ""
-	echo "Usage:"
-	echo "  $0 MODULES_BASE_DIR mod1 [mod2 [...]]"
-	echo ""
-	echo "  MODULES_BASE_DIR - typically /lib/modules/KVERS"
-	echo "  modN -             (optionally partial) module name to remove."
+checkmod() {
+    SAVEIFS="${IFS}"
+    IFS=","
+    modname=`basename ${1}`
+    modname=${modname%.ko}
+    if test "${modname}" = "${base}"; then
+	rmlist="${rmlist} ${1}"
+	IFS="${SAVEIFS}"
+	return
+    fi
+    for dep in `modinfo -F depends ${1}`; do
+	for mod in ${deptree}; do
+	    if test "${dep}" = "${mod}"; then
+		addit=1
+		for checkmod in ${deptree}; do
+		    if test "${checkmod}" = "${modname}"; then
+			addit=0
+			break
+		    fi
+		done
+		if test "${addit}" = "1"; then
+		    deptree="${deptree},${modname%.ko}"
+		    rmlist="${rmlist} ${1}"
+		    founddep=1
+		fi
+	    fi
+	done
+    done
+    IFS="${SAVEIFS}"
 }
 
-if [ -z "$KERNEL_MODULES_DIR" ]; then
-	echo "Missing kernel module directory."
-	usage
-	exit 1;
-fi
 
-if [ -z "$MODULES" ]; then
-	echo "Missing one or more modules to delete."
-	usage
-	exit 1;
-fi
-for mod in $MODULES; do 
-	BASE=`basename $mod`
-	for file in `cat $KERNEL_MODULES_DIR/modules.dep | cut -d : -f 1 | grep "$BASE$"`; do
-		if [ -e "$file" ]; then
-			#echo "Deleting $file."
-			rm -f $file
-		fi
-	done
+while test "${founddep}" = "1"; do
+    founddep=0
+    find /lib/modules/${2} -name \*.ko -print > /tmp/modlist
+    exec 9<&0 < /tmp/modlist
+    while read mod; do
+	checkmod ${mod}
+    done
+    exec 0<&9 9<&-
+    rm /tmp/modlist
 done
-exit 0
+
+if test -n "${rmlist}"; then
+    for mod in ${rmlist}; do
+	rm -f ${mod}
+    done
+fi

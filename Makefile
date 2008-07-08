@@ -152,9 +152,23 @@ uninstall-hotplug:
 	$(MAKE) -C drivers/dahdi/firmware hotplug-uninstall DESTDIR=$(DESTDIR)
 
 uninstall-modules:
-	@build_tools/uninstall-modules $(DESTDIR)/lib/modules/$(KVERS)
+ifdef DESTDIR
+	echo "Uninstalling modules is not supported with a custom DESTDIR."
+	exit 1
+else
+	echo -n "Removing DAHDI modules for kernel $(KVERS), please wait..."
+	@build_tools/uninstall-modules dahdi $(KVERS)
+	echo "done."
+endif
 
-install-modules: modules  #uninstall-modules
+install-modules: modules
+ifndef DESTDIR
+	@if modinfo zaptel 2>&1 > /dev/null; then \
+		echo -n "Removing Zaptel modules for kernel $(KVERS), please wait..."; \
+		build_tools/uninstall-modules zaptel $(KVERS); \
+		echo "done."; \
+	fi
+endif
 	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 
