@@ -157,8 +157,11 @@
 #define DAHDI_DEFAULT_BLOCKSIZE 1024
 #define DAHDI_DEFAULT_MTR_MRU	 2048
 
-#define DAHDI_POLICY_IMMEDIATE	 0		/* Start play/record immediately */
-#define DAHDI_POLICY_WHEN_FULL  1		/* Start play/record when buffer is full */
+#define DAHDI_POLICY_IMMEDIATE	0	/* Start play/record immediately */
+#define DAHDI_POLICY_WHEN_FULL	1	/* Start play/record when buffer is full */
+#define DAHDI_POLICY_HALF_FULL	2	/* ...and when buffer is half full. */
+
+#define DAHDI_POLICY_DEFAULT	DAHDI_POLICY_HALF_FULL
 
 #define	RING_DEBOUNCE_TIME	2000	/* 2000 ms ring debounce time */
 
