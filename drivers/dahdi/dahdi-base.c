@@ -6801,15 +6801,20 @@ static inline void __putbuf_chunk(struct dahdi_chan *ss, unsigned char *rxb, int
 					 * have messed around with it since then */
 
 					int comparemessage;
+					/* Shut compiler up */
+					int myres = 0;
 
 					if (ms->flags & DAHDI_FLAG_MTP2) {
 						comparemessage = (ms->inreadbuf - 1) & (ms->numbufs - 1);
-						if (!memcmp(ms->readbuf[comparemessage], ms->readbuf[ms->inreadbuf], ms->readn[ms->inreadbuf])) {
-							/* Our messages are the same, so discard -
-							 * 	Don't advance buffers, reset indexes and buffer sizes. */
-							ms->readn[ms->inreadbuf] = 0;
-							ms->readidx[ms->inreadbuf] = 0;
-						}
+
+						myres = memcmp(ms->readbuf[comparemessage], ms->readbuf[ms->inreadbuf], ms->readn[ms->inreadbuf]);
+					}
+
+					if ((ms->flags & DAHDI_FLAG_MTP2) && !myres) {
+						/* Our messages are the same, so discard -
+						 * 	Don't advance buffers, reset indexes and buffer sizes. */
+						ms->readn[ms->inreadbuf] = 0;
+						ms->readidx[ms->inreadbuf] = 0;
 					} else {
 						ms->inreadbuf = (ms->inreadbuf + 1) % ms->numbufs;
 						if (ms->inreadbuf == ms->outreadbuf) {
