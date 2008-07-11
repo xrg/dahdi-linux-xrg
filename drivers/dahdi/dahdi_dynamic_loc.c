@@ -263,6 +263,5 @@ static struct dahdi_dynamic_driver ztd_local = {
 
 module_init(ztdlocal_init);
 module_exit(ztdlocal_exit);
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+
+MODULE_LICENSE("GPL v2");

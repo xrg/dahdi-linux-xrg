@@ -7,12 +7,16 @@ CONF_FILE=build_tools/git_test.conf
 
 usage() {
 	me=`basename $0`
-	echo "$me: test building Zaptel vs. kernel from git"
+	echo "$me: test building DAHDI vs. kernel from git"
 	echo "Usage:"
 	echo "  $me checkout <kerneldir>  Pull a kernel version into <kerneldir>"
 	echo "  $me update                Update (pull) the kernel tree."
 	echo "  $me setver <kernel_ver>   Set the kernel version"
-	echo "  $me test                  Test-build"
+	echo "  $me versions              Print available versions"
+	echo "  $me version               Print current (kernel) version"
+	echo "  $me version_driver        Print the version of DAHDI"
+	echo "  $me build                 Test-build"
+	echo "  $me git <git command>     Run <git command>"
 	echo ""
 	echo "  $me versions [pattern]    List available versions."
 }
@@ -52,22 +56,39 @@ case "$command" in
 		cd "$kernel_dir"
 		git pull
 		;;
+	git)
+		cd "$kernel_dir"
+		shift
+		git "$@"
+		;;
 	versions)
 		cd "$kernel_dir"
 		git tag -l $2 | cut -c2-
+		;;
+	version)
+		cd "$kernel_dir"
+		echo "Configured: $kernel_ver"
+		echo -n "Actual: "
+		git describe | cut -c2-
+		;;
+	version_driver)
+		version_h=include/dahdi/version.h
+		make $version_h >/dev/null
+		awk -F'"' '/DAHDI_VERSION/{print $2}' $version_h
 		;;
 	setver)
 		kernel_ver="$2"
 		tag="v$kernel_ver"
 		cd "$kernel_dir"
 		git-reset --hard "$tag"
-		make defconfig prepare
+		make distclean
+		make defconfig modules_prepare
 		set_var kernel_ver "$kernel_ver"
 		;;
-	test)
+	test|build)
 		# you can pass extra parameters to the make command in
 		# two ways:
-		# 1. Set th value of MAKE_PARAMS in git_test.conf .
+		# 1. Set the value of MAKE_PARAMS in git_test.conf .
 		# 2. Any extra command-line parameter.
 		shift
 		make KSRC="$kernel_dir" KVERS=$kernel_ver $MAKE_PARAMS "$@"

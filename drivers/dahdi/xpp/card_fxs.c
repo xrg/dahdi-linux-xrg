@@ -477,11 +477,9 @@ static int FXS_card_dahdi_preregistration(xpd_t *xpd, bool on)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"on":"off");
-#ifdef DAHDI_SPANSTAT_V2 
 	xpd->span.spantype = "FXS";
-#endif 
 	for_each_line(xpd, i) {
-		struct dahdi_chan	*cur_chan = &xpd->chans[i];
+		struct dahdi_chan	*cur_chan = xpd->chans[i];
 
 		XPD_DBG(GENERAL, xpd, "setting FXS channel %d\n", i);
 		if(IS_SET(xpd->digital_outputs, i)) {
@@ -653,7 +651,7 @@ static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txs
 		return 0;
 	}
 	if(SPAN_REGISTERED(xpd))
-		chan = &xpd->span.chans[pos];
+		chan = xpd->span.chans[pos];
 	switch(txsig) {
 		case DAHDI_TXSIG_ONHOOK:
 			spin_lock_irqsave(&xpd->lock, flags);
@@ -1000,7 +998,7 @@ static void detect_vmwi(xpd_t *xpd)
 	priv = xpd->priv;
 	BUG_ON(!priv);
 	for_each_line(xpd, i) {
-		struct dahdi_chan	*chan = &xpd->span.chans[i];
+		struct dahdi_chan	*chan = xpd->span.chans[i];
 		byte		*writechunk = chan->writechunk;
 
 		if(IS_SET(xpd->offhook | xpd->cid_on | xpd->digital_inputs | xpd->digital_outputs, i))
@@ -1236,7 +1234,7 @@ static void process_dtmf(xpd_t *xpd, xpp_line_t lines, byte val)
 				__do_mute_dtmf(xpd, i, 0);
 			__pcm_recompute(xpd, 0);	/* XPD is locked */
 			if(want_event) 
-				dahdi_qevent_lock(&xpd->chans[i], event | digit);
+				dahdi_qevent_lock(xpd->chans[i], event | digit);
 			break;
 		}
 	}

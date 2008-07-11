@@ -200,7 +200,8 @@ struct pciradio {
 #define	RADMODE_IGNORECT 16
 #define	RADMODE_NOENCODE 32
 	unsigned char corthresh[NUM_CHANS];
-	struct dahdi_chan chans[NUM_CHANS];
+	struct dahdi_chan _chans[NUM_CHANS];
+	struct dahdi_chan *chans;
 	unsigned char mx828_addr;
 	struct encdec encdec;
 	unsigned long lastremcmd;
@@ -1479,7 +1480,7 @@ static int pciradio_initialize(struct pciradio *rad)
 		rad->ctcssacquiretime[x] = RAD_CTCSS_ACQUIRE_TIME;
 		rad->ctcsstalkofftime[x] = RAD_CTCSS_TALKOFF_TIME;
 	}
-	rad->span.chans = rad->chans;
+	rad->span.chans = &rad->chans;
 	rad->span.channels = rad->nchans;
 	rad->span.hooksig = pciradio_hooksig;
 	rad->span.open = pciradio_open;
@@ -1718,6 +1719,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 			int i;
 
 			ifaces[x] = rad;
+			rad->chans = rad->_chans;
 			memset(rad, 0, sizeof(struct pciradio));
 			spin_lock_init(&rad->lock);
 			rad->nchans = 4;
@@ -1888,10 +1890,7 @@ module_param(debug, int, 0600);
 
 MODULE_DESCRIPTION("DAHDI Telephony PCI Radio Card Driver");
 MODULE_AUTHOR("Jim Dixon <jim@lambdatel.com>");
-
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(pciradio_init);
 module_exit(pciradio_cleanup);

@@ -104,7 +104,7 @@ static struct dahdi_dynamic {
 	unsigned short txcnt;
 	unsigned short rxcnt;
 	struct dahdi_span span;
-	struct dahdi_chan *chans;
+	struct dahdi_chan **chans;
 	struct dahdi_dynamic *next;
 	struct dahdi_dynamic_driver *driver;
 	void *pvt;
@@ -196,7 +196,7 @@ static void ztd_sendmessage(struct dahdi_dynamic *z)
 	offset = 0;
 	for (x=0;x<z->span.channels;x++) {
 		offset = x % 4;
-		bits |= (z->chans[x].txsig & 0xf) << (offset << 2);
+		bits |= (z->chans[x]->txsig & 0xf) << (offset << 2);
 		if (offset == 3) {
 			/* Write the bits when we have four channels */
 			*((unsigned short *)buf) = htons(bits);
@@ -214,7 +214,7 @@ static void ztd_sendmessage(struct dahdi_dynamic *z)
 	}
 	
 	for (x=0;x<z->span.channels;x++) {
-		memcpy(buf, z->chans[x].writechunk, DAHDI_CHUNKSIZE);
+		memcpy(buf, z->chans[x]->writechunk, DAHDI_CHUNKSIZE);
 		buf += DAHDI_CHUNKSIZE;
 		msglen += DAHDI_CHUNKSIZE;
 	}
@@ -236,7 +236,7 @@ static void __ztdynamic_run(void)
 			/* Ignore dead spans */
 			for (y=0;y<z->span.channels;y++) {
 				/* Echo cancel double buffered data */
-				dahdi_ec_chunk(&z->span.chans[y], z->span.chans[y].readchunk, z->span.chans[y].writechunk);
+				dahdi_ec_chunk(z->span.chans[y], z->span.chans[y]->readchunk, z->span.chans[y]->writechunk);
 			}
 			dahdi_receive(&z->span);
 			dahdi_transmit(&z->span);
@@ -368,15 +368,15 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 			sig = (bits >> ((x % 4) << 2)) & 0xff;
 			
 			/* Update signalling if appropriate */
-			if (sig != span->chans[x].rxsig)
-				dahdi_rbsbits(&span->chans[x], sig);
+			if (sig != span->chans[x]->rxsig)
+				dahdi_rbsbits(span->chans[x], sig);
 				
 		}
 	}
 	
 	/* Record data for channels */
 	for (x=0;x<nchans;x++) {
-		memcpy(span->chans[x].readchunk, msg, DAHDI_CHUNKSIZE);
+		memcpy(span->chans[x]->readchunk, msg, DAHDI_CHUNKSIZE);
 		msg += DAHDI_CHUNKSIZE;
 	}
 
@@ -611,13 +611,13 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 	z->span.close = ztd_close;
 	z->span.chanconfig = ztd_chanconfig;
 	for (x=0;x<zds->numchans;x++) {
-		sprintf(z->chans[x].name, "ZTD/%s/%s/%d", zds->driver, zds->addr, x+1);
-		z->chans[x].sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS |
-				     DAHDI_SIG_FXSKS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXOLS |
-				     DAHDI_SIG_FXOKS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | 
-				     DAHDI_SIG_DACS_RBS | DAHDI_SIG_CAS;
-		z->chans[x].chanpos = x + 1;
-		z->chans[x].pvt = z;
+		sprintf(z->chans[x]->name, "ZTD/%s/%s/%d", zds->driver, zds->addr, x+1);
+		z->chans[x]->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS |
+				      DAHDI_SIG_FXSKS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXOLS |
+				      DAHDI_SIG_FXOKS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | 
+				      DAHDI_SIG_DACS_RBS | DAHDI_SIG_CAS;
+		z->chans[x]->chanpos = x + 1;
+		z->chans[x]->pvt = z;
 	}
 	
 	spin_lock_irqsave(&dlock, flags);
@@ -626,7 +626,7 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 		/* Try loading the right module */
 		char fn[80];
 		spin_unlock_irqrestore(&dlock, flags);
-		sprintf(fn, "ztd-%s", zds->driver);
+		sprintf(fn, "dahdi_dynamic_%s", zds->driver);
 		request_module(fn);
 		spin_lock_irqsave(&dlock, flags);
 		ztd = find_driver(zds->driver);
@@ -844,9 +844,7 @@ module_param(debug, int, 0600);
 
 MODULE_DESCRIPTION("DAHDI Dynamic Span Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(ztdynamic_init);
 module_exit(ztdynamic_cleanup);

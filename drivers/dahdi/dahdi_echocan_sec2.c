@@ -36,22 +36,20 @@
    Improve double talk detector (iterative!)
 */
 
-#ifndef _DAHDI_SEC_H
-#define _DAHDI_SEC_H
-
-#ifdef __KERNEL__
 #include <linux/kernel.h>
 #include <linux/slab.h>
-#define MALLOC(a) kmalloc((a), GFP_KERNEL)
-#define FREE(a) kfree(a)
-#else
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <string.h>
-#define MALLOC(a) malloc(a)
-#define FREE(a) free(a)
-#endif
+#include <linux/errno.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/ctype.h>
+#include <linux/moduleparam.h>
+
+#include <dahdi/kernel.h>
+
+static int debug;
+
+#define module_printk(level, fmt, args...) printk(level "%s: " fmt, THIS_MODULE->name, ## args)
+#define debug_printk(level, fmt, args...) if (debug >= level) printk("%s (%s): " fmt, THIS_MODULE->name, __FUNCTION__, ## args)
 
 #include "fir.h"
 
@@ -97,23 +95,6 @@ struct echo_can_state
 				   was skipped, for test purposes */
 };
 
-static void echo_can_free(struct echo_can_state *ec);
-static int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int16_t rx);
-
-static void echo_can_init(void)
-{
-	printk("DAHDI Echo Canceller: STEVE2%s\n", DAHDI_ECHO_AGGRESSIVE);
-}
-
-static void echo_can_identify(char *buf, size_t len)
-{
-	dahdi_copy_string(buf, "STEVE2", len);
-}
-
-static void echo_can_shutdown(void)
-{
-}
-
 /*
  * According to Jim...
  */
@@ -138,7 +119,7 @@ static int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocan
 
 	size = sizeof(**ec) + ecp->tap_length * sizeof(int32_t) + ecp->tap_length * 3 * sizeof(int16_t);
 	
-	if (!(*ec = MALLOC(size)))
+	if (!(*ec = kmalloc(size, GFP_KERNEL)))
 		return -ENOMEM;
 	
 	memset(*ec, 0, size);
@@ -160,14 +141,14 @@ static int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocan
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline void echo_can_free(struct echo_can_state *ec)
+static void echo_can_free(struct echo_can_state *ec)
 {
 	fir16_free(&ec->fir_state);
-	FREE(ec);
+	kfree(ec);
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int16_t rx)
+static inline int16_t sample_update(struct echo_can_state *ec, int16_t tx, int16_t rx)
 {
     int offset1;
     int offset2;
@@ -297,143 +278,21 @@ static inline int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int
 
     return  clean_rx;
 }
+/*- End of function --------------------------------------------------------*/
 
-#if 0
-static inline int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int16_t rx)
+static void echo_can_update(struct echo_can_state *ec, short *iref, short *isig)
 {
-    int offset;
-    int limit;
-    int32_t echo_value;
-    int clean_rx;
-    int nsuppr;
-    int i;
-    int correction;
+	unsigned int x;
+	short result;
 
-    ec->tx_history[ec->curr_pos] = tx;
-
-    /* Evaluate the echo - i.e. apply the FIR filter */
-    /* Assume the gain of the FIR does not exceed unity. Exceeding unity
-       would seem like a rather poor thing for an echo cancellor to do :)
-       This means we can compute the result with a total disregard for
-       overflows. 16bits x 16bits -> 31bits, so no overflow can occur in
-       any multiply. While accumulating we may overflow and underflow the
-       32 bit scale often. However, if the gain does not exceed unity,
-       everything should work itself out, and the final result will be
-       OK, without any saturation logic. */
-    /* Overflow is very much possible here, and we do nothing about it because
-       of the compute costs */
-    /* 16 bit coeffs for the LMS give lousy results (maths good, actual sound
-       bad!), but 32 bit coeffs require some shifting. On balance 32 bit seems
-       best */
-    offset = ec->curr_pos;
-    limit = ec->taps - offset;
-    echo_value = 0;
-    for (i = 0;  i < limit;  i++)
-        echo_value += (ec->fir_taps[i] >> 16)*ec->tx_history[i + offset];
-    offset = ec->taps - ec->curr_pos;
-    for (  ;  i < ec->taps;  i++)
-        echo_value += (ec->fir_taps[i] >> 16)*ec->tx_history[i - offset];
-    echo_value >>= 16;
-
-    /* And the answer is..... */
-    clean_rx = rx - echo_value;
-
-    /* That was the easy part. Now we need to adapt! */
-    if (ec->nonupdate_dwell > 0)
-    	ec->nonupdate_dwell--;
-
-    /* If there is very little being transmitted, any attempt to train is
-       futile. We would either be training on the far end's noise or signal,
-       the channel's own noise, or our noise. Either way, this is hardly good
-       training, so don't do it (avoid trouble). */
-    /* If the received power is very low, either we are sending very little or
-       we are already well adapted. There is little point in trying to improve
-       the adaption under these circumstanceson, so don't do it (reduce the
-       compute load). */
-    if (ec->tx_power > MIN_TX_POWER_FOR_ADAPTION
-    	&&
-	ec->rx_power > MIN_RX_POWER_FOR_ADAPTION)
-    {
-    	/* This is a really crude piece of decision logic, but it does OK
-	   for now. */
-    	if (ec->tx_power > 2*ec->rx_power)
-	{
-            /* There is no far-end speech detected */
-            if (ec->nonupdate_dwell == 0)
-	    {
-	    	/* ... and we are not in the dwell time from previous speech. */
-		//nsuppr = saturate((clean_rx << 16)/ec->tx_power);
-		nsuppr = clean_rx >> 3;
-
-		/* Update the FIR taps */
-    	        offset = ec->curr_pos;
-    	    	limit = ec->taps - offset;
-		ec->latest_correction = 0;
-    	    	for (i = 0;  i < limit;  i++)
-		{
-		    correction = ec->tx_history[i + offset]*nsuppr;
-		    ec->fir_taps[i] += correction;
-		    //ec->latest_correction += abs(correction);
-        	}
-		offset = ec->taps - ec->curr_pos;
-    		for (  ;  i < ec->taps;  i++)
-		{
-		    correction = ec->tx_history[i - offset]*nsuppr;
-		    ec->fir_taps[i] += correction;
-		    //ec->latest_correction += abs(correction);
-    	    	}
-    	    }
-	    else
-	    {
-        	ec->latest_correction = -3;
-    	    }
+	for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
+		result = sample_update(ec, *iref, *isig);
+		*isig++ = result;
 	}
-	else
-	{
-            ec->nonupdate_dwell = NONUPDATE_DWELL_TIME;
-    	    ec->latest_correction = -2;
-	}
-    }
-    else
-    {
-        ec->nonupdate_dwell = 0;
-        ec->latest_correction = -1;
-    }
-    /* Calculate short term power levels using very simple single pole IIRs */
-    /* TODO: Is the nasty modulus approach the fastest, or would a real
-       tx*tx power calculation actually be faster? */
-    ec->tx_power += ((abs(tx) - ec->tx_power) >> 5);
-    ec->rx_power += ((abs(rx) - ec->rx_power) >> 5);
-    ec->clean_rx_power += ((abs(clean_rx) - ec->clean_rx_power) >> 5);
-
-#if defined(XYZZY)
-    if (ec->use_suppressor)
-    {
-    	ec->supp_test1 += (ec->tx_history[ec->curr_pos] - ec->tx_history[(ec->curr_pos - 7) & ec->tap_mask]);
-    	ec->supp_test2 += (ec->tx_history[(ec->curr_pos - 24) & ec->tap_mask] - ec->tx_history[(ec->curr_pos - 31) & ec->tap_mask]);
-    	if (ec->supp_test1 > 42  &&  ec->supp_test2 > 42)
-    	    supp_change = 25;
-    	else
-    	    supp_change = 50;
-    	supp = supp_change + k1*ec->supp1 + k2*ec->supp2;
-	ec->supp2 = ec->supp1;
-	ec->supp1 = supp;
-	clean_rx *= (1 - supp);
-    }
-#endif
-
-    if (ec->use_nlp  &&  ec->rx_power < 32)
-    	clean_rx = 0;
-
-    /* Roll around the rolling buffer */
-    ec->curr_pos = (ec->curr_pos + 1) & ec->tap_mask;
-
-    return clean_rx;
 }
 /*- End of function --------------------------------------------------------*/
-#endif
 
-static inline int echo_can_traintap(struct echo_can_state *ec, int pos, short val)
+static int echo_can_traintap(struct echo_can_state *ec, int pos, short val)
 {
 	/* Reset hang counter to avoid adjustments after
 	   initial forced training */
@@ -447,5 +306,38 @@ static inline int echo_can_traintap(struct echo_can_state *ec, int pos, short va
 	return 0;
 }
 
-/*- End of file ------------------------------------------------------------*/
-#endif
+static const struct dahdi_echocan me = {
+	.name = "SEC2",
+	.owner = THIS_MODULE,
+	.echo_can_create = echo_can_create,
+	.echo_can_free = echo_can_free,
+	.echo_can_array_update = echo_can_update,
+	.echo_can_traintap = echo_can_traintap,
+};
+
+static int __init mod_init(void)
+{
+	if (dahdi_register_echocan(&me)) {
+		module_printk(KERN_ERR, "could not register with DAHDI core\n");
+
+		return -EPERM;
+	}
+
+	module_printk(KERN_NOTICE, "Registered echo canceler '%s'\n", me.name);
+
+	return 0;
+}
+
+static void __exit mod_exit(void)
+{
+	dahdi_unregister_echocan(&me);
+}
+
+module_param(debug, int, S_IRUGO | S_IWUSR);
+
+MODULE_DESCRIPTION("DAHDI 'SEC2' Echo Canceler");
+MODULE_AUTHOR("Steve Underwood <steveu@coppice.org>");
+MODULE_LICENSE("GPL");
+
+module_init(mod_init);
+module_exit(mod_exit);

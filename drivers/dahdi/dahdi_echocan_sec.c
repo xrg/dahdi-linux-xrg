@@ -37,22 +37,20 @@
    Improve double talk detector (iterative!)
 */
 
-#ifndef _DAHDI_SEC_H
-#define _DAHDI_SEC_H
-
-#ifdef __KERNEL__
 #include <linux/kernel.h>
 #include <linux/slab.h>
-#define MALLOC(a) kmalloc((a), GFP_KERNEL)
-#define FREE(a) kfree(a)
-#else
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <string.h>
-#define MALLOC(a) malloc(a)
-#define FREE(a) free(a)
-#endif
+#include <linux/errno.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/ctype.h>
+#include <linux/moduleparam.h>
+
+#include <dahdi/kernel.h>
+
+static int debug;
+
+#define module_printk(level, fmt, args...) printk(level "%s: " fmt, THIS_MODULE->name, ## args)
+#define debug_printk(level, fmt, args...) if (debug >= level) printk("%s (%s): " fmt, THIS_MODULE->name, __FUNCTION__, ## args)
 
 #include "arith.h"
 
@@ -100,23 +98,6 @@ struct echo_can_state
 				   was skipped, for test purposes */
 };
 
-static void echo_can_init(void)
-{
-	printk("DAHDI Echo Canceller: STEVE%s\n", DAHDI_ECHO_AGGRESSIVE);
-}
-
-static void echo_can_identify(char *buf, size_t len)
-{
-	dahdi_copy_string(buf, "STEVE", len);
-}
-
-static void echo_can_shutdown(void)
-{
-}
-
-static void echo_can_free(struct echo_can_state *ec);
-static int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int16_t rx);
-
 /* Original parameters : 
 #define MIN_TX_POWER_FOR_ADAPTION   256
 #define MIN_RX_POWER_FOR_ADAPTION   128
@@ -142,7 +123,7 @@ static int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocan
 	
 	size = sizeof(**ec) + ecp->tap_length * sizeof(int32_t) + ecp->tap_length * 3 * sizeof(int16_t);
 	
-	if (!(*ec = MALLOC(size)))
+	if (!(*ec = kmalloc(size, GFP_KERNEL)))
 		return -ENOMEM;
 	
 	memset(*ec, 0, size);
@@ -165,13 +146,13 @@ static int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocan
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline void echo_can_free(struct echo_can_state *ec)
+static void echo_can_free(struct echo_can_state *ec)
 {
-	FREE(ec);
+	kfree(ec);
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int16_t rx)
+static inline int16_t sample_update(struct echo_can_state *ec, int16_t tx, int16_t rx)
 {
     int32_t echo_value;
     int clean_rx;
@@ -292,7 +273,19 @@ static inline int16_t echo_can_update(struct echo_can_state *ec, int16_t tx, int
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int echo_can_traintap(struct echo_can_state *ec, int pos, short val)
+static void echo_can_update(struct echo_can_state *ec, short *iref, short *isig)
+{
+	unsigned int x;
+	short result;
+
+	for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
+		result = sample_update(ec, *iref, *isig);
+		*isig++ = result;
+	}
+}
+/*- End of function --------------------------------------------------------*/
+
+static int echo_can_traintap(struct echo_can_state *ec, int pos, short val)
 {
 	/* Reset hang counter to avoid adjustments after
 	   initial forced training */
@@ -305,6 +298,40 @@ static inline int echo_can_traintap(struct echo_can_state *ec, int pos, short va
 		return 1;
 	return 0;
 }
+/*- End of function --------------------------------------------------------*/
 
-/*- End of file ------------------------------------------------------------*/
-#endif
+static const struct dahdi_echocan me = {
+	.name = "SEC",
+	.owner = THIS_MODULE,
+	.echo_can_create = echo_can_create,
+	.echo_can_free = echo_can_free,
+	.echo_can_array_update = echo_can_update,
+	.echo_can_traintap = echo_can_traintap,
+};
+
+static int __init mod_init(void)
+{
+	if (dahdi_register_echocan(&me)) {
+		module_printk(KERN_ERR, "could not register with DAHDI core\n");
+
+		return -EPERM;
+	}
+
+	module_printk(KERN_NOTICE, "Registered echo canceler '%s'\n", me.name);
+
+	return 0;
+}
+
+static void __exit mod_exit(void)
+{
+	dahdi_unregister_echocan(&me);
+}
+
+module_param(debug, int, S_IRUGO | S_IWUSR);
+
+MODULE_DESCRIPTION("DAHDI 'SEC' Echo Canceler");
+MODULE_AUTHOR("Steve Underwood <steveu@coppice.org>");
+MODULE_LICENSE("GPL");
+
+module_init(mod_init);
+module_exit(mod_exit);

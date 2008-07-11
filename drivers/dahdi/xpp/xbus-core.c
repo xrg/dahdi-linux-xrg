@@ -1669,7 +1669,7 @@ err:
 }
 
 
-void __exit xbus_core_shutdown(void)
+void xbus_core_shutdown(void)
 {
 	int		i;
 

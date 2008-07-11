@@ -1,13 +1,12 @@
 EXTRA_CFLAGS	=	$(XPP_LOCAL_CFLAGS)	\
 			-DDEBUG			\
 			-DPOLL_DIGITAL_INPUTS	\
-			-DWITH_ECHO_SUPPRESSION	\
 			-DDEBUG_PCMTX		\
 			-DPROTOCOL_DEBUG	\
 			-g
 			#
 
-WITH_BRISTUFF	:= $(shell grep '^[[:space:]]*\#[[:space:]]*define[[:space:]]\+CONFIG_ZAPATA_BRI_DCHANS\>' $(src)/../dahdi_config.h)
+WITH_BRISTUFF	:= $(shell grep '^[[:space:]]*\#[[:space:]]*define[[:space:]]\+CONFIG_DAHDI_BRI_DCHANS\>' $(src)/../dahdi_config.h)
 
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_XPP)		+= xpp.o
 obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_XPD_FXS)		+= xpd_fxs.o

@@ -282,7 +282,7 @@ struct t4_span {
 #ifdef ENABLE_WORKQUEUES
 	struct work_struct swork;
 #endif	
-	struct dahdi_chan chans[0];		/* Individual channels */
+	struct dahdi_chan *chans[32];		/* Individual channels */
 };
 
 struct t4 {
@@ -412,14 +412,6 @@ static struct t4 *cards[MAX_T4_CARDS];
 static inline unsigned int __t4_pci_in(struct t4 *wc, const unsigned int addr)
 {
 	unsigned int res = readl(&wc->membase[addr]);
-	if (pedanticpci) {
-		/* Even though we do not support fast back-to-back
-		 * transactions, some host bridges appear to generate them.
-		 * This delay prevents this. 
-		 */
-		if (!test_bit(T4_LOADING_FW, &wc->checkflag))
-			udelay(3);
-	}
 	return res;
 }
 
@@ -428,12 +420,6 @@ static inline void __t4_pci_out(struct t4 *wc, const unsigned int addr, const un
 	unsigned int tmp;
 	writel(value, &wc->membase[addr]);
 	if (pedanticpci) {
-		/* Even though we do not support fast back-to-back
-		 * transactions, some host bridges appear to generate them.
-		 * This delay prevents this. 
-		 */
-		if (!test_bit(T4_LOADING_FW, &wc->checkflag))
-			udelay(3);
 		tmp = __t4_pci_in(wc, WC_VERSION);
 		if ((tmp & 0xffff0000) != 0xc01a0000)
 			printk("TE4XXP: Version Synchronization Error!\n");
@@ -757,7 +743,7 @@ static void t4_check_vpm450(struct t4 *wc)
 					   guessed it.  */
 					if (test_bit(channel, &wc->tspans[span]->dtmfmutemask)) {
 						unsigned long flags;
-						struct dahdi_chan *chan = &wc->tspans[span]->span.chans[channel];
+						struct dahdi_chan *chan = wc->tspans[span]->span.chans[channel];
 						int y;
 						spin_lock_irqsave(&chan->lock, flags);
 						for (y=0;y<chan->numbufs;y++) {
@@ -767,10 +753,10 @@ static void t4_check_vpm450(struct t4 *wc)
 						spin_unlock_irqrestore(&chan->lock, flags);
 					}
 					set_bit(channel, &wc->tspans[span]->dtmfactive);
-					dahdi_qevent_lock(&wc->tspans[span]->span.chans[channel], (DAHDI_EVENT_DTMFDOWN | tone));
+					dahdi_qevent_lock(wc->tspans[span]->span.chans[channel], (DAHDI_EVENT_DTMFDOWN | tone));
 				} else {
 					clear_bit(channel, &wc->tspans[span]->dtmfactive);
-					dahdi_qevent_lock(&wc->tspans[span]->span.chans[channel], (DAHDI_EVENT_DTMFUP | tone));
+					dahdi_qevent_lock(wc->tspans[span]->span.chans[channel], (DAHDI_EVENT_DTMFUP | tone));
 				}
 			}
 		}
@@ -814,21 +800,21 @@ static void t4_check_vpm400(struct t4 *wc, unsigned int newio)
 				digit = vpm_digits[regbyte];
 				if (!(wc->tspans[0]->spanflags & FLAG_VPM2GEN)) {
 					energy = t4_vpm_in(wc, x, 0x58 + channel);
-					energy = DAHDI_XLAW(energy, ts->chans);
+					energy = DAHDI_XLAW(energy, ts->chans[0]);
 					ts->dtmfenergy[base] = energy;
 				}
 				set_bit(base, &ts->dtmfactive);
 				if (ts->dtmfdigit[base]) {
 					if (ts->dtmfmask & (1 << base))
-						dahdi_qevent_lock(&ts->span.chans[base], (DAHDI_EVENT_DTMFUP | ts->dtmfdigit[base]));
+						dahdi_qevent_lock(ts->span.chans[base], (DAHDI_EVENT_DTMFUP | ts->dtmfdigit[base]));
 				}
 				ts->dtmfdigit[base] = digit;
 				if (test_bit(base, &ts->dtmfmask))
-					dahdi_qevent_lock(&ts->span.chans[base], (DAHDI_EVENT_DTMFDOWN | digit));
+					dahdi_qevent_lock(ts->span.chans[base], (DAHDI_EVENT_DTMFDOWN | digit));
 				if (test_bit(base, &ts->dtmfmutemask)) {
 					/* Mute active receive buffer*/
 					unsigned long flags;
-					struct dahdi_chan *chan = &ts->span.chans[base];
+					struct dahdi_chan *chan = ts->span.chans[base];
 					int y;
 					spin_lock_irqsave(&chan->lock, flags);
 					for (y=0;y<chan->numbufs;y++) {
@@ -864,7 +850,7 @@ static void t4_check_vpm400(struct t4 *wc, unsigned int newio)
 				clear_bit(base, &ts->dtmfactive);
 				if (ts->dtmfdigit[base]) {
 					if (test_bit(base, &ts->dtmfmask))
-						dahdi_qevent_lock(&ts->span.chans[base], (DAHDI_EVENT_DTMFUP | ts->dtmfdigit[base]));
+						dahdi_qevent_lock(ts->span.chans[base], (DAHDI_EVENT_DTMFUP | ts->dtmfdigit[base]));
 				}
 				digit = ts->dtmfdigit[base];
 				ts->dtmfdigit[base] = 0;
@@ -996,7 +982,7 @@ static void __set_clear(struct t4 *wc, int span)
 	if ((ts->spantype == TYPE_T1) || (ts->spantype == TYPE_J1)) {
 		for (i=0;i<24;i++) {
 			j = (i/8);
-			if (ts->span.chans[i].flags & DAHDI_FLAG_CLEAR) {
+			if (ts->span.chans[i]->flags & DAHDI_FLAG_CLEAR) {
 				val |= 1 << (7 - (i % 8));
 				ts->notclear &= ~(1 << i);
 			} else
@@ -1011,7 +997,7 @@ static void __set_clear(struct t4 *wc, int span)
 		}
 	} else {
 		for (i=0;i<31;i++) {
-			if (ts->span.chans[i].flags & DAHDI_FLAG_CLEAR)
+			if (ts->span.chans[i]->flags & DAHDI_FLAG_CLEAR)
 				ts->notclear &= ~(1 << i);
 			else 
 				ts->notclear |= (1 << i);
@@ -1617,7 +1603,7 @@ static void init_spans(struct t4 *wc)
 		ts->readchunk = (void *)(wc->readchunk + x * 32 * 2);
 		init_waitqueue_head(&ts->span.maintq);
 		for (y=0;y<wc->tspans[x]->span.channels;y++) {
-			struct dahdi_chan *mychans = ts->chans + y;
+			struct dahdi_chan *mychans = ts->chans[y];
 			sprintf(mychans->name, "TE%d/%d/%d/%d", wc->numspans, wc->num, x + 1, y + 1);
 			mychans->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXSKS | DAHDI_SIG_HARDHDLC | DAHDI_SIG_MTP2 |
 									 DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_FXOKS | DAHDI_SIG_CAS | DAHDI_SIG_EM_E1 | DAHDI_SIG_DACS_RBS;
@@ -2025,9 +2011,9 @@ static int t4_startup(struct dahdi_span *span)
 	for(i = 0; i < span->channels; i++)
 	{
 		memset(ts->ec_chunk1[i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 		memset(ts->ec_chunk2[i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 	}
 #endif
 	/* Force re-evaluation fo timing source */
@@ -2160,11 +2146,11 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 			/* All T1/E1 channels */
 			tmp = readchunk[z+1+offset];
 			if (wc->numspans == 4) {
-				wc->tspans[3]->span.chans[z].readchunk[x] = tmp & 0xff;
-				wc->tspans[2]->span.chans[z].readchunk[x] = (tmp & 0xff00) >> 8;
+				wc->tspans[3]->span.chans[z]->readchunk[x] = tmp & 0xff;
+				wc->tspans[2]->span.chans[z]->readchunk[x] = (tmp & 0xff00) >> 8;
 			}
-			wc->tspans[1]->span.chans[z].readchunk[x] = (tmp & 0xff0000) >> 16;
-			wc->tspans[0]->span.chans[z].readchunk[x] = tmp >> 24;
+			wc->tspans[1]->span.chans[z]->readchunk[x] = (tmp & 0xff0000) >> 16;
+			wc->tspans[0]->span.chans[z]->readchunk[x] = tmp >> 24;
 		}
 		if (wc->t1e1) {
 			if (wc->e1recover > 0)
@@ -2181,14 +2167,14 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 				tmp = readchunk[z+1];
 				if (wc->numspans == 4) {
 					if (wc->tspans[3]->span.channels > 24)
-						wc->tspans[3]->span.chans[z].readchunk[x] = tmp & 0xff;
+						wc->tspans[3]->span.chans[z]->readchunk[x] = tmp & 0xff;
 					if (wc->tspans[2]->span.channels > 24)
-						wc->tspans[2]->span.chans[z].readchunk[x] = (tmp & 0xff00) >> 8;
+						wc->tspans[2]->span.chans[z]->readchunk[x] = (tmp & 0xff00) >> 8;
 				}
 				if (wc->tspans[1]->span.channels > 24)
-					wc->tspans[1]->span.chans[z].readchunk[x] = (tmp & 0xff0000) >> 16;
+					wc->tspans[1]->span.chans[z]->readchunk[x] = (tmp & 0xff0000) >> 16;
 				if (wc->tspans[0]->span.channels > 24)
-					wc->tspans[0]->span.chans[z].readchunk[x] = tmp >> 24;
+					wc->tspans[0]->span.chans[z]->readchunk[x] = tmp >> 24;
 			}
 		}
 		/* Advance pointer by 4 TDM frame lengths */
@@ -2198,13 +2184,13 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 		if (wc->tspans[x]->span.flags & DAHDI_FLAG_RUNNING) {
 			for (y=0;y<wc->tspans[x]->span.channels;y++) {
 				/* Echo cancel double buffered data */
-				dahdi_ec_chunk(&wc->tspans[x]->span.chans[y], 
-				    wc->tspans[x]->span.chans[y].readchunk, 
+				dahdi_ec_chunk(wc->tspans[x]->span.chans[y], 
+				    wc->tspans[x]->span.chans[y]->readchunk, 
 					wc->tspans[x]->ec_chunk2[y]);
 				memcpy(wc->tspans[x]->ec_chunk2[y],wc->tspans[x]->ec_chunk1[y],
 					DAHDI_CHUNKSIZE);
 				memcpy(wc->tspans[x]->ec_chunk1[y],
-					wc->tspans[x]->span.chans[y].writechunk,
+					wc->tspans[x]->span.chans[y]->writechunk,
 						DAHDI_CHUNKSIZE);
 			}
 			dahdi_receive(&wc->tspans[x]->span);
@@ -2227,7 +2213,7 @@ static inline void __receive_span(struct t4_span *ts)
 		for (y=0;y<ts->span.channels;y++) {
 			/* Mute any DTMFs which are supposed to be muted */
 			if (test_bit(y, &merged)) {
-				memset(ts->span.chans[y].readchunk, DAHDI_XLAW(0, (ts->span.chans + y)), DAHDI_CHUNKSIZE);
+				memset(ts->span.chans[y]->readchunk, DAHDI_XLAW(0, ts->span.chans[y]), DAHDI_CHUNKSIZE);
 			}
 		}
 	}
@@ -2310,10 +2296,10 @@ static void t4_transmitprep(struct t4 *wc, int irq)
 		/* Once per chunk */
 		for (z=0;z<24;z++) {
 			/* All T1/E1 channels */
-			tmp = (wc->tspans[3]->span.chans[z].writechunk[x]) | 
-				  (wc->tspans[2]->span.chans[z].writechunk[x] << 8) |
-				  (wc->tspans[1]->span.chans[z].writechunk[x] << 16) |
-				  (wc->tspans[0]->span.chans[z].writechunk[x] << 24);
+			tmp = (wc->tspans[3]->span.chans[z]->writechunk[x]) | 
+				  (wc->tspans[2]->span.chans[z]->writechunk[x] << 8) |
+				  (wc->tspans[1]->span.chans[z]->writechunk[x] << 16) |
+				  (wc->tspans[0]->span.chans[z]->writechunk[x] << 24);
 			writechunk[z+offset] = tmp;
 		}
 		if (wc->t1e1) {
@@ -2322,14 +2308,14 @@ static void t4_transmitprep(struct t4 *wc, int irq)
 				tmp = 0;
 				if (wc->numspans == 4) {
 					if (wc->tspans[3]->span.channels > 24)
-						tmp |= wc->tspans[3]->span.chans[z].writechunk[x];
+						tmp |= wc->tspans[3]->span.chans[z]->writechunk[x];
 					if (wc->tspans[2]->span.channels > 24)
-						tmp |= (wc->tspans[2]->span.chans[z].writechunk[x] << 8);
+						tmp |= (wc->tspans[2]->span.chans[z]->writechunk[x] << 8);
 				}
 				if (wc->tspans[1]->span.channels > 24)
-					tmp |= (wc->tspans[1]->span.chans[z].writechunk[x] << 16);
+					tmp |= (wc->tspans[1]->span.chans[z]->writechunk[x] << 16);
 				if (wc->tspans[0]->span.channels > 24)
-					tmp |= (wc->tspans[0]->span.chans[z].writechunk[x] << 24);
+					tmp |= (wc->tspans[0]->span.chans[z]->writechunk[x] << 24);
 				writechunk[z] = tmp;
 			}
 		}
@@ -2355,14 +2341,14 @@ static void t4_check_sigbits(struct t4 *wc, int span)
 			a = t4_framer_in(wc, span, 0x71 + i);
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(ts->span.chans[i+16].sig & DAHDI_SIG_CLEAR)) {
-				if (ts->span.chans[i+16].rxsig != rxs)
-					dahdi_rbsbits(&ts->span.chans[i+16], rxs);
+			if (!(ts->span.chans[i+16]->sig & DAHDI_SIG_CLEAR)) {
+				if (ts->span.chans[i+16]->rxsig != rxs)
+					dahdi_rbsbits(ts->span.chans[i+16], rxs);
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(ts->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-				if (ts->span.chans[i].rxsig != rxs)
-					dahdi_rbsbits(&ts->span.chans[i], rxs);
+			if (!(ts->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+				if (ts->span.chans[i]->rxsig != rxs)
+					dahdi_rbsbits(ts->span.chans[i], rxs);
 			}
 		}
 	} else if (ts->span.lineconfig & DAHDI_CONFIG_D4) {
@@ -2370,24 +2356,24 @@ static void t4_check_sigbits(struct t4 *wc, int span)
 			a = t4_framer_in(wc, span, 0x70 + (i>>2));
 			/* Get high channel in low bits */
 			rxs = (a & 0x3) << 2;
-			if (!(ts->span.chans[i+3].sig & DAHDI_SIG_CLEAR)) {
-				if (ts->span.chans[i+3].rxsig != rxs)
-					dahdi_rbsbits(&ts->span.chans[i+3], rxs);
+			if (!(ts->span.chans[i+3]->sig & DAHDI_SIG_CLEAR)) {
+				if (ts->span.chans[i+3]->rxsig != rxs)
+					dahdi_rbsbits(ts->span.chans[i+3], rxs);
 			}
 			rxs = (a & 0xc);
-			if (!(ts->span.chans[i+2].sig & DAHDI_SIG_CLEAR)) {
-				if (ts->span.chans[i+2].rxsig != rxs)
-					dahdi_rbsbits(&ts->span.chans[i+2], rxs);
+			if (!(ts->span.chans[i+2]->sig & DAHDI_SIG_CLEAR)) {
+				if (ts->span.chans[i+2]->rxsig != rxs)
+					dahdi_rbsbits(ts->span.chans[i+2], rxs);
 			}
 			rxs = (a >> 2) & 0xc;
-			if (!(ts->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
-				if (ts->span.chans[i+1].rxsig != rxs)
-					dahdi_rbsbits(&ts->span.chans[i+1], rxs);
+			if (!(ts->span.chans[i+1]->sig & DAHDI_SIG_CLEAR)) {
+				if (ts->span.chans[i+1]->rxsig != rxs)
+					dahdi_rbsbits(ts->span.chans[i+1], rxs);
 			}
 			rxs = (a >> 4) & 0xc;
-			if (!(ts->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
-				if (ts->span.chans[i].rxsig != rxs)
-					dahdi_rbsbits(&ts->span.chans[i], rxs);
+			if (!(ts->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
+				if (ts->span.chans[i]->rxsig != rxs)
+					dahdi_rbsbits(ts->span.chans[i], rxs);
 			}
 		}
 	} else {
@@ -2395,17 +2381,17 @@ static void t4_check_sigbits(struct t4 *wc, int span)
 			a = t4_framer_in(wc, span, 0x70 + (i>>1));
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(ts->span.chans[i+1].sig & DAHDI_SIG_CLEAR)) {
+			if (!(ts->span.chans[i+1]->sig & DAHDI_SIG_CLEAR)) {
 				/* XXX Not really reset on every trans! XXX */
-				if (ts->span.chans[i+1].rxsig != rxs) {
-					dahdi_rbsbits(&ts->span.chans[i+1], rxs);
+				if (ts->span.chans[i+1]->rxsig != rxs) {
+					dahdi_rbsbits(ts->span.chans[i+1], rxs);
 				}
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(ts->span.chans[i].sig & DAHDI_SIG_CLEAR)) {
+			if (!(ts->span.chans[i]->sig & DAHDI_SIG_CLEAR)) {
 				/* XXX Not really reset on every trans! XXX */
-				if (ts->span.chans[i].rxsig != rxs) {
-					dahdi_rbsbits(&ts->span.chans[i], rxs);
+				if (ts->span.chans[i]->rxsig != rxs) {
+					dahdi_rbsbits(ts->span.chans[i], rxs);
 				}
 			}
 		}
@@ -2479,8 +2465,8 @@ static void t4_check_alarms(struct t4 *wc, int span)
 
 	if (ts->span.lineconfig & DAHDI_CONFIG_NOTOPEN) {
 		for (x=0,j=0;x < ts->span.channels;x++)
-			if ((ts->span.chans[x].flags & DAHDI_FLAG_OPEN) ||
-			    (ts->span.chans[x].flags & DAHDI_FLAG_NETDEV))
+			if ((ts->span.chans[x]->flags & DAHDI_FLAG_OPEN) ||
+			    (ts->span.chans[x]->flags & DAHDI_FLAG_NETDEV))
 				j++;
 		if (!j)
 			alarms |= DAHDI_ALARM_NOTOPEN;
@@ -3171,15 +3157,12 @@ static void t4_vpm450_init(struct t4 *wc)
 		return;
 	}
 
-	set_bit(T4_LOADING_FW, &wc->checkflag);
 	if (!(wc->vpm450m = init_vpm450m(wc, laws, wc->numspans, firmware))) {
 		printk("VPM450: Failed to initialize\n");
 		if (firmware != &embedded_firmware)
 			release_firmware(firmware);
-		clear_bit(T4_LOADING_FW, &wc->checkflag);
 		return;
 	}
-	clear_bit(T4_LOADING_FW, &wc->checkflag);
 
 	if (firmware != &embedded_firmware)
 		release_firmware(firmware);
@@ -3497,197 +3480,220 @@ static int __devinit t4_launch(struct t4 *wc)
 	return 0;
 }
 
+static void free_wc(struct t4 *wc)
+{
+	unsigned int x, y;
+
+	for (x = 0; x < sizeof(wc->tspans)/sizeof(wc->tspans[0]); x++) {
+		if (!wc->tspans[x]) {
+			continue;
+		}
+
+		for (y = 0; y < sizeof(wc->tspans[x]->chans)/sizeof(wc->tspans[x]->chans[0]); y++) {
+			if (wc->tspans[x]->chans[y]) {
+				kfree(wc->tspans[x]->chans[y]);
+			}
+		}
+		kfree(wc->tspans[x]);
+	}
+	kfree(wc);
+}
+
 static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
-	int res;
 	struct t4 *wc;
 	struct devtype *dt;
-	int x,f;
+	unsigned int x, f;
 	int basesize;
 #if 0
 	int y;
 	unsigned int *canary;
 #endif
 	
-	
 	if (pci_enable_device(pdev)) {
-		res = -EIO;
-	} else {
-		wc = kmalloc(sizeof(struct t4), GFP_KERNEL);
-		if (wc) {
-			memset(wc, 0x0, sizeof(struct t4));
-			spin_lock_init(&wc->reglock);
-			dt = (struct devtype *)(ent->driver_data);
-			if (dt->flags & FLAG_2NDGEN)
-				basesize = DAHDI_MAX_CHUNKSIZE * 32 * 4;
-			else
-				basesize = DAHDI_MAX_CHUNKSIZE * 32 * 2 * 4;
-
-			if (dt->flags & FLAG_2PORT) 
-				wc->numspans = 2;
-			else
-				wc->numspans = 4;
-
-			wc->variety = dt->desc;
-
-			wc->memaddr = pci_resource_start(pdev, 0);
-			wc->memlen = pci_resource_len(pdev, 0);
-			wc->membase = ioremap(wc->memaddr, wc->memlen);
-			/* This rids of the Double missed interrupt message after loading */
-			wc->last0 = 1;
-#if 0
-			if (!request_mem_region(wc->memaddr, wc->memlen, wc->variety))
-				printk("wct4: Unable to request memory region :(, using anyway...\n");
-#endif
-			if (pci_request_regions(pdev, wc->variety))
-				printk("wct%dxxp: Unable to request regions\n", wc->numspans);
-
-			printk("Found TE%dXXP at base address %08lx, remapped to %p\n", wc->numspans, wc->memaddr, wc->membase);
-
-			wc->dev = pdev;
-
-			wc->writechunk = 
-				/* 32 channels, Double-buffer, Read/Write, 4 spans */
-				(unsigned int *)pci_alloc_consistent(pdev, basesize * 2, &wc->writedma);
-			if (!wc->writechunk) {
-				printk("wct%dxxp: Unable to allocate DMA-able memory\n", wc->numspans);
-				return -ENOMEM;
-			}
-
-			/* Read is after the whole write piece (in words) */
-			wc->readchunk = wc->writechunk + basesize / 4;
-
-			/* Same thing but in bytes...  */
-			wc->readdma = wc->writedma + basesize;
-
-			/* Initialize Write/Buffers to all blank data */
-			memset((void *)wc->writechunk,0x00, basesize);
-			memset((void *)wc->readchunk,0xff, basesize);
-#if 0
-			memset((void *)wc->readchunk,0xff,DAHDI_MAX_CHUNKSIZE * 2 * 32 * 4);
-			/* Initialize canary */
-			canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 * 4 - 4);
-			*canary = (CANARY << 16) | (0xffff);
-#endif			
-
-			/* Enable bus mastering */
-			pci_set_master(pdev);
-
-			/* Keep track of which device we are */
-			pci_set_drvdata(pdev, wc);
-
-			/* Initialize hardware */
-			t4_hardware_init_1(wc, dt->flags);
-
-			for(x = 0; x < MAX_T4_CARDS; x++) {
-				if (!cards[x]) break;
-			}
-
-			if (x >= MAX_T4_CARDS) {
-				printk("No cards[] slot available!!\n");
-				return -ENOMEM;
-			}
-
-			wc->num = x;
-			cards[x] = wc;
-			
-
-#ifdef ENABLE_WORKQUEUES
-			if (dt->flags & FLAG_2NDGEN) {
-				char tmp[20];
-				sprintf(tmp, "te%dxxp[%d]", wc->numspans, wc->num);
-				wc->workq = create_workqueue(tmp);
-			}
-#endif			
-
-			/* Allocate pieces we need here */
-			for (x=0;x<4;x++) {
-				if (wc->t1e1 & (1 << x)) {
-					wc->tspans[x] = kmalloc(sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 31, GFP_KERNEL);
-					if (wc->tspans[x]) {
-						memset(wc->tspans[x], 0, sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 31);
-						wc->tspans[x]->spantype = TYPE_E1;
-					}
-				} else {
-					wc->tspans[x] = kmalloc(sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 24, GFP_KERNEL);
-					if (wc->tspans[x]) {
-						memset(wc->tspans[x], 0, sizeof(struct t4_span) + sizeof(struct dahdi_chan) * 24);
-						if (j1mode)
-							wc->tspans[x]->spantype = TYPE_J1;
-						else
-							wc->tspans[x]->spantype = TYPE_T1;
-					}
-				}
-				if (!wc->tspans[x])
-					return -ENOMEM;
-#ifdef ENABLE_WORKQUEUES
-				INIT_WORK(&wc->tspans[x]->swork, workq_handlespan, wc->tspans[x]);
-#endif				
-				wc->tspans[x]->spanflags |= dt->flags;
-			}
-
-
-			/* Continue hardware intiialization */
-			t4_hardware_init_2(wc);
-
-
-#ifdef SUPPORT_GEN1
-			if (request_irq(pdev->irq, (dt->flags & FLAG_2NDGEN) ? t4_interrupt_gen2 :t4_interrupt, DAHDI_IRQ_SHARED_DISABLED, (wc->numspans == 2) ? "wct2xxp" : "wct4xxp", wc)) 
-#else
-			if (!(wc->tspans[0]->spanflags & FLAG_2NDGEN)) {
-				printk("This driver does not support 1st gen modules\n");
-				kfree(wc);
-				return -ENODEV;
-			}	
-			if (request_irq(pdev->irq, t4_interrupt_gen2, DAHDI_IRQ_SHARED_DISABLED, "t4xxp", wc)) 
-#endif
-			{
-				printk("t4xxp: Unable to request IRQ %d\n", pdev->irq);
-				kfree(wc);
-				return -EIO;
-			}
-
-			init_spans(wc);
-
-			/* Launch cards as appropriate */
-			for (;;) {
-				/* Find a card to activate */
-				f = 0;
-				for (x=0;cards[x];x++) {
-					if (cards[x]->order <= highestorder) {
-						t4_launch(cards[x]);
-						if (cards[x]->order == highestorder)
-							f = 1;
-					}
-				}
-				/* If we found at least one, increment the highest order and search again, otherwise stop */
-				if (f) 
-					highestorder++;
-				else
-					break;
-			}
-
-			printk("Found a Wildcard: %s\n", wc->variety);
-			wc->gpio = 0x00000000;
-			t4_pci_out(wc, WC_GPIO, wc->gpio);
-			t4_gpio_setdir(wc, (1 << 17), (1 << 17));
-			t4_gpio_setdir(wc, (0xff), (0xff));
-
-#if 0
-			for (x=0;x<0x10000;x++) {
-				__t4_raw_oct_out(wc, 0x0004, x);
-				__t4_raw_oct_out(wc, 0x000a, x ^ 0xffff);
-				if (__t4_raw_oct_in(wc, 0x0004) != x) 
-					printk("Register 4 failed %04x\n", x);
-				if (__t4_raw_oct_in(wc, 0x000a) != (x ^ 0xffff))
-					printk("Register 10 failed %04x\n", x);
-			}
-#endif
-			res = 0;
-		} else
-			res = -ENOMEM;
+		return -EIO;
 	}
-	return res;
+
+	if (!(wc = kmalloc(sizeof(*wc), GFP_KERNEL))) {
+		return -ENOMEM;
+	}
+
+	memset(wc, 0x0, sizeof(*wc));
+	spin_lock_init(&wc->reglock);
+	dt = (struct devtype *) (ent->driver_data);
+	if (dt->flags & FLAG_2NDGEN)
+		basesize = DAHDI_MAX_CHUNKSIZE * 32 * 4;
+	else
+		basesize = DAHDI_MAX_CHUNKSIZE * 32 * 2 * 4;
+	
+	if (dt->flags & FLAG_2PORT) 
+		wc->numspans = 2;
+	else
+		wc->numspans = 4;
+	
+	wc->variety = dt->desc;
+	
+	wc->memaddr = pci_resource_start(pdev, 0);
+	wc->memlen = pci_resource_len(pdev, 0);
+	wc->membase = ioremap(wc->memaddr, wc->memlen);
+	/* This rids of the Double missed interrupt message after loading */
+	wc->last0 = 1;
+#if 0
+	if (!request_mem_region(wc->memaddr, wc->memlen, wc->variety))
+		printk("wct4: Unable to request memory region :(, using anyway...\n");
+#endif
+	if (pci_request_regions(pdev, wc->variety))
+		printk("wct%dxxp: Unable to request regions\n", wc->numspans);
+	
+	printk("Found TE%dXXP at base address %08lx, remapped to %p\n", wc->numspans, wc->memaddr, wc->membase);
+	
+	wc->dev = pdev;
+	
+	wc->writechunk = 
+		/* 32 channels, Double-buffer, Read/Write, 4 spans */
+		(unsigned int *)pci_alloc_consistent(pdev, basesize * 2, &wc->writedma);
+	if (!wc->writechunk) {
+		printk("wct%dxxp: Unable to allocate DMA-able memory\n", wc->numspans);
+		return -ENOMEM;
+	}
+	
+	/* Read is after the whole write piece (in words) */
+	wc->readchunk = wc->writechunk + basesize / 4;
+	
+	/* Same thing but in bytes...  */
+	wc->readdma = wc->writedma + basesize;
+	
+	/* Initialize Write/Buffers to all blank data */
+	memset((void *)wc->writechunk,0x00, basesize);
+	memset((void *)wc->readchunk,0xff, basesize);
+#if 0
+	memset((void *)wc->readchunk,0xff,DAHDI_MAX_CHUNKSIZE * 2 * 32 * 4);
+	/* Initialize canary */
+	canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 * 4 - 4);
+	*canary = (CANARY << 16) | (0xffff);
+#endif			
+	
+	/* Enable bus mastering */
+	pci_set_master(pdev);
+
+	/* Keep track of which device we are */
+	pci_set_drvdata(pdev, wc);
+	
+	/* Initialize hardware */
+	t4_hardware_init_1(wc, dt->flags);
+	
+	for(x = 0; x < MAX_T4_CARDS; x++) {
+		if (!cards[x])
+			break;
+	}
+	
+	if (x >= MAX_T4_CARDS) {
+		printk("No cards[] slot available!!\n");
+		kfree(wc);
+		return -ENOMEM;
+	}
+	
+	wc->num = x;
+	cards[x] = wc;
+	
+#ifdef ENABLE_WORKQUEUES
+	if (dt->flags & FLAG_2NDGEN) {
+		char tmp[20];
+
+		sprintf(tmp, "te%dxxp[%d]", wc->numspans, wc->num);
+		wc->workq = create_workqueue(tmp);
+	}
+#endif			
+
+	/* Allocate pieces we need here */
+	for (x = 0; x < wc->numspans; x++) {
+		if (!(wc->tspans[x] = kmalloc(sizeof(*wc->tspans[x]), GFP_KERNEL))) {
+			free_wc(wc);
+			return -ENOMEM;
+		}
+
+		memset(wc->tspans[x], 0, sizeof(*wc->tspans[x]));
+
+		if (wc->t1e1 & (1 << x)) {
+			wc->tspans[x]->spantype = TYPE_E1;
+		} else {
+			if (j1mode)
+				wc->tspans[x]->spantype = TYPE_J1;
+			else
+				wc->tspans[x]->spantype = TYPE_T1;
+		}
+
+		for (f = 0; f < (wc->tspans[x]->spantype == TYPE_E1 ? 31 : 24); f++) {
+			if (!(wc->tspans[x]->chans[f] = kmalloc(sizeof(*wc->tspans[x]->chans[f]), GFP_KERNEL))) {
+				free_wc(wc);
+				return -ENOMEM;
+			}
+			memset(wc->tspans[x]->chans[f], 0, sizeof(*wc->tspans[x]->chans[f]));
+		}
+
+#ifdef ENABLE_WORKQUEUES
+		INIT_WORK(&wc->tspans[x]->swork, workq_handlespan, wc->tspans[x]);
+#endif				
+		wc->tspans[x]->spanflags |= dt->flags;
+	}
+	
+	/* Continue hardware intiialization */
+	t4_hardware_init_2(wc);
+	
+#ifdef SUPPORT_GEN1
+	if (request_irq(pdev->irq, (dt->flags & FLAG_2NDGEN) ? t4_interrupt_gen2 : t4_interrupt, DAHDI_IRQ_SHARED_DISABLED, (wc->numspans == 2) ? "wct2xxp" : "wct4xxp", wc)) 
+#else
+		if (!(wc->tspans[0]->spanflags & FLAG_2NDGEN)) {
+			printk("This driver does not support 1st gen modules\n");
+			free_wc(wc);
+			return -ENODEV;
+		}	
+	if (request_irq(pdev->irq, t4_interrupt_gen2, DAHDI_IRQ_SHARED_DISABLED, "t4xxp", wc)) 
+#endif
+	{
+		printk("t4xxp: Unable to request IRQ %d\n", pdev->irq);
+		free_wc(wc);
+		return -EIO;
+	}
+	
+	init_spans(wc);
+	
+	/* Launch cards as appropriate */
+	for (;;) {
+		/* Find a card to activate */
+		f = 0;
+		for (x = 0; cards[x]; x++) {
+			if (cards[x]->order <= highestorder) {
+				t4_launch(cards[x]);
+				if (cards[x]->order == highestorder)
+					f = 1;
+			}
+		}
+		/* If we found at least one, increment the highest order and search again, otherwise stop */
+		if (f) 
+			highestorder++;
+		else
+			break;
+	}
+	
+	printk("Found a Wildcard: %s\n", wc->variety);
+	wc->gpio = 0x00000000;
+	t4_pci_out(wc, WC_GPIO, wc->gpio);
+	t4_gpio_setdir(wc, (1 << 17), (1 << 17));
+	t4_gpio_setdir(wc, (0xff), (0xff));
+	
+#if 0
+	for (x=0;x<0x10000;x++) {
+		__t4_raw_oct_out(wc, 0x0004, x);
+		__t4_raw_oct_out(wc, 0x000a, x ^ 0xffff);
+		if (__t4_raw_oct_in(wc, 0x0004) != x) 
+			printk("Register 4 failed %04x\n", x);
+		if (__t4_raw_oct_in(wc, 0x000a) != (x ^ 0xffff))
+			printk("Register 10 failed %04x\n", x);
+	}
+#endif
+
+	return 0;
 }
 
 static int t4_hardware_stop(struct t4 *wc)
@@ -3718,53 +3724,51 @@ static int t4_hardware_stop(struct t4 *wc)
 static void __devexit t4_remove_one(struct pci_dev *pdev)
 {
 	struct t4 *wc = pci_get_drvdata(pdev);
-	int x;
-	if (wc) {
-		/* Stop hardware */
-		t4_hardware_stop(wc);
 
-		/* Release vpm450m */
-		if (wc->vpm450m)
-			release_vpm450m(wc->vpm450m);
-		wc->vpm450m = NULL;
-		/* Unregister spans */
-		if (wc->tspans[0]->span.flags & DAHDI_FLAG_REGISTERED)
-			dahdi_unregister(&wc->tspans[0]->span);
-		if (wc->tspans[1]->span.flags & DAHDI_FLAG_REGISTERED)
-			dahdi_unregister(&wc->tspans[1]->span);
-		if (wc->numspans == 4) {
-			if (wc->tspans[2]->span.flags & DAHDI_FLAG_REGISTERED)
-				dahdi_unregister(&wc->tspans[2]->span);
-			if (wc->tspans[3]->span.flags & DAHDI_FLAG_REGISTERED)
-				dahdi_unregister(&wc->tspans[3]->span);
-		}
-#ifdef ENABLE_WORKQUEUES
-		if (wc->workq) {
-			flush_workqueue(wc->workq);
-			destroy_workqueue(wc->workq);
-		}
-#endif			
-
-		free_irq(pdev->irq, wc);
-
-		if (wc->membase)
-			iounmap((void *)wc->membase);
-
-		pci_release_regions(pdev);		
-
-		/* Immediately free resources */
-		pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32 * 4, (void *)wc->writechunk, wc->writedma);
-
-		order_index[wc->order]--;
-
-		cards[wc->num] = NULL;
-		pci_set_drvdata(pdev, NULL);
-		for (x=0;x<wc->numspans;x++) {
-			if (wc->tspans[x])
-				kfree(wc->tspans[x]);
-		}
-		kfree(wc);
+	if (!wc) {
+		return;
 	}
+
+	/* Stop hardware */
+	t4_hardware_stop(wc);
+	
+	/* Release vpm450m */
+	if (wc->vpm450m)
+		release_vpm450m(wc->vpm450m);
+	wc->vpm450m = NULL;
+	/* Unregister spans */
+	if (wc->tspans[0]->span.flags & DAHDI_FLAG_REGISTERED)
+		dahdi_unregister(&wc->tspans[0]->span);
+	if (wc->tspans[1]->span.flags & DAHDI_FLAG_REGISTERED)
+		dahdi_unregister(&wc->tspans[1]->span);
+	if (wc->numspans == 4) {
+		if (wc->tspans[2]->span.flags & DAHDI_FLAG_REGISTERED)
+			dahdi_unregister(&wc->tspans[2]->span);
+		if (wc->tspans[3]->span.flags & DAHDI_FLAG_REGISTERED)
+			dahdi_unregister(&wc->tspans[3]->span);
+	}
+#ifdef ENABLE_WORKQUEUES
+	if (wc->workq) {
+		flush_workqueue(wc->workq);
+		destroy_workqueue(wc->workq);
+	}
+#endif			
+	
+	free_irq(pdev->irq, wc);
+	
+	if (wc->membase)
+		iounmap((void *)wc->membase);
+	
+	pci_release_regions(pdev);		
+	
+	/* Immediately free resources */
+	pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32 * 4, (void *)wc->writechunk, wc->writedma);
+	
+	order_index[wc->order]--;
+	
+	cards[wc->num] = NULL;
+	pci_set_drvdata(pdev, NULL);
+	free_wc(wc);
 }
 
 
@@ -3816,12 +3820,9 @@ static void __exit t4_cleanup(void)
 
 MODULE_AUTHOR("Mark Spencer");
 MODULE_DESCRIPTION("Unified TE4XXP-TE2XXP PCI Driver");
-#if defined(MODULE_ALIAS)
 MODULE_ALIAS("wct2xxp");
-#endif
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
+
 module_param(pedanticpci, int, 0600);
 module_param(debug, int, 0600);
 module_param(loopback, int, 0600);

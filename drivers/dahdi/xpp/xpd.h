@@ -140,7 +140,7 @@ static struct xpd_counters {
 struct xpd {
 	char xpdname[XPD_NAMELEN];
 	struct dahdi_span	span;
-	struct dahdi_chan	*chans;
+	struct dahdi_chan	*chans[32];
 	int		channels;
 	xpd_type_t	type;
 	const char	*type_name;

@@ -441,7 +441,7 @@ static struct dahdi_chardev transcode_chardev = {
 	.minor = 250,
 };
 
-int zttranscode_init(void)
+int dahdi_transcode_init(void)
 {
 	int res;
 
@@ -460,7 +460,7 @@ int zttranscode_init(void)
 	return 0;
 }
 
-void zttranscode_cleanup(void)
+void dahdi_transcode_cleanup(void)
 {
 	dahdi_unregister_chardev(&transcode_chardev);
 
@@ -473,9 +473,7 @@ module_param(debug, int, S_IRUGO | S_IWUSR);
 
 MODULE_DESCRIPTION("DAHDI Transcoder Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
-module_init(zttranscode_init);
-module_exit(zttranscode_cleanup);
+module_init(dahdi_transcode_init);
+module_exit(dahdi_transcode_cleanup);

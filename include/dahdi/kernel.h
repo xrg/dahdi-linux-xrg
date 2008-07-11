@@ -1,7 +1,7 @@
 /*
  * DAHDI Telephony Interface
  *
- * Written by Mark Spencer <markster@linux-suppot.net>
+ * Written by Mark Spencer <markster@linux-support.net>
  * Based on previous works, designs, and architectures conceived and
  * written by Jim Dixon <jim@lambdatel.com>.
  *
@@ -252,13 +252,13 @@ int	sync;		/* what level of sync source we are */
 typedef struct dahdi_chanconfig
 {
 int	chan;		/* Channel we're applying this to (0 to use name) */
-char name[40];		/* Name of channel to use */
+char	name[40];	/* Name of channel to use */
 int	sigtype;	/* Signal type */
-int	deflaw;		/* Default law (DAHDI_LAW_DEFAULT, DAHDI_LAW_MULAW, or DAHDI_LAW_ALAW */
+int	deflaw;		/* Default law (DAHDI_LAW_DEFAULT, DAHDI_LAW_MULAW, or DAHDI_LAW_ALAW) */
 int	master;		/* Master channel if sigtype is DAHDI_SLAVE */
 int	idlebits;	/* Idle bits (if this is a CAS channel) or
 			   channel to monitor (if this is DACS channel) */
-char netdev_name[16]; /*name for the hdlc network device*/
+char	netdev_name[16];/* name for the hdlc network device*/
 } DAHDI_CHANCONFIG;
 
 typedef struct dahdi_sfconfig
@@ -328,11 +328,16 @@ struct dahdi_versioninfo {
 	char echo_canceller[80];
 };
 
-struct dahdi_hwgain{
+struct dahdi_hwgain {
 	__s32 newgain;	/* desired gain in dB but x10.  -3.5dB would be -35 */
 	__u32 tx:1;	/* 0=rx; 1=tx */
 };
 
+struct dahdi_attach_echocan {
+	int	chan;		/* Channel we're applying this to */
+	char	echocan[16];	/* Name of echo canceler to attach to this channel
+				   (leave empty to have no echocan attached */
+};
 
 /* ioctl definitions */
 #define DAHDI_CODE	0xDA
@@ -644,6 +649,13 @@ struct dahdi_hwgain{
  */
 #define DAHDI_LOOPBACK _IOW(DAHDI_CODE, 58, int)
 
+/*
+  Attach the desired echo canceler module (or none) to a channel in an
+  audio-supporting mode, so that when the channel needs an echo canceler
+  that module will be used to supply one.
+ */
+#define DAHDI_ATTACH_ECHOCAN _IOW(DAHDI_CODE, 59, struct dahdi_attach_echocan)
+
 
 /*
  *  60-80 are reserved for private drivers
@@ -869,6 +881,21 @@ struct dahdi_echocanparams {
 	/* immediately follow this structure with dahdi_echocanparam structures */
 	struct dahdi_echocanparam params[0];
 };
+
+/* Echo cancellation */
+struct echo_can_state;
+
+struct dahdi_echocan {
+	const char *name;
+	struct module *owner;
+	int (*echo_can_create)(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p, struct echo_can_state **ec);
+	void (*echo_can_free)(struct echo_can_state *ec);
+	void (*echo_can_array_update)(struct echo_can_state *ec, short *iref, short *isig);
+	int (*echo_can_traintap)(struct echo_can_state *ec, int pos, short val);
+};
+
+int dahdi_register_echocan(const struct dahdi_echocan *ec);
+void dahdi_unregister_echocan(const struct dahdi_echocan *ec);
 
 struct dahdi_tone_def_header {
 	int count;		/* How many samples follow */
@@ -1169,20 +1196,6 @@ struct dahdi_hdlc {
 };
 #endif
 
-/* Echo cancellation */
-struct echo_can_state;
-#if 0
-/* echo can API consists of these functions */
-void echo_can_init(void);
-void echo_chan_shutdown(void);
-void echo_can_identify(char *buf, size_t len);
-int echo_can_create(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p, struct echo_can_state **ec);
-void echo_can_free(struct echo_can_state *ec);
-short echo_can_update(struct echo_can_state *ec, short iref, short isig);
-void echo_can_array_update(struct echo_can_state *ec, short *iref, short *isig);
-int echo_can_traintap(struct echo_can_state *ec, int pos, short val);
-#endif
-
 /* Conference queue stucture */
 struct confq {
 	u_char buffer[DAHDI_CHUNKSIZE * DAHDI_CB_SIZE];
@@ -1347,7 +1360,14 @@ struct dahdi_chan {
 
 	/* Is echo cancellation enabled or disabled */
 	int		echocancel;
-	struct echo_can_state	*ec;
+	/* The echo canceler module that should be used to create an
+	   instance when this channel needs one */
+	const struct dahdi_echocan *ec_factory;
+	/* The echo canceler module that owns the instance currently
+	   on this channel, if one is present */
+	const struct dahdi_echocan *ec_current;
+	/* The private state data of the echo canceler instance in use */
+	struct echo_can_state *ec_state;
 	echo_can_disable_detector_state_t txecdis;
 	echo_can_disable_detector_state_t rxecdis;
 	
@@ -1511,7 +1531,7 @@ struct dahdi_span {
 
 	int timingslips;			/* Clock slips */
 
-	struct dahdi_chan *chans;		/* Member channel structures */
+	struct dahdi_chan **chans;		/* Member channel structures */
 
 	/*   ==== Span Callback Operations ====   */
 	/* Req: Set the requested chunk size.  This is the unit in which you must
@@ -1756,6 +1776,9 @@ extern u_char __dahdi_lin2a[16384];
 
 /* Used by dynamic DAHDI -- don't use directly */
 void dahdi_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data));
+
+/* Used by DAHDI HPEC module -- don't use directly */
+void dahdi_set_hpec_ioctl(int (*func)(unsigned int cmd, unsigned long data));
 
 /* Used privately by DAHDI.  Avoid touching directly */
 struct dahdi_tone {

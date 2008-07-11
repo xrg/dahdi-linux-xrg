@@ -429,9 +429,7 @@ static void __exit ztdeth_exit(void)
 
 MODULE_DESCRIPTION("DAHDI Dynamic TDMoE Support");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(ztdeth_init);
 module_exit(ztdeth_exit);

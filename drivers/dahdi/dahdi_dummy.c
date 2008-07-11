@@ -93,7 +93,8 @@
 
 struct ztdummy {
 	struct dahdi_span span;
-	struct dahdi_chan chan;
+	struct dahdi_chan _chan;
+	struct dahdi_chan *chan;
 	unsigned int counter;
 #ifdef USE_RTC
 	spinlock_t rtclock;
@@ -223,17 +224,18 @@ static void ztdummy_timer(unsigned long param)
 static int ztdummy_initialize(struct ztdummy *ztd)
 {
 	/* DAHDI stuff */
+	ztd->chan = &ztd->_chan;
 	sprintf(ztd->span.name, "DAHDI_DUMMY/1");
 	snprintf(ztd->span.desc, sizeof(ztd->span.desc) - 1, "%s (source: " CLOCK_SRC ") %d", ztd->span.name, 1);
-	sprintf(ztd->chan.name, "DAHDI_DUMMY/%d/%d", 1, 0);
+	sprintf(ztd->chan->name, "DAHDI_DUMMY/%d/%d", 1, 0);
 	dahdi_copy_string(ztd->span.devicetype, "DAHDI Dummy Timing Driver", sizeof(ztd->span.devicetype));
-	ztd->chan.chanpos = 1;
+	ztd->chan->chanpos = 1;
 	ztd->span.chans = &ztd->chan;
 	ztd->span.channels = 0;		/* no channels on our span */
 	ztd->span.deflaw = DAHDI_LAW_MULAW;
 	init_waitqueue_head(&ztd->span.maintq);
 	ztd->span.pvt = ztd;
-	ztd->chan.pvt = ztd;
+	ztd->chan->pvt = ztd;
 	if (dahdi_register(&ztd->span, 0)) {
 		return -1;
 	}
@@ -332,6 +334,4 @@ module_param(rtc_rate, int, 0600);
 
 MODULE_DESCRIPTION("Dummy DAHDI Driver");
 MODULE_AUTHOR("Robert Pleh <robert.pleh@hermes.si>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");

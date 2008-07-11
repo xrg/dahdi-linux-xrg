@@ -101,7 +101,7 @@ struct tor2 {
 	volatile unsigned char *mem8;	/* Virtual representation of 8 bit Xilinx memory area */
 	struct dahdi_span spans[SPANS_PER_CARD];		/* Spans */
 	struct tor2_span tspans[SPANS_PER_CARD];	/* Span data */
-	struct dahdi_chan *chans[SPANS_PER_CARD];		/* Pointers to blocks of 24(30/31) contiguous dahdi_chans for each span */
+	struct dahdi_chan **chans[SPANS_PER_CARD];		/* Pointers to blocks of 24(30/31) contiguous dahdi_chans for each span */
 	struct tor2_chan tchans[32 * SPANS_PER_CARD];	/* Channel user data */
 	unsigned char txsigs[SPANS_PER_CARD][16];	/* Copy of tx sig registers */
 	int loopupcnt[SPANS_PER_CARD];	/* loop up code counter */
@@ -296,7 +296,7 @@ static void init_spans(struct tor2 *tor)
 		tor->tspans[x].span = x;
 		init_waitqueue_head(&tor->spans[x].maintq);
 		for (y=0;y<tor->spans[x].channels;y++) {
-			struct dahdi_chan *mychans = tor->chans[x] + y;
+			struct dahdi_chan *mychans = tor->chans[x][y];
 			sprintf(mychans->name, "Tor2/%d/%d/%d", tor->num, x + 1, y + 1);
 			mychans->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXSKS |
  									 DAHDI_SIG_FXOLS | DAHDI_SIG_FXOGS | DAHDI_SIG_FXOKS | DAHDI_SIG_CAS | DAHDI_SIG_SF | DAHDI_SIG_EM_E1;
@@ -343,6 +343,20 @@ static int __devinit tor2_launch(struct tor2 *tor)
 	return 0;
 }
 
+static void free_tor(struct tor2 *tor)
+{
+	unsigned int x, f;
+
+	for (x = 0; x < SPANS_PER_CARD; x++) {
+		for (f = 0; f < (tor->cardtype == TYPE_E1 ? 31 : 24); f++) {
+			if (tor->chans[x][f]) {
+				kfree(tor->chans[x][f]);
+			}
+		}
+	}
+	kfree(tor);
+}
+
 static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
 	int res,x,f;
@@ -359,12 +373,6 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 		return -ENOMEM;
 	memset(tor,0,sizeof(struct tor2));
 	spin_lock_init(&tor->lock);
-	for (x = 0; x < SPANS_PER_CARD; x++) {
-		tor->chans[x] = kmalloc(sizeof(struct dahdi_chan) * 31,GFP_KERNEL);
-		if (!tor->chans[x])
-			return -ENOMEM;
-		memset(tor->chans[x],0,sizeof(struct dahdi_chan) * 31);
-	}
 	/* Load the resources */
 	tor->pci = pdev;
 	tor->irq = pdev->irq;
@@ -524,7 +532,6 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 #endif
 	for (x = 0; x < 256; x++) tor->mem32[x] = 0x7f7f7f7f;
 
-
 	if (request_irq(tor->irq, tor2_intr, DAHDI_IRQ_SHARED_DISABLED, "tor2", tor)) {
 		printk(KERN_ERR "Unable to request tormenta IRQ %d\n", tor->irq);
 		goto err_out_release_all;
@@ -539,6 +546,16 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 		tor->cardtype = TYPE_T1;
 		tor->datxlt = datxlt_t1;
 	}
+
+	for (x = 0; x < SPANS_PER_CARD; x++) {
+		for (f = 0; f < (tor->cardtype == TYPE_E1 ? 31 : 24); f++) {
+			if (!(tor->chans[x][f] = kmalloc(sizeof(*tor->chans[x][f]), GFP_KERNEL))) {
+				return -ENOMEM;
+			}
+			memset(tor->chans[x][f], 0, sizeof(*tor->chans[x][f]));
+		}
+	}
+
 	init_spans(tor); 
 
 	tor->order = tor->mem8[SWREG];
@@ -575,8 +592,7 @@ err_out_free_tor:
 	if (tor->mem8) iounmap((void *)tor->mem8);
 	if (tor->mem32) iounmap((void *)tor->mem32);
 	if (tor) {
-		for (x = 0; x < 3; x++) kfree(tor->chans[x]);
-		kfree(tor);
+		free_tor(tor);
 	}
 	return -ENODEV;
 }
@@ -585,8 +601,8 @@ static struct pci_driver tor2_driver;
 
 static void __devexit tor2_remove(struct pci_dev *pdev)
 {
-	int x;
 	struct tor2 *tor;
+
 	tor = pci_get_drvdata(pdev);
 	if (!tor)
 		BUG();
@@ -612,10 +628,7 @@ static void __devexit tor2_remove(struct pci_dev *pdev)
 
 	cards[tor->num] = 0;
 	pci_set_drvdata(pdev, NULL);
-	for (x = 0; x < 3; x++) 
-		if (tor->chans[x])
-			kfree(tor->chans[x]);
-	kfree(tor);
+	free_tor(tor);
 }
 
 static struct pci_driver tor2_driver = {
@@ -644,7 +657,7 @@ static void set_clear(struct tor2 *tor)
 	for (s = 0; s < SPANS_PER_CARD; s++) {
 		for (i = 0; i < 24; i++) {
 			j = (i/8);
-			if (tor->spans[s].chans[i].flags & DAHDI_FLAG_CLEAR) 
+			if (tor->spans[s].chans[i]->flags & DAHDI_FLAG_CLEAR) 
 				val |= 1 << (i % 8);
 
 			if ((i % 8)==7) {
@@ -797,9 +810,9 @@ static int tor2_startup(struct dahdi_span *span)
 	for (i = 0; i < span->channels; i++)
 	{
 		memset(p->tor->ec_chunk1[p->span][i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 		memset(p->tor->ec_chunk2[p->span][i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 	}
 	/* Force re-evaluation of the timing source */
 	if (timingcable)
@@ -1052,13 +1065,13 @@ static inline void tor2_run(struct tor2 *tor)
 			   need to delay the transmit data 2 entire chunks so
 			   that the transmit will be in sync with the receive */
 			for (y=0;y<tor->spans[x].channels;y++) {
-				dahdi_ec_chunk(&tor->spans[x].chans[y], 
-				    tor->spans[x].chans[y].readchunk, 
+				dahdi_ec_chunk(tor->spans[x].chans[y], 
+				    tor->spans[x].chans[y]->readchunk, 
 					tor->ec_chunk2[x][y]);
 				memcpy(tor->ec_chunk2[x][y],tor->ec_chunk1[x][y],
 					DAHDI_CHUNKSIZE);
 				memcpy(tor->ec_chunk1[x][y],
-					tor->spans[x].chans[y].writechunk,
+					tor->spans[x].chans[y]->writechunk,
 						DAHDI_CHUNKSIZE);
 			}
 			dahdi_receive(&tor->spans[x]);
@@ -1199,13 +1212,13 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 	for (n = 0; n < tor->spans[0].channels; n++) {
 		for (i = 0; i < DAHDI_CHUNKSIZE; i++) {
 			/* span 1 */
-			txword = tor->spans[0].chans[n].writechunk[i] << 24;
+			txword = tor->spans[0].chans[n]->writechunk[i] << 24;
 			/* span 2 */
-			txword |= tor->spans[1].chans[n].writechunk[i] << 16;
+			txword |= tor->spans[1].chans[n]->writechunk[i] << 16;
 			/* span 3 */
-			txword |= tor->spans[2].chans[n].writechunk[i] << 8;
+			txword |= tor->spans[2].chans[n]->writechunk[i] << 8;
 			/* span 4 */
-			txword |= tor->spans[3].chans[n].writechunk[i];
+			txword |= tor->spans[3].chans[n]->writechunk[i];
 			/* write to part */
 #ifdef FIXTHISFOR64
 			tor->mem32[tor->datxlt[n] + (32 * i)] = txword;
@@ -1225,13 +1238,13 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 			rxword = le32_to_cpu(tor->mem32[tor->datxlt[n] + (32 * i)]);
 #endif
 			/* span 1 */
-			tor->spans[0].chans[n].readchunk[i] = rxword >> 24;
+			tor->spans[0].chans[n]->readchunk[i] = rxword >> 24;
 			/* span 2 */
-			tor->spans[1].chans[n].readchunk[i] = (rxword & 0xff0000) >> 16;
+			tor->spans[1].chans[n]->readchunk[i] = (rxword & 0xff0000) >> 16;
 			/* span 3 */
-			tor->spans[2].chans[n].readchunk[i] = (rxword & 0xff00) >> 8;
+			tor->spans[2].chans[n]->readchunk[i] = (rxword & 0xff00) >> 8;
 			/* span 4 */
-			tor->spans[3].chans[n].readchunk[i] = rxword & 0xff;
+			tor->spans[3].chans[n]->readchunk[i] = rxword & 0xff;
 		}
 	}
 
@@ -1242,16 +1255,16 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 			for (k = 1; k <= SPANS_PER_CARD; k++) {
 				c = t1in(tor,k,0x31 + j);
 				rxc = c & 15;
-				if (rxc != tor->spans[k - 1].chans[j + 16].rxsig) {
+				if (rxc != tor->spans[k - 1].chans[j + 16]->rxsig) {
 					/* Check for changes in received bits */
-					if (!(tor->spans[k - 1].chans[j + 16].sig & DAHDI_SIG_CLEAR))
-						dahdi_rbsbits(&tor->spans[k - 1].chans[j + 16], rxc);
+					if (!(tor->spans[k - 1].chans[j + 16]->sig & DAHDI_SIG_CLEAR))
+						dahdi_rbsbits(tor->spans[k - 1].chans[j + 16], rxc);
 				}
 				rxc = c >> 4;
-				if (rxc != tor->spans[k - 1].chans[j].rxsig) {
+				if (rxc != tor->spans[k - 1].chans[j]->rxsig) {
 					/* Check for changes in received bits */
-					if (!(tor->spans[k - 1].chans[j].sig & DAHDI_SIG_CLEAR))
-						dahdi_rbsbits(&tor->spans[k - 1].chans[j], rxc);
+					if (!(tor->spans[k - 1].chans[j]->sig & DAHDI_SIG_CLEAR))
+						dahdi_rbsbits(tor->spans[k - 1].chans[j], rxc);
 				}
 			}
 		}
@@ -1269,10 +1282,10 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 			rxc = 0;
 			if (abits & (1 << j)) rxc |= DAHDI_ABIT;
 			if (bbits & (1 << j)) rxc |= DAHDI_BBIT;
-			if (tor->spans[k].chans[i].rxsig != rxc) {
+			if (tor->spans[k].chans[i]->rxsig != rxc) {
 				/* Check for changes in received bits */
-				if (!(tor->spans[k].chans[i].sig & DAHDI_SIG_CLEAR)) {
-					dahdi_rbsbits(&tor->spans[k].chans[i], rxc);
+				if (!(tor->spans[k].chans[i]->sig & DAHDI_SIG_CLEAR)) {
+					dahdi_rbsbits(tor->spans[k].chans[i], rxc);
 				}
 			}
 		}
@@ -1357,8 +1370,8 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 			  /* go thru all chans, and count # open */
 			for (n = 0,k = 0; k < tor->spans[i].channels; k++) 
 			   {
-				if (((tor->chans[i] + k)->flags & DAHDI_FLAG_OPEN) ||
-				    ((tor->chans[i] + k)->flags & DAHDI_FLAG_NETDEV)) n++;
+				if (((tor->chans[i][k])->flags & DAHDI_FLAG_OPEN) ||
+				    ((tor->chans[i][k])->flags & DAHDI_FLAG_NETDEV)) n++;
 			   }
 			  /* if none open, set alarm condition */
 			if (!n) j |= DAHDI_ALARM_NOTOPEN; 
@@ -1483,9 +1496,7 @@ static int tor2_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long d
 
 MODULE_AUTHOR("Mark Spencer");
 MODULE_DESCRIPTION("Tormenta 2 PCI Quad T1 or E1 DAHDI Driver");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_param(debug, int, 0600);
 module_param(loopback, int, 0600);

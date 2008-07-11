@@ -79,7 +79,7 @@ that may be defined there:
 #	'
 -----------------------------------------------------------
 
-/etc/dahdi.conf
+/etc/dahdi/system.conf
 ~~~~~~~~~~~~~~~~
 
 Astribank 8
@@ -433,15 +433,15 @@ following commands:
   output if you have more than 10 spans, and also make the output listing
   looks a little bit nicer.
 - You can see if your Dahdi spans and channels were loaded, if
-  they were configured by ztcfg and if they are in use (typically by
+  they were configured by dahdi_cfg and if they are in use (typically by
   Asterisk).
   For example:
   Not configured Astribank FXS channel will be displayed as:
 
      42 FXS
 
-- When a channel has been configured with *ztcfg* (that applies
-  /etc/dahdi.conf), you will see an extra column for the signalling
+- When a channel has been configured with *dahdi_cfg* (that applies
+  /etc/dahdi/system.conf), you will see an extra column for the signalling
   type of the channel. The same channel after it has been configured:
 
     42 FXS        FXOKS
@@ -695,7 +695,7 @@ Configuration File.
 The Astribank xpp driver uses that information for correct hardware
 initialization that is performed before the Dahdi span registration
 process takes place. Because of that, xpp driver can't use the 
-information from file dahdi.conf.
+information from file /etc/dahdi/system.conf.
 
 Another parameter that also can be defined in the Dahdi Init
 Configuration File is the function group TE (CPE) or NT (Network). This
@@ -793,7 +793,7 @@ span:
 Dahdi breaks the channels it knows about to logical units called
 "spans". A port in a E1/T1/ISDN card is usually a span. An whole
 analog card is also a "span". You can see the list of spans as the list
-of files under /proc/dahdi directory or in output of the zttool
+of files under /proc/dahdi directory or in output of the dahdi_tool
 utility.
 
 XBUS:
@@ -1047,7 +1047,7 @@ parameter zap_autoreg in the modprobe configuration file (A file under
 Dahdi And Above
 ^^^^^^^^^^^^^^^^
 From here you get a standard Dahdi span. It still needs to be
-configured by ztcfg and used by a program such as Asterisk like any
+configured by dahdi_cfg and used by a program such as Asterisk like any
 other Dahdi device. In order for you to get a dial-tone in a phone
 connected to the FXS port or a fully synchronized BRI port (layer 2
 activated, as signalled by a more steady blink) you will actually need

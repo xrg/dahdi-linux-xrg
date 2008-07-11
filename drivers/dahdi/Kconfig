@@ -14,7 +14,60 @@ menuconfig DAHDI
 
 	  If unsure, say Y.
 
-if DAHDI
+config DAHDI_ECHOCAN
+       tristate "DADHI Echo Cancelers (software)"
+       depends on DAHDI
+       default DAHDI
+
+config DAHDI_ECHOCAN_MG2
+       tristate "DADHI MG2 Echo Canceler"
+       depends on DAHDI_ECHOCAN
+       default DAHDI_ECHOCAN
+	---help---
+	  To compile this driver as a module, choose M here: the
+	  module will be called dahdi_echocancel_mg2.
+
+	  If unsure, say Y.
+
+config DAHDI_ECHOCAN_KB1
+       tristate "DADHI KB1 Echo Canceler"
+       depends on DAHDI_ECHOCAN
+       default DAHDI_ECHOCAN
+	---help---
+	  To compile this driver as a module, choose M here: the
+	  module will be called dahdi_echocancel_kb1.
+
+	  If unsure, say Y.
+
+config DAHDI_ECHOCAN_SEC
+       tristate "DADHI SEC Echo Canceler"
+       depends on DAHDI_ECHOCAN
+       default DAHDI_ECHOCAN
+	---help---
+	  To compile this driver as a module, choose M here: the
+	  module will be called dahdi_echocancel_sec.
+
+	  If unsure, say Y.
+
+config DAHDI_ECHOCAN_SEC2
+       tristate "DADHI SEC2 Echo Canceler"
+       depends on DAHDI_ECHOCAN
+       default DAHDI_ECHOCAN
+	---help---
+	  To compile this driver as a module, choose M here: the
+	  module will be called dahdi_echocancel_sec2.
+
+	  If unsure, say Y.
+
+config DAHDI_ECHOCAN_HPEC
+       tristate "DADHI HPEC Echo Canceler"
+       depends on DAHDI_ECHOCAN
+       default DAHDI_ECHOCAN
+	---help---
+	  To compile this driver as a module, choose M here: the
+	  module will be called dahdi_echocancel_hpec.
+
+	  If unsure, say Y.
 
 config DAHDI_WCTDM
 	tristate "Digium Wildcard TDM400P Support"
@@ -48,6 +101,7 @@ config DAHDI_WCT4XXP
 
 config DAHDI_TRANSCODE
 	tristate "DAHDI transcoding support"
+	depends on DAHDI
 	default DAHDI
 	---help---
 	  DAHDI transcoding infrastructure.
@@ -59,7 +113,7 @@ config DAHDI_TRANSCODE
 
 config DAHDI_WCTC4XXP
 	tristate "Digium Wildcard TC400B Support"
-	depends on DAHDI && DAHDI_TRANSCODE && PCI
+	depends on DAHDI_TRANSCODE && PCI
 	default DAHDI
 	---help---
 	  This driver provides support for the Digium Wildcard TC400B.
@@ -210,5 +264,3 @@ config DAHDI_WCTE11XP
 	  If unsure, say Y.
 
 source "drivers/dahdi/xpp/Kconfig"
-
-endif # DAHDI

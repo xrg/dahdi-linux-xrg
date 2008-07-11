@@ -52,7 +52,8 @@ $ENV{XPP_BASE} = '/proc/xpp';
 
 getopts('o:v:', \%opts);
 
-my $debug;
+my %settings;
+$settings{debug} = 0;
 
 my $xpd_name;
 my $chipregs;
@@ -62,7 +63,7 @@ sub logit {
 }
 
 sub debug {
-	logit @_ if $debug;
+	logit @_ if $settings{debug};
 }
 
 # Arrange for error logging
@@ -310,27 +311,22 @@ sub opermode_verify($) {
 }
 
 sub read_defaults() {
-	# For lab tests
-	my $labfile = "$init_dir/genzaptelconf.env";
-
-	# Source default files
-	$ENV{ZAPTEL_DEFAULTS} = "$labfile" if -r "$labfile";
-	my $var_debug = 'DEBUG_INIT_FXO';
-	my $var_opermode = 'opermode';
-	my ($default_file, %source_defaults) =
-		XppConfig::source_vars($var_debug, $var_opermode);
-	$debug = $source_defaults{$var_debug};
-	my $tmp_opermode = $source_defaults{$var_opermode};
-	if(defined($tmp_opermode) and $tmp_opermode) {
-		# Verify
-		my $mode = $opermode_table{$tmp_opermode};
-		if(! defined $mode) {
-			main::logit "Unknown opermode='$tmp_opermode'";
-			die;
+	if(XppConfig::read_config(\%settings)) {
+		main::logit "Defaults from $settings{xppconf}";
+		my $o = $settings{opermode};
+		if(defined($o)) {
+			# Verify
+			my $mode = $opermode_table{$o};
+			if(! defined $mode) {
+				main::logit "Unknown opermode='$o'";
+				die;
+			}
+			$OPERMODE = $o;
+			main::logit "Set OPERMODE = $o";
 		}
-		$OPERMODE = $tmp_opermode;
+	} else {
+		main::logit "No defaults file, use hard-coded defaults.";
 	}
-	main::logit "From $default_file: $var_debug=$debug $var_opermode=$tmp_opermode";
 }
 
 package main;

@@ -161,7 +161,7 @@ struct t1xxp {
 	unsigned char ec_chunk2[31][DAHDI_CHUNKSIZE];
 	unsigned char tempo[32];
 	struct dahdi_span span;						/* Span */
-	struct dahdi_chan chans[31];					/* Channels */
+	struct dahdi_chan *chans[31];					/* Channels */
 };
 
 #define CANARY 0xca1e
@@ -272,7 +272,12 @@ static int control_get_reg(struct t1xxp *wc, int reg)
 
 static void t1xxp_release(struct t1xxp *wc)
 {
+	unsigned int x;
+
 	dahdi_unregister(&wc->span);
+	for (x = 0; x < (wc->ise1 ? 31 : 24); x++) {
+		kfree(wc->chans[x]);
+	}
 	kfree(wc);
 	printk("Freed a Wildcard\n");
 }
@@ -334,7 +339,7 @@ static void __t1xxp_set_clear(struct t1xxp *wc)
 	for (x=0;x<3;x++) {
 		b = 0;
 		for (y=0;y<8;y++)
-			if (wc->chans[x * 8 + y].sig & DAHDI_SIG_CLEAR)
+			if (wc->chans[x * 8 + y]->sig & DAHDI_SIG_CLEAR)
 				b |= (1 << y);
 		__t1_set_reg(wc, 0x39 + x, b);
 	}
@@ -555,14 +560,14 @@ static int t1xxp_rbsbits(struct dahdi_chan *chan, int bits)
 	spin_lock_irqsave(&wc->lock, flags);
 	if (wc->ise1) {
                 if (chan->chanpos < 16) {
-                       mask = ((bits << 4) | wc->chans[chan->chanpos - 1 + 16].txsig);
+                       mask = ((bits << 4) | wc->chans[chan->chanpos - 1 + 16]->txsig);
                         __t1_set_reg(wc, 0x40 + chan->chanpos, mask);
                 }
 		else if (chan->chanpos > 16) {
-			mask = (bits | (wc->chans[chan->chanpos - 1 - 16].txsig << 4));
+			mask = (bits | (wc->chans[chan->chanpos - 1 - 16]->txsig << 4));
 			__t1_set_reg(wc, 0x40 + chan->chanpos - 16, mask);
 		}
-		wc->chans[chan->chanpos - 1].txsig = bits;
+		wc->chans[chan->chanpos - 1]->txsig = bits;
 	} else {
 		b = (chan->chanpos - 1) / 8;
 		o = (chan->chanpos - 1) % 8;
@@ -610,9 +615,9 @@ static int t1xxp_startup(struct dahdi_span *span)
 	for(i = 0; i < span->channels; i++)
 	{
 		memset(wc->ec_chunk1[i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 		memset(wc->ec_chunk2[i],
-			DAHDI_LIN2X(0,&span->chans[i]),DAHDI_CHUNKSIZE);
+			DAHDI_LIN2X(0,span->chans[i]),DAHDI_CHUNKSIZE);
 	}
 
 	/* Reset framer with proper parameters and start */
@@ -781,13 +786,13 @@ static int t1xxp_software_init(struct t1xxp *wc)
 	}
 	init_waitqueue_head(&wc->span.maintq);
 	for (x=0;x<wc->span.channels;x++) {
-		sprintf(wc->chans[x].name, "WCT1/%d/%d", wc->num, x + 1);
-		wc->chans[x].sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_EM_E1 | 
+		sprintf(wc->chans[x]->name, "WCT1/%d/%d", wc->num, x + 1);
+		wc->chans[x]->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_EM_E1 | 
 				      DAHDI_SIG_FXSLS | DAHDI_SIG_FXSGS | 
 				      DAHDI_SIG_FXSKS | DAHDI_SIG_FXOLS | DAHDI_SIG_DACS_RBS |
 				      DAHDI_SIG_FXOGS | DAHDI_SIG_FXOKS | DAHDI_SIG_CAS | DAHDI_SIG_SF;
-		wc->chans[x].pvt = wc;
-		wc->chans[x].chanpos = x + 1;
+		wc->chans[x]->pvt = wc;
+		wc->chans[x]->chanpos = x + 1;
 	}
 	if (dahdi_register(&wc->span, 0)) {
 		printk("Unable to register span with DAHDI\n");
@@ -870,9 +875,9 @@ static void t1xxp_transmitprep(struct t1xxp *wc, int ints)
 			pos = y * 32 + wc->chanmap[x] + wc->offset;
 			/* Put channel number as outgoing data */
 			if (pos < 32 * DAHDI_CHUNKSIZE)
-				txbuf[pos] = wc->chans[x].writechunk[y];
+				txbuf[pos] = wc->chans[x]->writechunk[y];
 			else
-				wc->tempo[pos - 32 * DAHDI_CHUNKSIZE] = wc->chans[x].writechunk[y];
+				wc->tempo[pos - 32 * DAHDI_CHUNKSIZE] = wc->chans[x]->writechunk[y];
 		}
 	}
 }
@@ -905,7 +910,7 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 		for (x=0;x<wc->span.channels;x++) {
 			/* XXX Optimize, remove * and + XXX */
 			/* Must map received channels into appropriate data */
-			wc->chans[x].readchunk[y] = 
+			wc->chans[x]->readchunk[y] = 
 				rxbuf[32 * y + ((wc->chanmap[x] + WC_OFFSET + wc->offset) & 0x1f)];
 		}
 		if (!wc->ise1) {
@@ -944,10 +949,9 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 	canary = (unsigned int *)(rxbuf + DAHDI_CHUNKSIZE * 32 - 4);
 	*canary = (wc->canary++) | (CANARY << 16);
 	for (x=0;x<wc->span.channels;x++) {
-		dahdi_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, 
-			wc->ec_chunk2[x]);
+		dahdi_ec_chunk(wc->chans[x], wc->chans[x]->readchunk, wc->ec_chunk2[x]);
 		memcpy(wc->ec_chunk2[x],wc->ec_chunk1[x],DAHDI_CHUNKSIZE);
-		memcpy(wc->ec_chunk1[x],wc->chans[x].writechunk,DAHDI_CHUNKSIZE);
+		memcpy(wc->ec_chunk1[x],wc->chans[x]->writechunk,DAHDI_CHUNKSIZE);
 	}
 	dahdi_receive(&wc->span);
 }
@@ -964,18 +968,18 @@ static void t1xxp_check_sigbits(struct t1xxp *wc, int x)
 			a = __t1_get_reg(wc, 0x31 + i);
 			/* Get high channel in low bits */
 			rxs = (a & 0xf);
-			if (!(wc->chans[i+16].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->chans[i+16].rxsig != rxs) {
+			if (!(wc->chans[i+16]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->chans[i+16]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->chans[i+16], rxs);
+					dahdi_rbsbits(wc->chans[i+16], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
 			rxs = (a >> 4) & 0xf;
-			if (!(wc->chans[i].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->chans[i].rxsig != rxs) {
+			if (!(wc->chans[i]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->chans[i]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->chans[i], rxs);
+					dahdi_rbsbits(wc->chans[i], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
@@ -990,10 +994,10 @@ static void t1xxp_check_sigbits(struct t1xxp *wc, int x)
 				rxs |= DAHDI_ABIT;
 			if (b & (1 << y))
 				rxs |= DAHDI_BBIT;
-			if (!(wc->chans[i].sig & DAHDI_SIG_CLEAR)) {
-				if (wc->chans[i].rxsig != rxs) {
+			if (!(wc->chans[i]->sig & DAHDI_SIG_CLEAR)) {
+				if (wc->chans[i]->rxsig != rxs) {
 					spin_unlock_irqrestore(&wc->lock, flags);
-					dahdi_rbsbits(&wc->chans[i], rxs);
+					dahdi_rbsbits(wc->chans[i], rxs);
 					spin_lock_irqsave(&wc->lock, flags);
 				}
 			}
@@ -1058,8 +1062,8 @@ static void t1xxp_check_alarms(struct t1xxp *wc)
 
 	if (wc->span.lineconfig & DAHDI_CONFIG_NOTOPEN) {
 		for (x=0,j=0;x < wc->span.channels;x++)
-			if ((wc->chans[x].flags & DAHDI_FLAG_OPEN) ||
-			    (wc->chans[x].flags & DAHDI_FLAG_NETDEV))
+			if ((wc->chans[x]->flags & DAHDI_FLAG_OPEN) ||
+			    (wc->chans[x]->flags & DAHDI_FLAG_NETDEV))
 				j++;
 		if (!j)
 			alarms |= DAHDI_ALARM_NOTOPEN;
@@ -1266,71 +1270,85 @@ static int t1xxp_hardware_init(struct t1xxp *wc)
 
 static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
-	int res;
 	struct t1xxp *wc;
 	unsigned int *canary;
+	unsigned int x;
 	
-	if (pci_enable_device(pdev)) {
-		res = -EIO;
-	} else {
-		wc = kmalloc(sizeof(struct t1xxp), GFP_KERNEL);
-		if (wc) {
-			memset(wc, 0x0, sizeof(struct t1xxp));
-			spin_lock_init(&wc->lock);
-			wc->ioaddr = pci_resource_start(pdev, 0);
-			wc->dev = pdev;
-			wc->offset = 28;	/* And you thought 42 was the answer */
-
-			wc->writechunk = 
-				/* 32 channels, Double-buffer, Read/Write */
-				(unsigned char *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
-			if (!wc->writechunk) {
-				printk("wct1xxp: Unable to allocate DMA-able memory\n");
-				return -ENOMEM;
-			}
-
-			/* Read is after the whole write piece (in bytes) */
-			wc->readchunk = wc->writechunk + DAHDI_CHUNKSIZE * 32 * 2;
-
-			/* Same thing...  */
-			wc->readdma = wc->writedma + DAHDI_CHUNKSIZE * 32 * 2;
-
-			/* Initialize Write/Buffers to all blank data */
-			memset((void *)wc->writechunk,0x00,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32);
-			/* Initialize canary */
-			canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 - 4);
-			*canary = (CANARY << 16) | (0xffff);
-
-			/* Enable bus mastering */
-			pci_set_master(pdev);
-
-			/* Keep track of which device we are */
-			pci_set_drvdata(pdev, wc);
-
-			if (request_irq(pdev->irq, t1xxp_interrupt, DAHDI_IRQ_SHARED_DISABLED, "t1xxp", wc)) {
-				printk("t1xxp: Unable to request IRQ %d\n", pdev->irq);
-				kfree(wc);
-				return -EIO;
-			}
-			/* Initialize hardware */
-			t1xxp_hardware_init(wc);
-
-			/* We now know which version of card we have */
-			if (wc->ise1)
-				wc->variety = "Digium Wildcard E100P E1/PRA";
-			else
-				wc->variety = "Digium Wildcard T100P T1/PRI";
-
-			/* Misc. software stuff */
-			t1xxp_software_init(wc);
-
-			printk("Found a Wildcard: %s\n", wc->variety);
-			res = 0;
-		} else
-			res = -ENOMEM;
+	if (!pci_enable_device(pdev)) {
+		return -EIO;
 	}
-	return res;
+
+	if (!(wc = kmalloc(sizeof(*wc), GFP_KERNEL))) {
+		return -ENOMEM;
+	}
+
+	memset(wc, 0x0, sizeof(*wc));
+	spin_lock_init(&wc->lock);
+	wc->ioaddr = pci_resource_start(pdev, 0);
+	wc->dev = pdev;
+	wc->offset = 28;	/* And you thought 42 was the answer */
+	
+	wc->writechunk = 
+		/* 32 channels, Double-buffer, Read/Write */
+		(unsigned char *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
+	if (!wc->writechunk) {
+		printk("wct1xxp: Unable to allocate DMA-able memory\n");
+		return -ENOMEM;
+	}
+	
+	/* Read is after the whole write piece (in bytes) */
+	wc->readchunk = wc->writechunk + DAHDI_CHUNKSIZE * 32 * 2;
+	
+	/* Same thing...  */
+	wc->readdma = wc->writedma + DAHDI_CHUNKSIZE * 32 * 2;
+	
+	/* Initialize Write/Buffers to all blank data */
+	memset((void *)wc->writechunk,0x00,DAHDI_MAX_CHUNKSIZE * 2 * 2 * 32);
+	/* Initialize canary */
+	canary = (unsigned int *)(wc->readchunk + DAHDI_CHUNKSIZE * 64 - 4);
+	*canary = (CANARY << 16) | (0xffff);
+	
+	/* Enable bus mastering */
+	pci_set_master(pdev);
+	
+	/* Keep track of which device we are */
+	pci_set_drvdata(pdev, wc);
+	
+	if (request_irq(pdev->irq, t1xxp_interrupt, DAHDI_IRQ_SHARED_DISABLED, "t1xxp", wc)) {
+		printk("t1xxp: Unable to request IRQ %d\n", pdev->irq);
+		kfree(wc);
+		return -EIO;
+	}
+	/* Initialize hardware */
+	t1xxp_hardware_init(wc);
+	
+	/* We now know which version of card we have */
+	if (wc->ise1) {
+		wc->variety = "Digium Wildcard E100P E1/PRA";
+	} else {
+		wc->variety = "Digium Wildcard T100P T1/PRI";
+	}
+
+	for (x = 0; x < (wc->ise1 ? 31 : 24); x++) {
+		if (!(wc->chans[x] = kmalloc(sizeof(*wc->chans[x]), GFP_KERNEL))) {
+			while (x) {
+				kfree(wc->chans[--x]);
+			}
+
+			kfree(wc);
+			return -ENOMEM;
+		}
+		memset(wc->chans[x], 0, sizeof(*wc->chans[x]));
+	}
+
+	/* Misc. software stuff */
+	t1xxp_software_init(wc);
+	
+	printk("Found a Wildcard: %s\n", wc->variety);
+
+	return 0;
 }
+
 
 static void t1xxp_stop_stuff(struct t1xxp *wc)
 {
@@ -1407,9 +1425,7 @@ module_param(debug, int, 0600);
 
 MODULE_DESCRIPTION("Wildcard T100P/E100P DAHDI Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
-#ifdef MODULE_LICENSE
-MODULE_LICENSE("GPL");
-#endif
+MODULE_LICENSE("GPL v2");
 
 module_init(t1xxp_init);
 module_exit(t1xxp_cleanup);

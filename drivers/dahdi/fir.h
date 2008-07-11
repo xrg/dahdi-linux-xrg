@@ -51,7 +51,7 @@ static inline void fir16_create (fir16_state_t *fir,
     fir->taps = taps;
     fir->curr_pos = taps - 1;
     fir->coeffs = coeffs;
-    fir->history = MALLOC (taps*sizeof (int16_t));
+    fir->history = kmalloc(taps*sizeof (int16_t), GFP_KERNEL);
     if (fir->history)
         memset (fir->history, '\0', taps*sizeof (int16_t));
 }
@@ -59,7 +59,7 @@ static inline void fir16_create (fir16_state_t *fir,
     
 static inline void fir16_free (fir16_state_t *fir)
 {
-    FREE (fir->history);
+    kfree(fir->history);
 }
 /*- End of function --------------------------------------------------------*/
     
@@ -92,7 +92,7 @@ static inline void fir32_create (fir32_state_t *fir,
     fir->taps = taps;
     fir->curr_pos = taps - 1;
     fir->coeffs = coeffs;
-    fir->history = MALLOC (taps*sizeof (int16_t));
+    fir->history = kmalloc(taps*sizeof (int16_t), GFP_KERNEL);
     if (fir->history)
     	memset (fir->history, '\0', taps*sizeof (int16_t));
 }
@@ -100,7 +100,7 @@ static inline void fir32_create (fir32_state_t *fir,
     
 static inline void fir32_free (fir32_state_t *fir)
 {
-    FREE (fir->history);
+    kfree(fir->history);
 }
 /*- End of function --------------------------------------------------------*/
     
