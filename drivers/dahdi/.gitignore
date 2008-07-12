@@ -1,3 +1,14 @@
 makefw
 radfw.h
 tor2fw.h
+.*.ko.cmd
+*.mod.c
+*.ko
+modules.order
+Module.symvers
+xpp/.print_fxo_modes.cmd
+xpp/init_card_*.verified
+xpp/init_fxo_modes
+xpp/init_fxo_modes.verified
+xpp/print_fxo_modes
+xpp/xpp_version.h
