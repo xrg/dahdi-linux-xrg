@@ -175,7 +175,7 @@ ifndef DESTDIR
 	fi
 	build_tools/uninstall-modules dahdi $(KVERS)
 endif
-	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi modules_install
+	$(KMAKE) INSTALL_MOD_PATH=$(DESTDIR) INSTALL_MOD_DIR=dahdi _emodinst_
 	[ `id -u` = 0 ] && /sbin/depmod -a $(KVERS) || :
 
 uninstall-modules:
