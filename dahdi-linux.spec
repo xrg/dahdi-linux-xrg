@@ -51,13 +51,15 @@ for the DAHDI (aka Zapata) hardware.
 %install
 install -d %{buildroot}%{_sysconfdir}/udev/rules.d
 install -d %{buildroot}/lib/firmware
-%make DESTDIR=%{buildroot} install
 
 pushd drivers/dahdi/firmware
 	for TAR in *.tar.gz ; do
 		tar -xzf $TAR
 	done
 popd
+
+%make DESTDIR=%{buildroot} install
+
 
 %clean
 [ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
