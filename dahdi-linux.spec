@@ -6,6 +6,10 @@
 %define release alpha
 %define kernelrelease %(uname -r)
 
+%define build_modules 0
+%{?_without_modules:	%global build_modules 0}
+%{?_with_modules:	%global build_modules 1}
+
 Summary:	Digium Asterisk Hardware Device Interface
 Name:		dahdi-linux
 Version:	%{version}
@@ -45,7 +49,10 @@ for the DAHDI (aka Zapata) hardware.
 
 
 %build
+
+%if %{build_modules}
 %make
+%endif
 
 
 %install
@@ -58,7 +65,11 @@ pushd drivers/dahdi/firmware
 	done
 popd
 
+%if %{build_modules}
 %make DESTDIR=%{buildroot} install
+%else
+%make DESTDIR=%{buildroot} install-devices install-firmware install-include
+%endif
 
 
 %clean
@@ -77,7 +88,11 @@ popd
 %defattr(-,root,root)
 %{_includedir}/dahdi/*.h
 
+
+%if %{build_modules}
 %files -n kernel-%{name}-%{kernelrelease}
 %defattr(-,root,root)
 /lib/modules/%{kernelrelease}/dahdi/*.ko
 /lib/modules/%{kernelrelease}/dahdi/*/*.ko
+
+%endif
