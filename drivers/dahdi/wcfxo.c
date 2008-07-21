@@ -903,8 +903,8 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	}
 
 	ifaces[x] = wc;
-	wc->chan = &wc->_chan;
 	memset(wc, 0, sizeof(struct wcfxo));
+	wc->chan = &wc->_chan;
 	wc->ioaddr = pci_resource_start(pdev, 0);
 	wc->dev = pdev;
 	wc->pos = x;
