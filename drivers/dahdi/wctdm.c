@@ -928,7 +928,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		if (--fxo->battalarm == 0) {
 			/* the alarm timer has expired, so update the battery alarm state
 			   for this channel */
-			dahdi_alarm_channel(wc->chans[card], fxo->battery ? DAHDI_ALARM_NONE : DAHDI_ALARM_RED);
+			dahdi_alarm_channel(wc->chans[card], fxo->battery == BATTERY_LOST ? DAHDI_ALARM_RED : DAHDI_ALARM_NONE);
 		}
 	}
 
