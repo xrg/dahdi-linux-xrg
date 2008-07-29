@@ -448,6 +448,8 @@ struct dahdi_transcode_header {
 	unsigned char dstdata[DAHDI_TRANSCODE_BUFSIZ / 2];	/* Storage of destination data */
 };
 
+#define DAHDI_MAX_ECHOCANPARAMS 8
+
 /* ioctl definitions */
 #define DAHDI_CODE		0xDA
 

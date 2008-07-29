@@ -336,8 +336,6 @@ struct dahdi_hdlc {
 };
 #endif
 
-#define DAHDI_MAX_ECHOCANPARAMS 8
-
 /* Echo cancellation */
 struct echo_can_state;
 
