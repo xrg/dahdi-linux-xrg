@@ -38,7 +38,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "../wct4xxp/wct4xxp.h"	/* For certain definitions */
 

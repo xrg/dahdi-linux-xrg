@@ -34,7 +34,6 @@
  */
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "GpakHpi.h"
 #include "vpmadt032.h"

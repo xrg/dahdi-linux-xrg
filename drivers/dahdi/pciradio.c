@@ -55,7 +55,6 @@ With driver:	303826  (1.5 %)
 #include <asm/delay.h> 
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #define RAD_MAX_IFACES 128
 

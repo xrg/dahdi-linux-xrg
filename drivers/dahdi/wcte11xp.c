@@ -35,7 +35,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 /* XXX: fix this */
 #include "wct4xxp/wct4xxp.h"	/* For certain definitions */

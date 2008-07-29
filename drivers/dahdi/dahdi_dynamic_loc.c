@@ -58,7 +58,6 @@
 #include <linux/notifier.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #ifdef DEFINE_SPINLOCK
 static DEFINE_SPINLOCK(zlock);

@@ -35,7 +35,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 #define NEED_PCI_IDS
 #include "tor2-hw.h"
 #include "tor2fw.h"

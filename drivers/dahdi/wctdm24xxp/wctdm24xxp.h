@@ -28,7 +28,6 @@
 #define _WCTDM24XXP_H
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "../voicebus.h"
 #include <asm/semaphore.h>

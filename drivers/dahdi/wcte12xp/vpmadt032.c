@@ -35,7 +35,6 @@
 #include <linux/list.h> 
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "voicebus.h"
 

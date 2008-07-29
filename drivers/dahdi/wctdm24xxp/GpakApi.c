@@ -37,7 +37,6 @@
 #include <asm/semaphore.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "GpakHpi.h"
 #include "GpakCust.h"

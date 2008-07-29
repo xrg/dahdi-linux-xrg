@@ -40,7 +40,6 @@
 #include <asm/semaphore.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "wctdm24xxp.h"
 #include "GpakCust.h"

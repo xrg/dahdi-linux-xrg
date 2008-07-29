@@ -34,7 +34,6 @@
 #include <linux/notifier.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #define ETH_P_DAHDI_DETH	0xd00d
 

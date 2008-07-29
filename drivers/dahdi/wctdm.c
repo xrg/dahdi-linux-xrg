@@ -110,7 +110,6 @@ static alpha  indirect_regs[] =
 };
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 #include <dahdi/wctdm_user.h>
 
 #include "fxo_modes.h"

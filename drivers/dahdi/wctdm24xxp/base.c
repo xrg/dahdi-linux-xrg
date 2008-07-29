@@ -48,7 +48,6 @@ Tx Gain - W/Pre-Emphasis: -23.99 to 0.00 db
 #include <asm/semaphore.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 #include <dahdi/wctdm_user.h>
 
 #include "proslic.h"

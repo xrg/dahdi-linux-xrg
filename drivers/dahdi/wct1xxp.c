@@ -35,7 +35,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #define WC_MAX_CARDS	32
 

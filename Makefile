@@ -120,6 +120,7 @@ uninstall-firmware:
 install-include:
 	install -D -m 644 include/dahdi/kernel.h $(DESTDIR)/usr/include/dahdi/kernel.h
 	install -D -m 644 include/dahdi/user.h $(DESTDIR)/usr/include/dahdi/user.h
+	install -D -m 644 include/dahdi/fasthdlc.h $(DESTDIR)/usr/include/dahdi/fasthdlc.h
 # Include any driver-specific header files here
 	install -D -m 644 include/dahdi/wctdm_user.h $(DESTDIR)/usr/include/dahdi/wctdm_user.h
 

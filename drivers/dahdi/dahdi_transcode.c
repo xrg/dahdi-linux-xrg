@@ -39,7 +39,6 @@
 #include <asm/io.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 static int debug = 0;
 static struct dahdi_transcoder *trans;

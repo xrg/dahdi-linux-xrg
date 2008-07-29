@@ -77,7 +77,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #ifdef USE_HIGHRESTIMER
 #include <linux/hrtimer.h>

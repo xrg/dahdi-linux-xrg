@@ -35,7 +35,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 /* Uncomment to enable tasklet handling in the FXO driver.  Not recommended
    in general, but may improve interactive performance */

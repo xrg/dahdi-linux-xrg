@@ -40,7 +40,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "wct4xxp.h"
 #include "vpm450m.h"

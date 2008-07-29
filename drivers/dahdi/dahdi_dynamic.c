@@ -36,7 +36,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 /*
  * Tasklets provide better system interactive response at the cost of the
@@ -434,7 +433,7 @@ static void dynamic_destroy(struct dahdi_dynamic *z)
 	checkmaster();
 }
 
-static struct dahdi_dynamic *find_dynamic(DAHDI_DYNAMIC_SPAN *zds)
+static struct dahdi_dynamic *find_dynamic(struct dahdi_dynamic_span *zds)
 {
 	struct dahdi_dynamic *z;
 	z = dspans;
@@ -460,7 +459,7 @@ static struct dahdi_dynamic_driver *find_driver(char *name)
 	return ztd;
 }
 
-static int destroy_dynamic(DAHDI_DYNAMIC_SPAN *zds)
+static int destroy_dynamic(struct dahdi_dynamic_span *zds)
 {
 	unsigned long flags;
 	struct dahdi_dynamic *z, *cur, *prev=NULL;
@@ -534,7 +533,7 @@ static int ztd_close(struct dahdi_chan *chan)
 	return 0;
 }
 
-static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
+static int create_dynamic(struct dahdi_dynamic_span *zds)
 {
 	struct dahdi_dynamic *z;
 	struct dahdi_dynamic_driver *ztd;
@@ -687,7 +686,7 @@ static void ztd_tasklet(unsigned long data)
 
 static int ztdynamic_ioctl(unsigned int cmd, unsigned long data)
 {
-	DAHDI_DYNAMIC_SPAN zds;
+	struct dahdi_dynamic_span zds;
 	int res;
 	switch(cmd) {
 	case 0:
@@ -698,7 +697,7 @@ static int ztdynamic_ioctl(unsigned int cmd, unsigned long data)
 			ztdynamic_run();
 		return 0;
 	case DAHDI_DYNAMIC_CREATE:
-		if (copy_from_user(&zds, (DAHDI_DYNAMIC_SPAN *)data, sizeof(zds)))
+		if (copy_from_user(&zds, (struct dahdi_dynamic_span *)data, sizeof(zds)))
 			return -EFAULT;
 		if (debug)
 			printk("Dynamic Create\n");
@@ -707,11 +706,11 @@ static int ztdynamic_ioctl(unsigned int cmd, unsigned long data)
 			return res;
 		zds.spanno = res;
 		/* Let them know the new span number */
-		if (copy_to_user((DAHDI_DYNAMIC_SPAN *)data, &zds, sizeof(zds)))
+		if (copy_to_user((struct dahdi_dynamic_span *)data, &zds, sizeof(zds)))
 			return -EFAULT;
 		return 0;
 	case DAHDI_DYNAMIC_DESTROY:
-		if (copy_from_user(&zds, (DAHDI_DYNAMIC_SPAN *)data, sizeof(zds)))
+		if (copy_from_user(&zds, (struct dahdi_dynamic_span *)data, sizeof(zds)))
 			return -EFAULT;
 		if (debug)
 			printk("Dynamic Destroy\n");

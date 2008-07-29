@@ -37,7 +37,6 @@
 #include <unistd.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #define MAX_CARDS_TO_TEST	6
 #define MAX_CHANNELS_PER_CARD   96

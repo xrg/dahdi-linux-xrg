@@ -12,8 +12,7 @@
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * the Free Software Foundation; either version 2 of the License.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,10 +24,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
  */
 
-#ifndef _LINUX_DAHDI_H
-#define _LINUX_DAHDI_H
+#ifndef _DAHDI_KERNEL_H
+#define _DAHDI_KERNEL_H
 
-#ifdef __KERNEL__
+#include <dahdi/user.h>
+#include <dahdi/fasthdlc.h>
+
 #include "dahdi_config.h"
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
@@ -46,6 +47,8 @@
 #include <linux/skbuff.h>
 #include <linux/interrupt.h>
 #endif
+
+#include <linux/poll.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,10)
 #define dahdi_pci_module pci_register_driver
@@ -69,77 +72,6 @@
 #define DAHDI_IRQ_SHARED_DISABLED SA_SHIRQ | SA_INTERRUPT
 #endif
 
-#include "ecdis.h"
-#include "fasthdlc.h"
-
-#endif /* __KERNEL__ */
-
-#include <linux/types.h>
-
-#ifndef ELAST
-#define ELAST 500
-#endif
-
-/* Per-span configuration values */
-#define	DAHDI_CONFIG_TXLEVEL	7	/* bits 0-2 are tx level */
-
-/* Line configuration */
-/* These apply to T1 */
-#define DAHDI_CONFIG_D4	 (1 << 4)	
-#define DAHDI_CONFIG_ESF	 (1 << 5)
-#define DAHDI_CONFIG_AMI	 (1 << 6)
-#define DAHDI_CONFIG_B8ZS 	 (1 << 7)
-/* These apply to E1 */
-#define	DAHDI_CONFIG_CCS	 (1 << 8)	/* CCS (ISDN) instead of CAS (Robbed Bit) */
-#define	DAHDI_CONFIG_HDB3	 (1 << 9)	/* HDB3 instead of AMI (line coding) */
-#define	DAHDI_CONFIG_CRC4   (1 << 10)	/* CRC4 framing */
-#define DAHDI_CONFIG_NOTOPEN (1 << 16)
-
-/* Signalling types */
-#define DAHDI_SIG_BROKEN	(1 << 31)	/* The port is broken and/or failed initialization */
-
-#define __DAHDI_SIG_FXO	(1 << 12)	/* Never use directly */
-#define __DAHDI_SIG_FXS	(1 << 13)	/* Never use directly */
-
-#define DAHDI_SIG_NONE		(0)			/* Channel not configured */
-#define DAHDI_SIG_FXSLS	((1 << 0) | __DAHDI_SIG_FXS)	/* FXS, Loopstart */
-#define DAHDI_SIG_FXSGS	((1 << 1) | __DAHDI_SIG_FXS)	/* FXS, Groundstart */
-#define DAHDI_SIG_FXSKS	((1 << 2) | __DAHDI_SIG_FXS)	/* FXS, Kewlstart */
-
-#define DAHDI_SIG_FXOLS	((1 << 3) | __DAHDI_SIG_FXO)	/* FXO, Loopstart */
-#define DAHDI_SIG_FXOGS	((1 << 4) | __DAHDI_SIG_FXO)	/* FXO, Groupstart */
-#define DAHDI_SIG_FXOKS	((1 << 5) | __DAHDI_SIG_FXO)	/* FXO, Kewlstart */
-
-#define DAHDI_SIG_EM	(1 << 6)		/* Ear & Mouth (E&M) */
-
-/* The following are all variations on clear channel */
-
-#define __DAHDI_SIG_DACS	(1 << 16)
-
-#define DAHDI_SIG_CLEAR	(1 << 7)					/* Clear channel */
-#define DAHDI_SIG_HDLCRAW	((1 << 8)  | DAHDI_SIG_CLEAR)	/* Raw unchecked HDLC */
-#define DAHDI_SIG_HDLCFCS	((1 << 9)  | DAHDI_SIG_HDLCRAW)	/* HDLC with FCS calculation */
-#define DAHDI_SIG_HDLCNET	((1 << 10) | DAHDI_SIG_HDLCFCS)	/* HDLC Network */
-#define DAHDI_SIG_SLAVE	(1 << 11) 					/* Slave to another channel */
-#define	DAHDI_SIG_SF	(1 << 14)			/* Single Freq. tone only, no sig bits */
-#define DAHDI_SIG_CAS	(1 << 15)			/* Just get bits */
-#define DAHDI_SIG_DACS	(__DAHDI_SIG_DACS | DAHDI_SIG_CLEAR)	/* Cross connect */
-#define DAHDI_SIG_EM_E1	(1 << 17)			/* E1 E&M Variation */
-#define DAHDI_SIG_DACS_RBS	((1 << 18) | __DAHDI_SIG_DACS)	/* Cross connect w/ RBS */
-#define DAHDI_SIG_HARDHDLC	((1 << 19) | DAHDI_SIG_CLEAR)
-#define DAHDI_SIG_MTP2	((1 << 20) | DAHDI_SIG_HDLCFCS)	/* MTP2 support  Need HDLC bitstuff and FCS calcuation too */
-
-/* tone flag values */
-#define	DAHDI_REVERSE_RXTONE 1  /* reverse polarity rx tone logic */
-#define	DAHDI_REVERSE_TXTONE 2  /* reverse polarity tx tone logic */
-
-#define DAHDI_ABIT			8
-#define DAHDI_BBIT			4
-#define	DAHDI_CBIT			2
-#define	DAHDI_DBIT			1
-
-#define DAHDI_MAJOR	196
-
 /* Default chunk size for conferences and such -- static right now, might make
    variable sometime.  8 samples = 1 ms = most frequent service interval possible
    for a USB device */
@@ -149,1060 +81,9 @@
 #define DAHDI_MAX_CHUNKSIZE 	 DAHDI_CHUNKSIZE
 #define DAHDI_CB_SIZE		 2
 
-#define DAHDI_MAX_BLOCKSIZE 	 8192
-#define DAHDI_DEFAULT_NUM_BUFS	 2
-#define DAHDI_MAX_NUM_BUFS		 32
-#define DAHDI_MAX_BUF_SPACE         32768
+#define RING_DEBOUNCE_TIME	2000	/* 2000 ms ring debounce time */
 
-#define DAHDI_DEFAULT_BLOCKSIZE 1024
-#define DAHDI_DEFAULT_MTR_MRU	 2048
-
-#define DAHDI_POLICY_IMMEDIATE	 0		/* Start play/record immediately */
-#define DAHDI_POLICY_WHEN_FULL  1		/* Start play/record when buffer is full */
-
-#define	RING_DEBOUNCE_TIME	2000	/* 2000 ms ring debounce time */
-
-#define DAHDI_GET_PARAMS_RETURN_MASTER 0x40000000
-
-typedef struct dahdi_params
-{
-	int channo;		/* Channel number */
-	int spanno;		/* Span itself */
-	int chanpos;		/* Channel number in span */
-	int sigtype;		/* read-only */
-	int sigcap;		/* read-only */
-	int rxisoffhook;	/* read-only */
-	int rxbits;		/* read-only */
-	int txbits;		/* read-only */
-	int txhooksig;		/* read-only */
-	int rxhooksig;		/* read-only */
-	int curlaw;		/* read-only  -- one of DAHDI_LAW_MULAW or DAHDI_LAW_ALAW */
-	int idlebits;		/* read-only  -- What is considered the idle state */
-	char name[40];		/* Name of channel */
-	int prewinktime;
-	int preflashtime;
-	int winktime;
-	int flashtime;
-	int starttime;
-	int rxwinktime;
-	int rxflashtime;
-	int debouncetime;
-	int pulsebreaktime;
-	int pulsemaketime;
-	int pulseaftertime;
-	__u32 chan_alarms;	/* alarms on this channel */
-} DAHDI_PARAMS;
-
-typedef struct dahdi_spaninfo {
-	int	spanno;		/* span number */
-	char	name[20];	/* Name */
-	char	desc[40];	/* Description */
-	int	alarms;		/* alarms status */
-	int	txlevel;	/* what TX level is set to */
-	int	rxlevel;	/* current RX level */
-	int	bpvcount;	/* current BPV count */
-	int	crc4count;	/* current CRC4 error count */
-	int	ebitcount;	/* current E-bit error count */
-	int	fascount;	/* current FAS error count */
-	int	irqmisses;	/* current IRQ misses */
-	int	syncsrc;	/* span # of current sync source, or 0 for free run  */
-	int	numchans;	/* number of configured channels on this span */
-	int	totalchans;	/* total number of channels on the span */
-	int	totalspans;	/* total number of spans in entire system */
-	int	lbo;		/* line build out */
-	int	lineconfig;	/* framing/coding */
-	char 	lboname[40];	/* line build out in text form */
-	char	location[40];	/* span's device location in system */
-	char	manufacturer[40]; /* manufacturer of span's device */
-	char	devicetype[40];	/* span's device type */
-	int	irq;		/* span's device IRQ */
-	int	linecompat;	/* signaling modes possible on this span */
-	char	spantype[6];	/* type of span in text form */
-} DAHDI_SPANINFO;
-
-typedef struct dahdi_maintinfo
-{
-int	spanno;		/* span number 1-2 */
-int	command;	/* command */
-} DAHDI_MAINTINFO;
-
-typedef struct dahdi_confinfo
-{
-int	chan;		/* channel number, 0 for current */
-int	confno;		/* conference number */
-int	confmode;	/* conferencing mode */
-} DAHDI_CONFINFO;
-
-typedef struct dahdi_gains
-{
-int	chan;		/* channel number, 0 for current */
-unsigned char rxgain[256];	/* Receive gain table */
-unsigned char txgain[256];	/* Transmit gain table */
-} DAHDI_GAINS;
-
-typedef struct dahdi_lineconfig
-{
-int span;		/* Which span number (0 to use name) */
-char name[20];	/* Name of span to use */
-int	lbo;		/* line build-outs */
-int	lineconfig;	/* line config parameters (framing, coding) */
-int	sync;		/* what level of sync source we are */
-} DAHDI_LINECONFIG;
-
-typedef struct dahdi_chanconfig
-{
-int	chan;		/* Channel we're applying this to (0 to use name) */
-char	name[40];	/* Name of channel to use */
-int	sigtype;	/* Signal type */
-int	deflaw;		/* Default law (DAHDI_LAW_DEFAULT, DAHDI_LAW_MULAW, or DAHDI_LAW_ALAW) */
-int	master;		/* Master channel if sigtype is DAHDI_SLAVE */
-int	idlebits;	/* Idle bits (if this is a CAS channel) or
-			   channel to monitor (if this is DACS channel) */
-char	netdev_name[16];/* name for the hdlc network device*/
-} DAHDI_CHANCONFIG;
-
-typedef struct dahdi_sfconfig
-{
-int	chan;		/* Channel we're applying this to (0 to use name) */
-char	name[40];	/* Name of channel to use */
-long	rxp1;		/* receive tone det. p1 */
-long	rxp2;		/* receive tone det. p2 */
-long	rxp3;		/* receive tone det. p3 */
-int	txtone;		/* Tx tone factor */
-int	tx_v2;		/* initial v2 value */
-int	tx_v3;		/* initial v3 value */
-int	toneflag;	/* Tone flags */
-} DAHDI_SFCONFIG;
-
-typedef struct dahdi_bufferinfo
-{
-int txbufpolicy;	/* Policy for handling receive buffers */
-int rxbufpolicy;	/* Policy for handling receive buffers */
-int numbufs;		/* How many buffers to use */
-int bufsize;		/* How big each buffer is */
-int readbufs;		/* How many read buffers are full (read-only) */
-int writebufs;		/* How many write buffers are full (read-only) */
-} DAHDI_BUFFERINFO;
-
-typedef struct dahdi_dialparams {
-	int mfv1_tonelen;	/* MF R1 tone length for digits */
-	int dtmf_tonelen;	/* DTMF tone length */
-	int mfr2_tonelen;	/* MF R2 tone length */
-	int reserved[3];	/* Reserved for future expansion -- always set to 0 */
-} DAHDI_DIAL_PARAMS;
-
-typedef struct dahdi_dynamic_span {
-	char driver[20];	/* Which low-level driver to use */
-	char addr[40];		/* Destination address */
-	int numchans;		/* Number of channels */
-	int timing;		/* Timing source preference */
-	int spanno;		/* Span number (filled in by DAHDI) */
-} DAHDI_DYNAMIC_SPAN;
-
-/* Define the max # of outgoing DTMF, MFR1 or MFR2 digits to queue in-kernel */
-#define DAHDI_MAX_DTMF_BUF 256
-
-#define DAHDI_DIAL_OP_APPEND	1
-#define DAHDI_DIAL_OP_REPLACE	2
-#define DAHDI_DIAL_OP_CANCEL	3
-
-#define DAHDI_LAW_DEFAULT	0	/* Default law for span */
-#define DAHDI_LAW_MULAW	1	/* Mu-law */
-#define DAHDI_LAW_ALAW	2	/* A-law */
-
-typedef struct dahdi_dialoperation {
-	int op;
-	char dialstr[DAHDI_MAX_DTMF_BUF];
-} DAHDI_DIAL_OPERATION;
-
-
-typedef struct dahdi_indirect_data
-{
-int	chan;
-int	op;
-void	*data;
-} DAHDI_INDIRECT_DATA;	
-
-struct dahdi_versioninfo {
-	char version[80];
-	char echo_canceller[80];
-};
-
-struct dahdi_hwgain {
-	__s32 newgain;	/* desired gain in dB but x10.  -3.5dB would be -35 */
-	__u32 tx:1;	/* 0=rx; 1=tx */
-};
-
-struct dahdi_attach_echocan {
-	int	chan;		/* Channel we're applying this to */
-	char	echocan[16];	/* Name of echo canceler to attach to this channel
-				   (leave empty to have no echocan attached */
-};
-
-/* ioctl definitions */
-#define DAHDI_CODE	0xDA
-
-/*
- * Get Transfer Block Size.
- */
-#define DAHDI_GET_BLOCKSIZE	_IOR (DAHDI_CODE, 1, int)
-
-/*
- * Set Transfer Block Size.
- */
-#define DAHDI_SET_BLOCKSIZE	_IOW (DAHDI_CODE, 2, int)
-
-/*
- * Flush Buffer(s) and stop I/O
- */
-#define	DAHDI_FLUSH		_IOW (DAHDI_CODE, 3, int)
-
-/*
- * Wait for Write to Finish
- */
-#define	DAHDI_SYNC		_IOW (DAHDI_CODE, 4, int)
-
-/*
- * Get channel parameters
- */
-#define DAHDI_GET_PARAMS		_IOR (DAHDI_CODE, 5, struct dahdi_params)
-
-/*
- * Get channel parameters
- */
-#define DAHDI_SET_PARAMS		_IOW (DAHDI_CODE, 6, struct dahdi_params)
-
-/*
- * Set Hookswitch Status
- */
-#define DAHDI_HOOK		_IOW (DAHDI_CODE, 7, int)
-
-/*
- * Get Signalling Event
- */
-#define DAHDI_GETEVENT		_IOR (DAHDI_CODE, 8, int)
-
-/*
- * Wait for something to happen (IO Mux)
- */
-#define DAHDI_IOMUX		_IOWR (DAHDI_CODE, 9, int)
-
-/*
- * Get Span Status
- */
-#define DAHDI_SPANSTAT		_IOWR (DAHDI_CODE, 10, struct dahdi_spaninfo)
-
-/*
- * Set Maintenance Mode
- */
-#define DAHDI_MAINT		_IOW (DAHDI_CODE, 11, struct dahdi_maintinfo)
-
-/*
- * Get Conference Mode
- */
-#define DAHDI_GETCONF		_IOWR (DAHDI_CODE, 12, struct dahdi_confinfo)
-
-/*
- * Set Conference Mode
- */
-#define DAHDI_SETCONF		_IOWR (DAHDI_CODE, 13, struct dahdi_confinfo)
-
-/*
- * Setup or Remove Conference Link
- */
-#define DAHDI_CONFLINK		_IOW (DAHDI_CODE, 14, struct dahdi_confinfo)
-
-/*
- * Display Conference Diagnostic Information on Console
- */
-#define DAHDI_CONFDIAG		_IOR (DAHDI_CODE, 15, int)
-
-/*
- * Get Channel audio gains
- */
-#define DAHDI_GETGAINS		_IOWR (DAHDI_CODE, 16, struct dahdi_gains)
-
-/*
- * Set Channel audio gains
- */
-#define DAHDI_SETGAINS		_IOWR (DAHDI_CODE, 17, struct dahdi_gains)
-
-/*
- * Set Line (T1) Configurations and start system
- */
-#define	DAHDI_SPANCONFIG		_IOW (DAHDI_CODE, 18, struct dahdi_lineconfig)
-
-/*
- * Set Channel Configuration
- */
-#define	DAHDI_CHANCONFIG		_IOW (DAHDI_CODE, 19, struct dahdi_chanconfig)
-
-/*
- * Set Conference to mute mode
- */
-#define	DAHDI_CONFMUTE		_IOW (DAHDI_CODE, 20, int)
-
-/*
- * Send a particular tone (see DAHDI_TONE_*)
- */
-#define	DAHDI_SENDTONE		_IOW (DAHDI_CODE, 21, int)
-
-/*
- * Set your region for tones (see DAHDI_TONE_ZONE_*)
- */
-#define	DAHDI_SETTONEZONE		_IOW (DAHDI_CODE, 22, int)
-
-/*
- * Retrieve current region for tones (see DAHDI_TONE_ZONE_*)
- */
-#define	DAHDI_GETTONEZONE		_IOR (DAHDI_CODE, 23, int)
-
-/*
- * Master unit only -- set default zone (see DAHDI_TONE_ZONE_*)
- */
-#define	DAHDI_DEFAULTZONE		_IOW (DAHDI_CODE, 24, int)
-
-/*
- * Load a tone zone from a dahdi_tone_def_header, see
- * below...
- */
-#define DAHDI_LOADZONE		_IOW (DAHDI_CODE, 25, struct dahdi_tone_def_header)
-
-/*
- * Free a tone zone 
- */
-#define DAHDI_FREEZONE		_IOW (DAHDI_CODE, 26, int)
-
-/*
- * Set buffer policy 
- */
-#define DAHDI_SET_BUFINFO		_IOW (DAHDI_CODE, 27, struct dahdi_bufferinfo)
-
-/*
- * Get current buffer info
- */
-#define DAHDI_GET_BUFINFO		_IOR (DAHDI_CODE, 28, struct dahdi_bufferinfo)
-
-/*
- * Get dialing parameters
- */
-#define DAHDI_GET_DIALPARAMS	_IOR (DAHDI_CODE, 29, struct dahdi_dialparams)
-
-/*
- * Set dialing parameters
- */
-#define DAHDI_SET_DIALPARAMS	_IOW (DAHDI_CODE, 30, struct dahdi_dialparams)
-
-/*
- * Append, replace, or cancel a dial string
- */
-#define DAHDI_DIAL			_IOW (DAHDI_CODE, 31, struct dahdi_dialoperation)
-
-/*
- * Set a clear channel into audio mode
- */
-#define DAHDI_AUDIOMODE		_IOW (DAHDI_CODE, 32, int)
-
-/*
- * Enable or disable echo cancellation on a channel 
- *
- * For ECHOCANCEL:
- * The number is zero to disable echo cancellation and non-zero
- * to enable echo cancellation.  If the number is between 32
- * and 1024, it will also set the number of taps in the echo canceller
- *
- * For ECHOCANCEL_PARAMS:
- * The structure contains parameters that should be passed to the
- * echo canceler instance for the selected channel.
- */
-#define DAHDI_ECHOCANCEL		_IOW (DAHDI_CODE, 33, int)
-#define DAHDI_ECHOCANCEL_PARAMS	_IOW (DAHDI_CODE, 33, struct dahdi_echocanparams)
-
-/*
- * Return a channel's channel number (useful for the /dev/zap/pseudo type interfaces 
- */
-#define DAHDI_CHANNO		_IOR (DAHDI_CODE, 34, int)
-
-/*
- * Return a flag indicating whether channel is currently dialing
- */
-#define DAHDI_DIALING		_IOR (DAHDI_CODE, 35, int)
-
-/* Numbers 60 to 90 are reserved for private use of low level hardware
-   drivers */
-
-/*
- * Set a clear channel into HDLC w/out FCS checking/calculation mode
- */
-#define DAHDI_HDLCRAWMODE		_IOW (DAHDI_CODE, 36, int)
-
-/*
- * Set a clear channel into HDLC w/ FCS mode
- */
-#define DAHDI_HDLCFCSMODE		_IOW (DAHDI_CODE, 37, int)
-
-/* 
- * Specify a channel on /dev/zap/chan -- must be done before any other ioctl's and is only
- * valid on /dev/zap/chan
- */
-#define DAHDI_SPECIFY		_IOW (DAHDI_CODE, 38, int)
-
-/*
- * Temporarily set the law on a channel to 
- * DAHDI_LAW_DEFAULT, DAHDI_LAW_ALAW, or DAHDI_LAW_MULAW.  Is reset on close.  
- */
-#define DAHDI_SETLAW		_IOW (DAHDI_CODE, 39, int)
-
-/*
- * Temporarily set the channel to operate in linear mode when non-zero
- * or default law if 0
- */
-#define DAHDI_SETLINEAR		_IOW (DAHDI_CODE, 40, int)
-
-/*
- * Set a clear channel into HDLC w/ PPP interface mode
- */
-#define DAHDI_HDLCPPP		_IOW (DAHDI_CODE, 41, int)
-
-/*
- * Set the ring cadence for FXS interfaces
- */
-#define DAHDI_SETCADENCE		_IOW (DAHDI_CODE, 42, struct dahdi_ring_cadence)
-
-/*
- * Set the bits going out for CAS interface
- */
-#define DAHDI_SETTXBITS			_IOW (DAHDI_CODE, 43, int)
-
-
-/*
- * Display Channel Diagnostic Information on Console
- */
-#define DAHDI_CHANDIAG		_IOR (DAHDI_CODE, 44, int) 
-
-/* 
- * Obtain received signalling
- */
-#define DAHDI_GETRXBITS _IOR (DAHDI_CODE, 45, int)
-
-/*
- * Set Channel's SF Tone Configuration
- */
-#define	DAHDI_SFCONFIG		_IOW (DAHDI_CODE, 46, struct dahdi_sfconfig)
-
-/*
- * Set timer expiration (in samples)
- */
-#define DAHDI_TIMERCONFIG	_IOW (DAHDI_CODE, 47, int)
-
-/*
- * Acknowledge timer expiration (number to acknowledge, or -1 for all)
- */
-#define DAHDI_TIMERACK _IOW (DAHDI_CODE, 48, int)
-
-/*
- * Get Conference to mute mode
- */
-#define	DAHDI_GETCONFMUTE		_IOR (DAHDI_CODE, 49, int)
-
-/*
- * Request echo training in some number of ms (with muting in the mean time)
- */
-#define	DAHDI_ECHOTRAIN		_IOW (DAHDI_CODE, 50, int)
-
-/*
- * Set on hook transfer for n number of ms -- implemnted by low level driver
- */
-#define	DAHDI_ONHOOKTRANSFER		_IOW (DAHDI_CODE, 51, int)
-
-/*
- * Queue Ping
- */
-#define DAHDI_TIMERPING _IOW (DAHDI_CODE, 42, int) /* Should be 52, but works */
-
-/*
- * Acknowledge ping
- */
-#define DAHDI_TIMERPONG _IOW (DAHDI_CODE, 53, int)
-
-/*
- * Set/get signalling freeze
- */
-#define DAHDI_SIGFREEZE _IOW (DAHDI_CODE, 54, int)
-#define DAHDI_GETSIGFREEZE _IOR (DAHDI_CODE, 55, int)
-
-/*
- * Do a channel IOCTL from the /dev/zap/ctl interface
- */
-#define DAHDI_INDIRECT _IOWR (DAHDI_CODE, 56, struct dahdi_indirect_data)
-
-
-/*
- * Get the version of DAHDI that is running, and a description
- * of the compiled-in echo canceller (if any)
- */
-#define DAHDI_GETVERSION _IOR(DAHDI_CODE, 57, struct dahdi_versioninfo)
-
-/*
- * Put the channel in loopback mode (receive from the channel is
- * transmitted back on the interface)
- */
-#define DAHDI_LOOPBACK _IOW(DAHDI_CODE, 58, int)
-
-/*
-  Attach the desired echo canceler module (or none) to a channel in an
-  audio-supporting mode, so that when the channel needs an echo canceler
-  that module will be used to supply one.
- */
-#define DAHDI_ATTACH_ECHOCAN _IOW(DAHDI_CODE, 59, struct dahdi_attach_echocan)
-
-
-/*
- *  60-80 are reserved for private drivers
- *  80-85 are reserved for dynamic span stuff
- */
-
-/*
- * Create a dynamic span
- */
-#define DAHDI_DYNAMIC_CREATE	_IOWR (DAHDI_CODE, 80, struct dahdi_dynamic_span)
-
-/* 
- * Destroy a dynamic span 
- */
-#define DAHDI_DYNAMIC_DESTROY	_IOW (DAHDI_CODE, 81, struct dahdi_dynamic_span)
-
-/*
- * Set the HW gain for a device
- */
-#define DAHDI_SET_HWGAIN		_IOW (DAHDI_CODE, 86, struct dahdi_hwgain)
-
-/*
- * Enable tone detection -- implemented by low level driver
- */
-#define DAHDI_TONEDETECT		_IOW (DAHDI_CODE, 91, int)
-
-/*
- * Set polarity -- implemented by individual driver.  0 = forward, 1 = reverse
- */
-#define	DAHDI_SETPOLARITY		_IOW (DAHDI_CODE, 92, int)
-
-/*
- * Transcoder operations
- */
-#define DAHDI_TRANSCODE_OP		_IOWR(DAHDI_CODE, 93, int)
-
-/*
- * VoiceMail Waiting Indication (WMWI) -- implemented by low-level driver.
- * Value: number of waiting messages (hence 0: switch messages off).
- */
-#define DAHDI_VMWI			_IOWR(DAHDI_CODE, 94, int)
-
-/* 
- * Startup or Shutdown a span
- */
-#define DAHDI_STARTUP		_IOW (DAHDI_CODE, 99, int)
-#define DAHDI_SHUTDOWN		_IOW (DAHDI_CODE, 100, int)
-
-#define DAHDI_TONE_ZONE_MAX		128
-
-#define DAHDI_TONE_ZONE_DEFAULT 	-1	/* To restore default */
-
-#define DAHDI_TONE_STOP		-1
-#define DAHDI_TONE_DIALTONE	0
-#define DAHDI_TONE_BUSY		1
-#define DAHDI_TONE_RINGTONE	2
-#define DAHDI_TONE_CONGESTION	3
-#define DAHDI_TONE_CALLWAIT	4
-#define DAHDI_TONE_DIALRECALL	5
-#define DAHDI_TONE_RECORDTONE	6
-#define DAHDI_TONE_INFO		7
-#define DAHDI_TONE_CUST1		8
-#define DAHDI_TONE_CUST2		9
-#define DAHDI_TONE_STUTTER		10
-#define DAHDI_TONE_MAX		16
-
-#define DAHDI_TONE_DTMF_BASE	64
-#define DAHDI_TONE_MFR1_BASE	80
-#define DAHDI_TONE_MFR2_FWD_BASE	96
-#define DAHDI_TONE_MFR2_REV_BASE	112
-
-enum {
-	DAHDI_TONE_DTMF_0 = DAHDI_TONE_DTMF_BASE,
-	DAHDI_TONE_DTMF_1,
-	DAHDI_TONE_DTMF_2,
-	DAHDI_TONE_DTMF_3,
-	DAHDI_TONE_DTMF_4,
-	DAHDI_TONE_DTMF_5,
-	DAHDI_TONE_DTMF_6,
-	DAHDI_TONE_DTMF_7,
-	DAHDI_TONE_DTMF_8,
-	DAHDI_TONE_DTMF_9,
-	DAHDI_TONE_DTMF_s,
-	DAHDI_TONE_DTMF_p,
-	DAHDI_TONE_DTMF_A,
-	DAHDI_TONE_DTMF_B,
-	DAHDI_TONE_DTMF_C,
-	DAHDI_TONE_DTMF_D
-};
-
-#define DAHDI_TONE_DTMF_MAX DAHDI_TONE_DTMF_D
-
-enum {
-	DAHDI_TONE_MFR1_0 = DAHDI_TONE_MFR1_BASE,
-	DAHDI_TONE_MFR1_1,
-	DAHDI_TONE_MFR1_2,
-	DAHDI_TONE_MFR1_3,
-	DAHDI_TONE_MFR1_4,
-	DAHDI_TONE_MFR1_5,
-	DAHDI_TONE_MFR1_6,
-	DAHDI_TONE_MFR1_7,
-	DAHDI_TONE_MFR1_8,
-	DAHDI_TONE_MFR1_9,
-	DAHDI_TONE_MFR1_KP,
-	DAHDI_TONE_MFR1_ST,
-	DAHDI_TONE_MFR1_STP,
-	DAHDI_TONE_MFR1_ST2P,
-	DAHDI_TONE_MFR1_ST3P,
-};
-
-#define DAHDI_TONE_MFR1_MAX DAHDI_TONE_MFR1_ST3P
-
-enum {
-	DAHDI_TONE_MFR2_FWD_1 = DAHDI_TONE_MFR2_FWD_BASE,
-	DAHDI_TONE_MFR2_FWD_2,
-	DAHDI_TONE_MFR2_FWD_3,
-	DAHDI_TONE_MFR2_FWD_4,
-	DAHDI_TONE_MFR2_FWD_5,
-	DAHDI_TONE_MFR2_FWD_6,
-	DAHDI_TONE_MFR2_FWD_7,
-	DAHDI_TONE_MFR2_FWD_8,
-	DAHDI_TONE_MFR2_FWD_9,
-	DAHDI_TONE_MFR2_FWD_10,
-	DAHDI_TONE_MFR2_FWD_11,
-	DAHDI_TONE_MFR2_FWD_12,
-	DAHDI_TONE_MFR2_FWD_13,
-	DAHDI_TONE_MFR2_FWD_14,
-	DAHDI_TONE_MFR2_FWD_15,
-};
-
-#define DAHDI_TONE_MFR2_FWD_MAX DAHDI_TONE_MFR2_FWD_15
-
-enum {
-	DAHDI_TONE_MFR2_REV_1 = DAHDI_TONE_MFR2_REV_BASE,
-	DAHDI_TONE_MFR2_REV_2,
-	DAHDI_TONE_MFR2_REV_3,
-	DAHDI_TONE_MFR2_REV_4,
-	DAHDI_TONE_MFR2_REV_5,
-	DAHDI_TONE_MFR2_REV_6,
-	DAHDI_TONE_MFR2_REV_7,
-	DAHDI_TONE_MFR2_REV_8,
-	DAHDI_TONE_MFR2_REV_9,
-	DAHDI_TONE_MFR2_REV_10,
-	DAHDI_TONE_MFR2_REV_11,
-	DAHDI_TONE_MFR2_REV_12,
-	DAHDI_TONE_MFR2_REV_13,
-	DAHDI_TONE_MFR2_REV_14,
-	DAHDI_TONE_MFR2_REV_15,
-};
-
-#define DAHDI_TONE_MFR2_REV_MAX DAHDI_TONE_MFR2_REV_15
-
-#define DAHDI_MAX_CADENCE		16
-
-#define DAHDI_TONEDETECT_ON	(1 << 0)		/* Detect tones */
-#define DAHDI_TONEDETECT_MUTE	(1 << 1)		/* Mute audio in received channel */
-
-#define DAHDI_TRANSCODE_MAGIC 0x74a9c0de
-
-/* Operations */
-#define DAHDI_TCOP_ALLOCATE	1			/* Allocate/reset DTE channel */
-#define DAHDI_TCOP_TRANSCODE	2			/* Begin transcoding a block */
-#define DAHDI_TCOP_GETINFO		3			/* Get information (use dahdi_transcode_info) */
-#define DAHDI_TCOP_RELEASE         4                       /* Release DTE channel */
-#define DAHDI_TCOP_TEST            5                       /* test DTE device */
-typedef struct dahdi_transcode_info {
-	unsigned int op;
-	unsigned int tcnum;
-	char name[80];
-	int numchannels;
-	unsigned int srcfmts;
-	unsigned int dstfmts;
-} DAHDI_TRANSCODE_INFO;
-
-#define DAHDI_TCCONF_USETS		(1 << 0)		/* Use/update timestamp field */
-#define DAHDI_TCCONF_USESEQ	(1 << 1)		/* Use/update seqno field */
-
-#define DAHDI_TCSTAT_DSTRDY	(1 << 0)		/* Destination data is ready */
-#define DAHDI_TCSTAT_DSTBUSY	(1 << 1)		/* Destination data is outstanding */
-
-#define __DAHDI_TRANSCODE_BUFSIZ	16384
-#define DAHDI_TRANSCODE_HDRLEN	256
-#define DAHDI_TRANSCODE_BUFSIZ	((__DAHDI_TRANSCODE_BUFSIZ) - (DAHDI_TRANSCODE_HDRLEN))
-#define DAHDI_TRANSCODE_DSTOFFSET	(((DAHDI_TRANSCODE_BUFSIZ) / 2) + DAHDI_TRANSCODE_HDRLEN)
-#define DAHDI_TRANSCODE_SRCOFFSET	(((DAHDI_TRANSCODE_BUFSIZ) / 2) + DAHDI_TRANSCODE_HDRLEN)
-
-typedef struct dahdi_transcode_header {
-	unsigned int srcfmt;		/* See formats.h -- use TCOP_RESET when you change */
-	unsigned int srcoffset; 	/* In bytes -- written by user */
-	unsigned int srclen;		/* In bytes -- written by user */
-	unsigned int srctimestamp;	/* In samples -- written by user (only used if DAHDI_TCCONF_USETS is set) */
-	unsigned int srcseqno;		/* In units -- written by user (only used if DAHDI_TCCONF_USESEQ is set) */
-
-	unsigned int dstfmt;		/* See formats.h -- use TCOP_RESET when you change */
-	unsigned int dstoffset;  	/* In bytes -- written by user */
-	unsigned int dsttimestamp;	/* In samples -- read by user */
-	unsigned int dstseqno;		/* In units -- read by user (only used if DAHDI_TCCONF_USESEQ is set) */
-	unsigned int dstlen;  		/* In bytes -- read by user */
-	unsigned int dstsamples;	/* In timestamp units -- read by user */
-
-	unsigned int magic;		/* Magic value -- DAHDI_TRANSCODE_MAGIC, read by user */
-	unsigned int config;		/* Read/write by user */
-	unsigned int status;		/* Read/write by user */
-	unsigned char userhdr[DAHDI_TRANSCODE_HDRLEN - (sizeof(unsigned int) * 14)];	/* Storage for user parameters */
-	unsigned char srcdata[DAHDI_TRANSCODE_BUFSIZ / 2];	/* Storage of source data */
-	unsigned char dstdata[DAHDI_TRANSCODE_BUFSIZ / 2];	/* Storage of destination data */
-} DAHDI_TRANSCODE_HEADER;
-
-struct dahdi_ring_cadence {
-	int ringcadence[DAHDI_MAX_CADENCE];
-};
-
-#define DAHDI_MAX_ECHOCANPARAMS 8
-
-struct dahdi_echocanparam {
-	char name[16];
-        __s32 value;
-};
-
-struct dahdi_echocanparams {
-	__u32 tap_length;		/* 8 taps per millisecond */
-	__u32 param_count;		/* number of parameters supplied */
-	/* immediately follow this structure with dahdi_echocanparam structures */
-	struct dahdi_echocanparam params[0];
-};
-
-/* Echo cancellation */
-struct echo_can_state;
-
-struct dahdi_echocan {
-	const char *name;
-	struct module *owner;
-	int (*echo_can_create)(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p, struct echo_can_state **ec);
-	void (*echo_can_free)(struct echo_can_state *ec);
-	void (*echo_can_array_update)(struct echo_can_state *ec, short *iref, short *isig);
-	int (*echo_can_traintap)(struct echo_can_state *ec, int pos, short val);
-};
-
-int dahdi_register_echocan(const struct dahdi_echocan *ec);
-void dahdi_unregister_echocan(const struct dahdi_echocan *ec);
-
-struct dahdi_tone_def_header {
-	int count;		/* How many samples follow */
-	int zone;		/* Which zone we are loading */
-	int ringcadence[DAHDI_MAX_CADENCE];	/* Ring cadence in ms (0=on, 1=off, ends with 0 value) */
-	char name[40];		/* Informational name of zone */
-	/* Immediately follow the dahdi_tone_def_header by dahdi_tone_def's */
-};
-
-struct dahdi_tone_def {		/* Structure for zone programming */
-	int tone;		/* See DAHDI_TONE_* */
-	int next;		/* What the next position in the cadence is
-				   (They're numbered by the order the appear here) */
-	int samples;		/* How many samples to play for this cadence */
-				/* Now come the constants we need to make tones */
-	int shift;		/* How much to scale down the volume (2 is nice) */
-
-	/* 
-		Calculate the next 6 factors using the following equations:
-		l = <level in dbm>, f1 = <freq1>, f2 = <freq2>
-		gain = pow(10.0, (l - 3.14) / 20.0) * 65536.0 / 2.0;
-
-		// Frequency factor 1 
-		fac_1 = 2.0 * cos(2.0 * M_PI * (f1/8000.0)) * 32768.0;
-		// Last previous two samples 
-		init_v2_1 = sin(-4.0 * M_PI * (f1/8000.0)) * gain;
-		init_v3_1 = sin(-2.0 * M_PI * (f1/8000.0)) * gain;
-
-		// Frequency factor 2 
-		fac_2 = 2.0 * cos(2.0 * M_PI * (f2/8000.0)) * 32768.0;
-		// Last previous two samples 
-		init_v2_2 = sin(-4.0 * M_PI * (f2/8000.0)) * gain;
-		init_v3_2 = sin(-2.0 * M_PI * (f2/8000.0)) * gain;
-	*/
-	int fac1;		
-	int init_v2_1;		
-	int init_v3_1;		
-	int fac2;		
-	int init_v2_2;		
-	int init_v3_2;
-	int modulate;
-
-};
-
-#ifdef __KERNEL__
-#endif /* KERNEL */
-
-/* Define the maximum block size */
-#define	DAHDI_MAX_BLOCKSIZE	8192
-
-/* Define the default network block size */
-#define DAHDI_DEFAULT_MTU_MRU	2048
-
-/* Flush and stop the read (input) process */
-#define	DAHDI_FLUSH_READ		1
-
-/* Flush and stop the write (output) process */
-#define	DAHDI_FLUSH_WRITE		2
-
-/* Flush and stop both (input and output) processes */
-#define	DAHDI_FLUSH_BOTH		(DAHDI_FLUSH_READ | DAHDI_FLUSH_WRITE)
-
-/* Flush the event queue */
-#define	DAHDI_FLUSH_EVENT		4
-
-/* Flush everything */
-#define	DAHDI_FLUSH_ALL		(DAHDI_FLUSH_READ | DAHDI_FLUSH_WRITE | DAHDI_FLUSH_EVENT)
-
-
-/* Value for DAHDI_HOOK, set to ON hook */
-#define	DAHDI_ONHOOK	0
-
-/* Value for DAHDI_HOOK, set to OFF hook */
-#define	DAHDI_OFFHOOK	1
-
-/* Value for DAHDI_HOOK, wink (off hook momentarily) */
-#define	DAHDI_WINK		2
-
-/* Value for DAHDI_HOOK, flash (on hook momentarily) */
-#define	DAHDI_FLASH	3
-
-/* Value for DAHDI_HOOK, start line */
-#define	DAHDI_START	4
-
-/* Value for DAHDI_HOOK, ring line (same as start line) */
-#define	DAHDI_RING		5
-
-/* Value for DAHDI_HOOK, turn ringer off */
-#define DAHDI_RINGOFF  6
-
-/* Ret. Value for GET/WAIT Event, no event */
-#define	DAHDI_EVENT_NONE	0
-
-/* Ret. Value for GET/WAIT Event, Went Onhook */
-#define	DAHDI_EVENT_ONHOOK 1
-
-/* Ret. Value for GET/WAIT Event, Went Offhook or got Ring */
-#define	DAHDI_EVENT_RINGOFFHOOK 2
-
-/* Ret. Value for GET/WAIT Event, Got Wink or Flash */
-#define	DAHDI_EVENT_WINKFLASH 3
-
-/* Ret. Value for GET/WAIT Event, Got Alarm */
-#define	DAHDI_EVENT_ALARM	4
-
-/* Ret. Value for GET/WAIT Event, Got No Alarm (after alarm) */
-#define	DAHDI_EVENT_NOALARM 5
-
-/* Ret. Value for GET/WAIT Event, HDLC Abort frame */
-#define DAHDI_EVENT_ABORT 6
-
-/* Ret. Value for GET/WAIT Event, HDLC Frame overrun */
-#define DAHDI_EVENT_OVERRUN 7
-
-/* Ret. Value for GET/WAIT Event, Bad FCS */
-#define DAHDI_EVENT_BADFCS 8
-
-/* Ret. Value for dial complete */
-#define DAHDI_EVENT_DIALCOMPLETE	9
-
-/* Ret Value for ringer going on */
-#define DAHDI_EVENT_RINGERON 10
-
-/* Ret Value for ringer going off */
-#define DAHDI_EVENT_RINGEROFF 11
-
-/* Ret Value for hook change complete */
-#define DAHDI_EVENT_HOOKCOMPLETE 12
-
-/* Ret Value for bits changing on a CAS / User channel */
-#define DAHDI_EVENT_BITSCHANGED 13
-
-/* Ret value for the beginning of a pulse coming on its way */
-#define DAHDI_EVENT_PULSE_START 14
-
-/* Timer event -- timer expired */
-#define DAHDI_EVENT_TIMER_EXPIRED	15
-
-/* Timer event -- ping ready */
-#define DAHDI_EVENT_TIMER_PING		16
-
-/* Polarity reversal event */
-#define DAHDI_EVENT_POLARITY  17
-
-/* Ring Begin event */
-#define DAHDI_EVENT_RINGBEGIN  18
-
-/* Echo can disabled event */
-#define DAHDI_EVENT_EC_DISABLED 19
-
-/* Channel was disconnected. Hint user to close channel */
-#define DAHDI_EVENT_REMOVED   20
-
-/* A neon MWI pulse was detected */
-#define DAHDI_EVENT_NEONMWI_ACTIVE   21
-
-/* No neon MWI pulses were detected over some period of time */
-#define DAHDI_EVENT_NEONMWI_INACTIVE   22
-
-#define DAHDI_EVENT_PULSEDIGIT (1 << 16)	/* This is OR'd with the digit received */
-#define DAHDI_EVENT_DTMFDOWN  (1 << 17)	/* Ditto for DTMF key down event */
-#define DAHDI_EVENT_DTMFUP (1 << 18)	/* Ditto for DTMF key up event */
-
-/* Flag Value for IOMUX, read avail */
-#define	DAHDI_IOMUX_READ	1
-
-/* Flag Value for IOMUX, write avail */
-#define	DAHDI_IOMUX_WRITE	2
-
-/* Flag Value for IOMUX, write done */
-#define	DAHDI_IOMUX_WRITEEMPTY	4
-
-/* Flag Value for IOMUX, signalling event avail */
-#define	DAHDI_IOMUX_SIGEVENT	8
-
-/* Flag Value for IOMUX, Do Not Wait if nothing to report */
-#define	DAHDI_IOMUX_NOWAIT	0x100
-
-/* Alarm Condition bits */
-#define	DAHDI_ALARM_NONE		0	/* No alarms */
-#define	DAHDI_ALARM_RECOVER	1	/* Recovering from alarm */
-#define	DAHDI_ALARM_LOOPBACK	2	/* In loopback */
-#define	DAHDI_ALARM_YELLOW		4	/* Yellow Alarm */
-#define	DAHDI_ALARM_RED		8	/* Red Alarm */
-#define	DAHDI_ALARM_BLUE		16	/* Blue Alarm */
-#define DAHDI_ALARM_NOTOPEN	32
-/* Maintenance modes */
-#define	DAHDI_MAINT_NONE		0	/* Normal Mode */
-#define	DAHDI_MAINT_LOCALLOOP	1	/* Local Loopback */
-#define	DAHDI_MAINT_REMOTELOOP	2	/* Remote Loopback */
-#define	DAHDI_MAINT_LOOPUP	3	/* send loopup code */
-#define	DAHDI_MAINT_LOOPDOWN	4	/* send loopdown code */
-#define	DAHDI_MAINT_LOOPSTOP	5	/* stop sending loop codes */
-
-
-/* Conference modes */
-#define	DAHDI_CONF_MODE_MASK 0xff		/* mask for modes */
-#define	DAHDI_CONF_NORMAL	0		/* normal mode */
-#define	DAHDI_CONF_MONITOR 1		/* monitor mode (rx of other chan) */
-#define	DAHDI_CONF_MONITORTX 2		/* monitor mode (tx of other chan) */
-#define	DAHDI_CONF_MONITORBOTH 3		/* monitor mode (rx & tx of other chan) */
-#define	DAHDI_CONF_CONF 4			/* conference mode */
-#define	DAHDI_CONF_CONFANN 5		/* conference announce mode */
-#define	DAHDI_CONF_CONFMON 6		/* conference monitor mode */
-#define	DAHDI_CONF_CONFANNMON 7		/* conference announce/monitor mode */
-#define	DAHDI_CONF_REALANDPSEUDO 8	/* real and pseudo port both on conf */
-#define DAHDI_CONF_DIGITALMON 9	/* Do not decode or interpret */
-#define	DAHDI_CONF_MONITOR_RX_PREECHO 10	/* monitor mode (rx of other chan) - before echo can is done */
-#define	DAHDI_CONF_MONITOR_TX_PREECHO 11	/* monitor mode (tx of other chan) - before echo can is done */
-#define	DAHDI_CONF_MONITORBOTH_PREECHO 12	/* monitor mode (rx & tx of other chan) - before echo can is done */
-#define	DAHDI_CONF_FLAG_MASK 0xff00	/* mask for flags */
-#define	DAHDI_CONF_LISTENER 0x100		/* is a listener on the conference */
-#define	DAHDI_CONF_TALKER 0x200		/* is a talker on the conference */
-#define	DAHDI_CONF_PSEUDO_LISTENER 0x400	/* pseudo is a listener on the conference */
-#define	DAHDI_CONF_PSEUDO_TALKER 0x800	/* pseudo is a talker on the conference */
-
-
-#define	DAHDI_DEFAULT_WINKTIME	150	/* 150 ms default wink time */
-#define	DAHDI_DEFAULT_FLASHTIME	750	/* 750 ms default flash time */
-
-#define	DAHDI_DEFAULT_PREWINKTIME	50	/* 50 ms before wink */
-#define	DAHDI_DEFAULT_PREFLASHTIME 50	/* 50 ms before flash */
-#define	DAHDI_DEFAULT_STARTTIME 1500	/* 1500 ms of start */
-#define	DAHDI_DEFAULT_RINGTIME 2000	/* 2000 ms of ring on (start, FXO) */
-#if 0
-#define	DAHDI_DEFAULT_RXWINKTIME 250	/* 250ms longest rx wink */
-#endif
-#define	DAHDI_DEFAULT_RXWINKTIME 300	/* 300ms longest rx wink (to work with the Atlas) */
-#define	DAHDI_DEFAULT_RXFLASHTIME 1250	/* 1250ms longest rx flash */
-#define	DAHDI_DEFAULT_DEBOUNCETIME 600	/* 600ms of FXS GS signalling debounce */
-#define	DAHDI_DEFAULT_PULSEMAKETIME 50	/* 50 ms of line closed when dial pulsing */
-#define	DAHDI_DEFAULT_PULSEBREAKTIME 50	/* 50 ms of line open when dial pulsing */
-#define	DAHDI_DEFAULT_PULSEAFTERTIME 750	/* 750ms between dial pulse digits */
-
-#define	DAHDI_MINPULSETIME (15 * 8)	/* 15 ms minimum */
-
-#ifdef SHORT_FLASH_TIME
-#define	DAHDI_MAXPULSETIME (80 * 8)	/* we need 80 ms, not 200ms, as we have a short flash */
-#else
-#define	DAHDI_MAXPULSETIME (200 * 8)	/* 200 ms maximum */
-#endif
-
-#define	DAHDI_PULSETIMEOUT ((DAHDI_MAXPULSETIME / 8) + 50)
-
-#define DAHDI_RINGTRAILER (50 * 8)	/* Don't consider a ring "over" until it's been gone at least this
-									   much time */
-
-#define	DAHDI_LOOPCODE_TIME 10000		/* send loop codes for 10 secs */
-#define	DAHDI_ALARMSETTLE_TIME	5000	/* allow alarms to settle for 5 secs */
-#define	DAHDI_AFTERSTART_TIME 500		/* 500ms after start */
-
-#define DAHDI_RINGOFFTIME 4000		/* Turn off ringer for 4000 ms */
-#define	DAHDI_KEWLTIME 500		/* 500ms for kewl pulse */
-#define	DAHDI_AFTERKEWLTIME 300    /* 300ms after kewl pulse */
-
-#define DAHDI_MAX_PRETRAINING   1000	/* 1000ms max pretraining time */
-
-#define DAHDI_MAX_SPANS		128		/* Max, 128 spans */
-#define DAHDI_MAX_CHANNELS		1024	/* Max, 1024 channels */
-#define DAHDI_MAX_CONF			1024	/* Max, 1024 conferences */
-
-#ifdef	FXSFLASH
-#define DAHDI_FXSFLASHMINTIME	450	/* min 450ms */
-#define DAHDI_FXSFLASHMAXTIME	550	/* max 550ms */
-#endif
-
-#ifdef __KERNEL__
-
-#include <linux/poll.h>
-
-#define	DAHDI_MAX_EVENTSIZE	64	/* 64 events max in buffer */
-
-struct dahdi_span;
-struct dahdi_chan;
-
-struct dahdi_tone_state {
-	int v1_1;
-	int v2_1;
-	int v3_1;
-	int v1_2;
-	int v2_2;
-	int v3_2;
-	int modulate;
-};
-
-struct dahdi_chardev {
-	const char *name;
-	__u8 minor;
-};
-
-int dahdi_register_chardev(struct dahdi_chardev *dev);
-int dahdi_unregister_chardev(struct dahdi_chardev *dev);
-
-#ifdef CONFIG_DAHDI_NET
-struct dahdi_hdlc {
-	struct net_device *netdev;
-	struct dahdi_chan *chan;
-};
-#endif
-
-/* Conference queue stucture */
-struct confq {
-	u_char buffer[DAHDI_CHUNKSIZE * DAHDI_CB_SIZE];
-	u_char *buf[DAHDI_CB_SIZE];
-	int inbuf;
-	int outbuf;
-};
+#include "ecdis.h"
 
 typedef struct
 {
@@ -1215,6 +96,24 @@ typedef struct
 	int	samps;
 	int	lastdetect;
 } sf_detect_state_t;
+
+struct dahdi_tone_state {
+	int v1_1;
+	int v2_1;
+	int v3_1;
+	int v1_2;
+	int v2_2;
+	int v3_2;
+	int modulate;
+};
+
+/* Conference queue stucture */
+struct confq {
+	u_char buffer[DAHDI_CHUNKSIZE * DAHDI_CB_SIZE];
+	u_char *buf[DAHDI_CB_SIZE];
+	int inbuf;
+	int outbuf;
+};
 
 struct dahdi_chan {
 #ifdef CONFIG_DAHDI_NET
@@ -1429,6 +328,91 @@ struct dahdi_chan {
 	unsigned char *lin2x;
 #endif
 };
+
+#ifdef CONFIG_DAHDI_NET
+struct dahdi_hdlc {
+	struct net_device *netdev;
+	struct dahdi_chan *chan;
+};
+#endif
+
+#define DAHDI_MAX_ECHOCANPARAMS 8
+
+/* Echo cancellation */
+struct echo_can_state;
+
+struct dahdi_echocan {
+	const char *name;
+	struct module *owner;
+	int (*echo_can_create)(struct dahdi_echocanparams *ecp, struct dahdi_echocanparam *p, struct echo_can_state **ec);
+	void (*echo_can_free)(struct echo_can_state *ec);
+	void (*echo_can_array_update)(struct echo_can_state *ec, short *iref, short *isig);
+	int (*echo_can_traintap)(struct echo_can_state *ec, int pos, short val);
+};
+
+int dahdi_register_echocan(const struct dahdi_echocan *ec);
+void dahdi_unregister_echocan(const struct dahdi_echocan *ec);
+
+/* Define the maximum block size */
+#define DAHDI_MAX_BLOCKSIZE	8192
+
+/* Define the default network block size */
+#define DAHDI_DEFAULT_MTU_MRU	2048
+
+
+#define DAHDI_DEFAULT_WINKTIME	150	/* 150 ms default wink time */
+#define DAHDI_DEFAULT_FLASHTIME	750	/* 750 ms default flash time */
+
+#define DAHDI_DEFAULT_PREWINKTIME	50	/* 50 ms before wink */
+#define DAHDI_DEFAULT_PREFLASHTIME 50	/* 50 ms before flash */
+#define DAHDI_DEFAULT_STARTTIME 1500	/* 1500 ms of start */
+#define DAHDI_DEFAULT_RINGTIME 2000	/* 2000 ms of ring on (start, FXO) */
+#if 0
+#define DAHDI_DEFAULT_RXWINKTIME 250	/* 250ms longest rx wink */
+#endif
+#define DAHDI_DEFAULT_RXWINKTIME 300	/* 300ms longest rx wink (to work with the Atlas) */
+#define DAHDI_DEFAULT_RXFLASHTIME 1250	/* 1250ms longest rx flash */
+#define DAHDI_DEFAULT_DEBOUNCETIME 600	/* 600ms of FXS GS signalling debounce */
+#define DAHDI_DEFAULT_PULSEMAKETIME 50	/* 50 ms of line closed when dial pulsing */
+#define DAHDI_DEFAULT_PULSEBREAKTIME 50	/* 50 ms of line open when dial pulsing */
+#define DAHDI_DEFAULT_PULSEAFTERTIME 750	/* 750ms between dial pulse digits */
+
+#define DAHDI_MINPULSETIME (15 * 8)	/* 15 ms minimum */
+
+#ifdef SHORT_FLASH_TIME
+#define DAHDI_MAXPULSETIME (80 * 8)	/* we need 80 ms, not 200ms, as we have a short flash */
+#else
+#define DAHDI_MAXPULSETIME (200 * 8)	/* 200 ms maximum */
+#endif
+
+#define DAHDI_PULSETIMEOUT ((DAHDI_MAXPULSETIME / 8) + 50)
+
+#define DAHDI_RINGTRAILER (50 * 8)	/* Don't consider a ring "over" until it's been gone at least this
+									   much time */
+
+#define DAHDI_LOOPCODE_TIME 10000		/* send loop codes for 10 secs */
+#define DAHDI_ALARMSETTLE_TIME	5000	/* allow alarms to settle for 5 secs */
+#define DAHDI_AFTERSTART_TIME 500		/* 500ms after start */
+
+#define DAHDI_RINGOFFTIME 4000		/* Turn off ringer for 4000 ms */
+#define DAHDI_KEWLTIME 500		/* 500ms for kewl pulse */
+#define DAHDI_AFTERKEWLTIME 300    /* 300ms after kewl pulse */
+
+#define DAHDI_MAX_PRETRAINING   1000	/* 1000ms max pretraining time */
+
+#ifdef	FXSFLASH
+#define DAHDI_FXSFLASHMINTIME	450	/* min 450ms */
+#define DAHDI_FXSFLASHMAXTIME	550	/* max 550ms */
+#endif
+
+
+struct dahdi_chardev {
+	const char *name;
+	__u8 minor;
+};
+
+int dahdi_register_chardev(struct dahdi_chardev *dev);
+int dahdi_unregister_chardev(struct dahdi_chardev *dev);
 
 /* defines for transmit signalling */
 typedef enum {
@@ -1853,97 +837,6 @@ static inline short dahdi_txtone_nextsample(struct dahdi_chan *ss)
 
 #endif /* CONFIG_CALC_XLAW */
 
-#endif /* __KERNEL__ */
-
-/* The following is for the PCI RADIO interface only. This is specified in
-this file because external processes need to interact with the device.
-Some devices have private functions used for test/diagnostic only, but
-this is not the case here. */
-
-struct dahdi_radio_stat {
-	unsigned short ctcode_rx;	/* code of currently received CTCSS 
-					   or DCS, 0 for none */
-	unsigned short ctclass;		/* class of currently received CTCSS or
-					    DCS code */
-	unsigned short ctcode_tx;	/* code of currently encoded CTCSS or
-					   DCS, 0 for none */
-	unsigned char radstat;		/* status bits of radio */
-};
-
-#define	RAD_SERIAL_BUFLEN 128
-
-struct dahdi_radio_param {
-	unsigned short radpar;	/* param identifier */
-	unsigned short index;	/* tone number */
-	int data;		/* param */
-	int data2;		/* param 2 */
-	unsigned char buf[RAD_SERIAL_BUFLEN];
-};
-
-
-/* Get current status IOCTL */
-#define	DAHDI_RADIO_GETSTAT	_IOR (DAHDI_CODE, 57, struct dahdi_radio_stat)
-/* Set a channel parameter IOCTL */
-#define	DAHDI_RADIO_SETPARAM	_IOW (DAHDI_CODE, 58, struct dahdi_radio_param)
-/* Get a channel parameter IOCTL */
-#define	DAHDI_RADIO_GETPARAM	_IOR (DAHDI_CODE, 59, struct dahdi_radio_param)
-
-
-/* Defines for Radio Status (dahdi_radio_stat.radstat) bits */
-
-#define	DAHDI_RADSTAT_RX	1	/* currently "receiving " */
-#define	DAHDI_RADSTAT_TX	2	/* currently "transmitting" */
-#define	DAHDI_RADSTAT_RXCT	4	/* currently receiving continuous tone with 
-				   current settings */
-#define	DAHDI_RADSTAT_RXCOR	8	/* currently receiving COR (irrelevant of COR
-				   ignore) */
-#define	DAHDI_RADSTAT_IGNCOR	16	/* currently ignoring COR */
-#define	DAHDI_RADSTAT_IGNCT	32	/* currently ignoring CTCSS/DCS decode */
-#define	DAHDI_RADSTAT_NOENCODE 64	/* currently blocking CTCSS/DCS encode */
-
-/* Defines for Radio Parameters (dahdi_radio_param.radpar) */
-
-#define	DAHDI_RADPAR_INVERTCOR 1	/* invert the COR signal (0/1) */
-#define	DAHDI_RADPAR_IGNORECOR 2	/* ignore the COR signal (0/1) */
-#define	DAHDI_RADPAR_IGNORECT 3	/* ignore the CTCSS/DCS decode (0/1) */
-#define	DAHDI_RADPAR_NOENCODE 4	/* block the CTCSS/DCS encode (0/1) */
-#define	DAHDI_RADPAR_CORTHRESH 5	/* COR trigger threshold (0-7) */
-
-#define	DAHDI_RADPAR_EXTRXTONE 6	/* 0 means use internal decoder, 1 means UIOA
-				   logic true is CT decode, 2 means UIOA logic
-				   false is CT decode */
-#define	DAHDI_RADPAR_NUMTONES	7	/* returns maximum tone index (curently 15) */
-#define	DAHDI_RADPAR_INITTONE	8	/* init all tone indexes to 0 (no tones) */
-#define	DAHDI_RADPAR_RXTONE	9	/* CTCSS tone, (1-32) or DCS tone (1-777),
-				   or 0 meaning no tone, set index also (1-15) */
-#define	DAHDI_RADPAR_RXTONECLASS 10	/* Tone class (0-65535), set index also (1-15) */
-#define	DAHDI_RADPAR_TXTONE 11	/* CTCSS tone (1-32) or DCS tone (1-777) or 0
-				   to indicate no tone, to transmit 
-				   for this tone index (0-32, 0 disables
-				   transmit CTCSS), set index also (0-15) */
-#define	DAHDI_RADPAR_DEBOUNCETIME 12	/* receive indication debounce time, 
-				   milliseconds (1-999) */
-#define	DAHDI_RADPAR_BURSTTIME 13	/* end of transmit with no CT tone in
-				   milliseconds (0-999) */
-
-
-#define	DAHDI_RADPAR_UIODATA 14	/* read/write UIOA and UIOB data. Bit 0 is
-				   UIOA, bit 1 is UIOB */
-#define	DAHDI_RADPAR_UIOMODE 15	/* 0 means UIOA and UIOB are both outputs, 1
-				   means UIOA is input, UIOB is output, 2 
-				   means UIOB is input and UIOA is output,
-				   3 means both UIOA and UIOB are inputs. Note
-				   mode for UIOA is overridden when in
-				   EXTRXTONE mode. */
-
-#define	DAHDI_RADPAR_REMMODE 16	/* Remote control data mode */
-	#define	DAHDI_RADPAR_REM_NONE 0 	/* no remote control data mode */
-	#define	DAHDI_RADPAR_REM_RBI1 1	/* Doug Hall RBI-1 data mode */
-	#define	DAHDI_RADPAR_REM_SERIAL 2	/* Serial Data, 9600 BPS */
-	#define	DAHDI_RADPAR_REM_SERIAL_ASCII 3	/* Serial Ascii Data, 9600 BPS */
-
-#define	DAHDI_RADPAR_REMCOMMAND 17	/* Remote conrtol write data block & do cmd */
-
 /* Data formats for capabilities and frames alike (from Asterisk) */
 /*! G.723.1 compression */
 #define DAHDI_FORMAT_G723_1	(1 << 0)
@@ -1972,51 +865,4 @@ struct dahdi_radio_param {
 /*! Maximum audio mask */
 #define DAHDI_FORMAT_AUDIO_MASK	((1 << 16) - 1)
 
-#define	DAHDI_RADPAR_DEEMP 18 /* Audio De-empahsis (on or off) */ 
-
-#define	DAHDI_RADPAR_PREEMP 19 /* Audio Pre-empahsis (on or off) */ 
-
-#define	DAHDI_RADPAR_RXGAIN 20 /* Audio (In to system) Rx Gain */ 
-
-#define	DAHDI_RADPAR_TXGAIN 21 /* Audio (Out from system) Tx Gain */ 
-
-struct torisa_debug {
-	unsigned int txerrors;
-	unsigned int irqcount;
-	unsigned int taskletsched;
-	unsigned int taskletrun;
-	unsigned int taskletexec;
-	int span1flags;
-	int span2flags;
-};
-
-/* Special torisa ioctl */
-#define TORISA_GETDEBUG		_IOW (DAHDI_CODE, 60, struct torisa_debug)
-
-/*!
-	\brief Size-limited null-terminating string copy.
-	\param dst The destination buffer
-	\param src The source string
-	\param size The size of the destination buffer
-	\return Nothing.
-
-	This is similar to \a strncpy, with two important differences:
-	- the destination buffer will \b always be null-terminated
-	- the destination buffer is not filled with zeros past the copied string length
-	These differences make it slightly more efficient, and safer to use since it will
-	not leave the destination buffer unterminated. There is no need to pass an artificially
-	reduced buffer size to this function (unlike \a strncpy), and the buffer does not need
-	to be initialized to zeroes prior to calling this function.
-*/
-static inline void dahdi_copy_string(char *dst, const char *src, unsigned int size)
-{
-	while (*src && size) {
-		*dst++ = *src++;
-		size--;
-	}
-	if (__builtin_expect(!size, 0))
-		dst--;
-	*dst = '\0';
-}
-
-#endif /* _LINUX_DAHDI_H */
+#endif /* _DAHDI_KERNEL_H */

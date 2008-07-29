@@ -78,13 +78,10 @@
 
 /* #define BUF_MUNGE */
 
+#include <dahdi/version.h>
 /* Grab fasthdlc with tables */
 #define FAST_HDLC_NEED_TABLES
-#include "fasthdlc.h"
-
-#include <dahdi/version.h>
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "hpec/hpec_user.h"
 
@@ -4751,7 +4748,7 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 		return -ENOSYS;
 
 	switch(cmd) {
-	case DAHDI_SIGFREEZE:
+	case DAHDI_SETSIGFREEZE:
 		get_user(j, (int *)data);
 		spin_lock_irqsave(&chan->lock, flags);
 		if (j) {

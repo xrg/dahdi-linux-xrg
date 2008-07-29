@@ -45,7 +45,6 @@
 #include <linux/firmware.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 
 /* #define USE_TEST_HW */
