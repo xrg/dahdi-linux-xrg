@@ -4709,7 +4709,7 @@ static int ioctl_echocancel(struct dahdi_chan *chan, struct dahdi_echocanparams 
 
 		/* got the reference, copy the pointer and use it for making
 		   an echo canceler instance if possible */
-		ec_current = chan->ec_current;
+		ec_current = chan->ec_factory;
 
 		if ((ret = ec_current->echo_can_create(ecp, params, &ec))) {
 			release_echocan(ec_current);
