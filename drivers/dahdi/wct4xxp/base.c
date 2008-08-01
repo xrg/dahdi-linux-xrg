@@ -2811,7 +2811,7 @@ DAHDI_IRQ_HANDLER(t4_interrupt)
 	if ((wc->intcount < 10) || !(wc->intcount % 1000)) {
 		status2 = t4_framer_in(wc, 0, FRMR_CIS);
 		printk("Status2: %04x\n", status2);
-		for (x = 0;x<4;x++) {
+		for (x = 0;x<wc->numspans;x++) {
 			status2 = t4_framer_in(wc, x, FRMR_FRS0);
 			printk("FRS0/%d: %04x\n", x, status2);
 		}
@@ -3443,7 +3443,7 @@ static int __devinit t4_launch(struct t4 *wc)
 	printk("TE%dXXP: Launching card: %d\n", wc->numspans, wc->order);
 
 	/* Setup serial parameters and system interface */
-	for (x=0;x<4;x++)
+	for (x=0;x<wc->numspans;x++)
 		t4_serial_setup(wc, x);
 
 	if (dahdi_register(&wc->tspans[0]->span, 0)) {
