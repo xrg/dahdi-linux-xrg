@@ -99,6 +99,7 @@ static int ztdeth_rcv(struct sk_buff *skb, struct net_device *dev, struct packet
 #endif	
 	if (span) {
 		skb_pull(skb, sizeof(struct ztdeth_header));
+		skb_linearize(skb);
 		dahdi_dynamic_receive(span, (unsigned char *)skb->data, skb->len);
 	}
 	kfree_skb(skb);
