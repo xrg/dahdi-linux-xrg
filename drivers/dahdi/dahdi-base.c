@@ -3715,9 +3715,13 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			res = chans[ch.chan]->span->chanconfig(chans[ch.chan], ch.sigtype);
 
 		if (chans[ch.chan]->master) {
+			struct dahdi_chan *oldmaster = chans[ch.chan]->master;
+
 			/* Clear the master channel */
-			recalc_slaves(chans[ch.chan]->master);
+			chans[ch.chan]->master = 0;
 			chans[ch.chan]->nextslave = 0;
+			/* Unlink this channel from the master's channel list */
+			recalc_slaves(oldmaster);
 		}
 
 		if (!res) {
