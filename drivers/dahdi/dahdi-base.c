@@ -1183,30 +1183,27 @@ static void close_channel(struct dahdi_chan *chan)
 
 static int free_tone_zone(int num)
 {
-	struct dahdi_zone *z;
+	struct dahdi_zone *z = NULL;
+	int res = 0;
 
 	if ((num >= DAHDI_TONE_ZONE_MAX) || (num < 0))
 		return -EINVAL;
 
 	write_lock(&zone_lock);
-	z = tone_zones[num];
-	tone_zones[num] = NULL;
+	if (tone_zones[num]) {
+		if (!atomic_read(&tone_zones[num]->refcount)) {
+			z = tone_zones[num];
+			tone_zones[num] = NULL;
+		} else {
+			res = -EBUSY;
+		}
+	}
 	write_unlock(&zone_lock);
-	if (!z)
-		return 0;
 
-	if (atomic_read(&z->refcount)) {
-		/* channels are still using this zone so put it back */
-		write_lock(&zone_lock);
-		tone_zones[num] = z;
-		write_unlock(&zone_lock);
-
-		return -EBUSY;
-	} else {
+	if (z)
 		kfree(z);
 
-		return 0;
-	}
+	return res;
 }
 
 static int dahdi_register_tone_zone(int num, struct dahdi_zone *zone)
