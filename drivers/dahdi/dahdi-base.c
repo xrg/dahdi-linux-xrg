@@ -7589,18 +7589,18 @@ module_param(debug, int, 0644);
 module_param(deftaps, int, 0644);
 
 static struct file_operations dahdi_fops = {
-	owner: THIS_MODULE,
-	llseek: NULL,
-	open: dahdi_open,
-	release: dahdi_release,
-	ioctl: dahdi_ioctl,
-	read: dahdi_read,
-	write: dahdi_write,
-	poll: dahdi_poll,
-	mmap: dahdi_mmap,
-	flush: NULL,
-	fsync: NULL,
-	fasync: NULL,
+	.owner   = THIS_MODULE,
+	.llseek  = NULL,
+	.open    = dahdi_open,
+	.release = dahdi_release,
+	.ioctl   = dahdi_ioctl,
+	.read    = dahdi_read,
+	.write   = dahdi_write,
+	.poll    = dahdi_poll,
+	.mmap    = dahdi_mmap,
+	.flush   = NULL,
+	.fsync   = NULL,
+	.fasync  = NULL,
 };
 
 #ifdef CONFIG_DAHDI_WATCHDOG
