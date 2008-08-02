@@ -292,14 +292,16 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 #define dahdi_kernel_fpu_begin kernel_fpu_begin
 #endif	
 
-static struct dahdi_timer {
+struct dahdi_timer {
 	int ms;			/* Countdown */
 	int pos;		/* Position */
 	int ping;		/* Whether we've been ping'd */
 	int tripped;	/* Whether we're tripped */
-	struct dahdi_timer *next;	/* Linked list */
+	struct list_head list;
 	wait_queue_head_t sel;
-} *zaptimers = NULL;
+};
+
+LIST_HEAD(zaptimers);
 
 #ifdef DEFINE_SPINLOCK
 static DEFINE_SPINLOCK(zaptimerlock);
@@ -2329,7 +2331,8 @@ static int initialize_channel(struct dahdi_chan *chan)
 	/* I/O Mask, etc */
 	chan->iomask = 0;
 	/* release conference resource if any */
-	if (chan->confna) dahdi_check_conf(chan->confna);
+	if (chan->confna) 
+		dahdi_check_conf(chan->confna);
 	if ((chan->sig & __DAHDI_SIG_DACS) != __DAHDI_SIG_DACS) {
 		chan->confna = 0;
 		chan->confmode = 0;
@@ -2398,11 +2401,11 @@ static int dahdi_timing_open(struct inode *inode, struct file *file)
 		return -ENOMEM;
 
 	init_waitqueue_head(&t->sel);
+	INIT_LIST_HEAD(&t->list);
 	file->private_data = t;
 
 	spin_lock_irqsave(&zaptimerlock, flags);
-	t->next = zaptimers;
-	zaptimers = t;
+	list_add(&t->list, &zaptimers);
 	spin_unlock_irqrestore(&zaptimerlock, flags);
 
 	return 0;
@@ -2410,7 +2413,7 @@ static int dahdi_timing_open(struct inode *inode, struct file *file)
 
 static int dahdi_timer_release(struct inode *inode, struct file *file)
 {
-	struct dahdi_timer *t, *cur, *prev = NULL;
+	struct dahdi_timer *t, *cur, *next;
 	unsigned long flags;
 
 	if (!(t = file->private_data))
@@ -2418,16 +2421,11 @@ static int dahdi_timer_release(struct inode *inode, struct file *file)
 
 	spin_lock_irqsave(&zaptimerlock, flags);
 
-	for (cur = zaptimers; cur; prev = cur, cur = cur->next) {
-		if (t == cur)
+	list_for_each_entry_safe(cur, next, &zaptimers, list) {
+		if (t == cur) {
+			list_del(&cur->list);
 			break;
-	}
-
-	if (cur) {
-		if (prev)
-			prev->next = cur->next;
-		else
-			zaptimers = cur->next;
+		}
 	}
 
 	spin_unlock_irqrestore(&zaptimerlock, flags);
@@ -2437,7 +2435,7 @@ static int dahdi_timer_release(struct inode *inode, struct file *file)
 		return 0;
 	}
 
-	kfree(t);
+	kfree(cur);
 
 	return 0;
 }
@@ -7133,9 +7131,10 @@ static void process_timers(void)
 {
 	unsigned long flags;
 	struct dahdi_timer *cur;
+
 	spin_lock_irqsave(&zaptimerlock, flags);
-	cur = zaptimers;
-	while(cur) {
+
+	list_for_each_entry(cur, &zaptimers, list) {
 		if (cur->ms) {
 			cur->pos -= DAHDI_CHUNKSIZE;
 			if (cur->pos <= 0) {
@@ -7144,8 +7143,8 @@ static void process_timers(void)
 				wake_up_interruptible(&cur->sel);
 			}
 		}
-		cur = cur->next;
 	}
+
 	spin_unlock_irqrestore(&zaptimerlock, flags);
 }
 
