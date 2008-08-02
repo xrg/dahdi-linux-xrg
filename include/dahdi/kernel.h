@@ -869,4 +869,8 @@ static inline short dahdi_txtone_nextsample(struct dahdi_chan *ss)
 /*! Maximum audio mask */
 #define DAHDI_FORMAT_AUDIO_MASK	((1 << 16) - 1)
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,14)
+#define kzalloc(a, b) kcalloc(1, a, b)
+#endif
+
 #endif /* _DAHDI_KERNEL_H */

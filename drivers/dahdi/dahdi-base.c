@@ -388,7 +388,7 @@ int dahdi_register_echocan(const struct dahdi_echocan *ec)
 		}
 	}
 
-	if (!(cur = kcalloc(1, sizeof(*cur), GFP_KERNEL))) {
+	if (!(cur = kzalloc(sizeof(*cur), GFP_KERNEL))) {
 		write_unlock(&echocan_list_lock);
 		return -ENOMEM;
 	}
@@ -811,42 +811,48 @@ static int dahdi_reallocbufs(struct dahdi_chan *ss, int j, int numbufs)
 	unsigned char *newbuf, *oldbuf;
 	unsigned long flags;
 	int x;
+
 	/* Check numbufs */
 	if (numbufs < 2)
 		numbufs = 2;
+
 	if (numbufs > DAHDI_MAX_NUM_BUFS)
 		numbufs = DAHDI_MAX_NUM_BUFS;
+
 	/* We need to allocate our buffers now */
-	if (j) {
-		newbuf = kmalloc(j * 2 * numbufs, GFP_KERNEL);
-		if (!newbuf) 
-			return (-ENOMEM);
-		memset(newbuf, 0, j * 2 * numbufs);
-	} else
+	if (j && !(newbuf = kcalloc(j * 2, numbufs, GFP_KERNEL)))
+		return -ENOMEM;
+	else
 		newbuf = NULL;
-	  /* Now that we've allocated our new buffer, we can safely
-	     move things around... */
+
+	/* Now that we've allocated our new buffer, we can safely
+ 	   move things around... */
+
 	spin_lock_irqsave(&ss->lock, flags);
+
 	ss->blocksize = j; /* set the blocksize */
 	oldbuf = ss->readbuf[0]; /* Keep track of the old buffer */
 	ss->readbuf[0] = NULL;
+
 	if (newbuf) {
-		for (x=0;x<numbufs;x++) {
+		for (x = 0; x < numbufs; x++) {
 			ss->readbuf[x] = newbuf + x * j;
 			ss->writebuf[x] = newbuf + (numbufs + x) * j;
 		}
 	} else {
-		for (x=0;x<numbufs;x++) {
+		for (x = 0; x < numbufs; x++) {
 			ss->readbuf[x] = NULL;
 			ss->writebuf[x] = NULL;
 		}
 	}
+
 	/* Mark all buffers as empty */
-	for (x=0;x<numbufs;x++) 
+	for (x = 0; x < numbufs; x++) {
 		ss->writen[x] = 
 		ss->writeidx[x]=
 		ss->readn[x]=
 		ss->readidx[x] = 0;
+	}
 	
 	/* Keep track of where our data goes (if it goes
 	   anywhere at all) */
@@ -857,9 +863,11 @@ static int dahdi_reallocbufs(struct dahdi_chan *ss, int j, int numbufs)
 		ss->inreadbuf = -1;
 		ss->inwritebuf = -1;
 	}
+
 	ss->outreadbuf = -1;
 	ss->outwritebuf = -1;
 	ss->numbufs = numbufs;
+
 	if (ss->txbufpolicy == DAHDI_POLICY_WHEN_FULL)
 		ss->txdisable = 1;
 	else
@@ -871,8 +879,10 @@ static int dahdi_reallocbufs(struct dahdi_chan *ss, int j, int numbufs)
 		ss->rxdisable = 0;
 
 	spin_unlock_irqrestore(&ss->lock, flags);
+
 	if (oldbuf)
 		kfree(oldbuf);
+
 	return 0;
 }
 
@@ -1567,12 +1577,7 @@ static int dahdi_net_attach(struct net_device *dev, unsigned short encoding,
 																								 
 static struct dahdi_hdlc *dahdi_hdlc_alloc(void)
 {
-	struct dahdi_hdlc *tmp;
-	tmp = kmalloc(sizeof(struct dahdi_hdlc), GFP_KERNEL);
-	if (tmp) {
-		memset(tmp, 0, sizeof(struct dahdi_hdlc));
-	}
-	return tmp;
+	return kzalloc(sizeof(struct dahdi_hdlc), GFP_KERNEL));
 }
 
 #ifdef NEW_HDLC_INTERFACE
@@ -2376,17 +2381,18 @@ static int dahdi_timing_open(struct inode *inode, struct file *file)
 {
 	struct dahdi_timer *t;
 	unsigned long flags;
-	t = kmalloc(sizeof(struct dahdi_timer), GFP_KERNEL);
-	if (!t)
+	
+	if (!(t = kzalloc(sizeof(*t), GFP_KERNEL)))
 		return -ENOMEM;
-	/* Allocate a new timer */
-	memset(t, 0, sizeof(struct dahdi_timer));
+
 	init_waitqueue_head(&t->sel);
 	file->private_data = t;
+
 	spin_lock_irqsave(&zaptimerlock, flags);
 	t->next = zaptimers;
 	zaptimers = t;
 	spin_unlock_irqrestore(&zaptimerlock, flags);
+
 	return 0;
 }
 
@@ -2488,16 +2494,18 @@ static struct dahdi_chan *dahdi_alloc_pseudo(void)
 {
 	struct dahdi_chan *pseudo;
 	unsigned long flags;
+
 	/* Don't allow /dev/dahdi/pseudo to open if there are no spans */
 	if (maxspans < 1)
 		return NULL;
-	pseudo = kmalloc(sizeof(struct dahdi_chan), GFP_KERNEL);
-	if (!pseudo)
+
+	if (!(pseudo = kzalloc(sizeof(*pseudo), GFP_KERNEL)))
 		return NULL;
-	memset(pseudo, 0, sizeof(struct dahdi_chan));
+
 	pseudo->sig = DAHDI_SIG_CLEAR;
 	pseudo->sigcap = DAHDI_SIG_CLEAR;
 	pseudo->flags = DAHDI_FLAG_PSEUDO | DAHDI_FLAG_AUDIO;
+
 	spin_lock_irqsave(&bigzaplock, flags);
 	if (dahdi_chan_reg(pseudo)) {
 		kfree(pseudo);
@@ -2505,6 +2513,7 @@ static struct dahdi_chan *dahdi_alloc_pseudo(void)
 	} else
 		sprintf(pseudo->name, "Pseudo/%d", pseudo->channo);
 	spin_unlock_irqrestore(&bigzaplock, flags);
+
 	return pseudo;	
 }
 
@@ -2705,10 +2714,8 @@ static int ioctl_load_zone(unsigned long data)
 	if (size > MAX_SIZE)
 		return -E2BIG;
 
-	if (!(z = ptr = slab = kmalloc(size, GFP_KERNEL)))
+	if (!(z = ptr = slab = kzalloc(size, GFP_KERNEL)))
 		return -ENOMEM;
-
-	memset(slab, 0, size);
 
 	ptr += sizeof(*z);
 	space -= sizeof(*z);
@@ -3382,8 +3389,7 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		if ((i < 0) || (i > DAHDI_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
 		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 
-		rxgain = kmalloc(512, GFP_KERNEL);
-		if (!rxgain)
+		if (!(rxgain = kzalloc(512, GFP_KERNEL)))
 			return -ENOMEM;
 
 		stack.gain.chan = i; /* put the span # in here */
@@ -4849,10 +4855,9 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 		get_user(j, (int *)data);
 		if (j) {
 			if (!chan->ppp) {
-				chan->ppp = kmalloc(sizeof(struct ppp_channel), GFP_KERNEL);
+				chan->ppp = kzalloc(sizeof(struct ppp_channel), GFP_KERNEL);
 				if (chan->ppp) {
 					struct echo_can_state *tec;
-					memset(chan->ppp, 0, sizeof(struct ppp_channel));
 					chan->ppp->private = chan;
 					chan->ppp->ops = &ztppp_ops;
 					chan->ppp->mtu = DAHDI_DEFAULT_MTU_MRU;
