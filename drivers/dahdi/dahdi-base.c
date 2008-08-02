@@ -3926,13 +3926,13 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 
 		/* update the lengths in all currently loaded zones */
 		write_lock(&zone_lock);
-		for (j = 0; j < sizeof(tone_zones) / sizeof(tone_zones[0]); j++) {
+		for (j = 0; j < ARRAY_SIZE(tone_zones); j++) {
 			struct dahdi_zone *z = tone_zones[j];
 
 			if (!z)
 				continue;
 
-			for (i = 0; i < sizeof(z->dtmf) / sizeof(z->dtmf[0]); i++) {
+			for (i = 0; i < ARRAY_SIZE(z->dtmf); i++) {
 				z->dtmf[i].tonesamples = global_dialparams.dtmf_tonelen * DAHDI_CHUNKSIZE;
 			}
 
@@ -3941,11 +3941,11 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 				z->mfr1[i - DAHDI_TONE_MFR1_BASE].tonesamples = global_dialparams.mfv1_tonelen * DAHDI_CHUNKSIZE;
 			}
 
-			for (i = 0; i < sizeof(z->mfr2_fwd) / sizeof(z->mfr2_fwd[0]); i++) {
+			for (i = 0; i < ARRAY_SIZE(z->mfr2_fwd); i++) {
 				z->mfr2_fwd[i].tonesamples = global_dialparams.mfr2_tonelen * DAHDI_CHUNKSIZE;
 			}
 
-			for (i = 0; i < sizeof(z->mfr2_rev) / sizeof(z->mfr2_rev[0]); i++) {
+			for (i = 0; i < ARRAY_SIZE(z->mfr2_rev); i++) {
 				z->mfr2_rev[i].tonesamples = global_dialparams.mfr2_tonelen * DAHDI_CHUNKSIZE;
 			}
 		}
@@ -4015,10 +4015,12 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 		case DAHDI_MAINT_LOCALLOOP:
 		case DAHDI_MAINT_REMOTELOOP:
 			/* if same, ignore it */
-			if (i == maint.command) break;
+			if (i == maint.command) 
+				break;
 			rv = spans[maint.spanno]->maint(spans[maint.spanno], maint.command);
 			spin_unlock_irqrestore(&spans[maint.spanno]->lock, flags);
-			if (rv) return rv;
+			if (rv) 
+				return rv;
 			spin_lock_irqsave(&spans[maint.spanno]->lock, flags);
 			break;
 		case DAHDI_MAINT_LOOPUP:
@@ -4026,9 +4028,11 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			spans[maint.spanno]->mainttimer = DAHDI_LOOPCODE_TIME * DAHDI_CHUNKSIZE;
 			rv = spans[maint.spanno]->maint(spans[maint.spanno], maint.command);
 			spin_unlock_irqrestore(&spans[maint.spanno]->lock, flags);
-			if (rv) return rv;
+			if (rv) 
+				return rv;
 			rv = schluffen(&spans[maint.spanno]->maintq);
-			if (rv) return rv;
+			if (rv) 
+				return rv;
 			spin_lock_irqsave(&spans[maint.spanno]->lock, flags);
 			break;
 		default:
