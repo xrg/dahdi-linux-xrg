@@ -226,8 +226,7 @@ static struct dahdi_span *master;
 static struct file_operations dahdi_fops;
 struct file_operations *dahdi_transcode_fops = NULL;
 
-static struct
-{
+static struct {
 	int	src;	/* source conf number */
 	int	dst;	/* dst conf number */
 } conf_links[DAHDI_MAX_CONF + 1];
@@ -271,11 +270,13 @@ of the next sample chunk's data (next time around the world).
 
 */
 
-#define DIGIT_MODE_DTMF 	0
-#define DIGIT_MODE_MFR1		1
-#define DIGIT_MODE_PULSE	2
-#define DIGIT_MODE_MFR2_FWD	3
-#define DIGIT_MODE_MFR2_REV	4
+enum dahdi_digit_mode {
+	DIGIT_MODE_DTMF,
+	DIGIT_MODE_MFR1,
+	DIGIT_MODE_PULSE,
+	DIGIT_MODE_MFR2_FWD,
+	DIGIT_MODE_MFR2_REV,
+};
 
 #include "digits.h"
 
