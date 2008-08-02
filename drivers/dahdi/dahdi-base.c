@@ -469,76 +469,71 @@ static int dahdi_q_sig(struct dahdi_chan *chan)
 }
 
 #ifdef CONFIG_PROC_FS
-static char *sigstr(int sig)
+static const char *sigstr(int sig)
 {
 	switch (sig) {
-		case DAHDI_SIG_FXSLS:
-			return "FXSLS";
-		case DAHDI_SIG_FXSKS:
-			return "FXSKS";
-		case DAHDI_SIG_FXSGS:
-			return "FXSGS";
-		case DAHDI_SIG_FXOLS:
-			return "FXOLS";
-		case DAHDI_SIG_FXOKS:
-			return "FXOKS";
-		case DAHDI_SIG_FXOGS:
-			return "FXOGS";
-		case DAHDI_SIG_EM:
-			return "E&M";
-		case DAHDI_SIG_EM_E1:
-			return "E&M-E1";
-		case DAHDI_SIG_CLEAR:
-			return "Clear";
-		case DAHDI_SIG_HDLCRAW:
-			return "HDLCRAW";
-		case DAHDI_SIG_HDLCFCS:
-			return "HDLCFCS";
-		case DAHDI_SIG_HDLCNET:
-			return "HDLCNET";
-		case DAHDI_SIG_HARDHDLC:
-			return "Hardware-assisted HDLC";
-		case DAHDI_SIG_MTP2:
-			return "MTP2";
-		case DAHDI_SIG_SLAVE:
-			return "Slave";
-		case DAHDI_SIG_CAS:
-			return "CAS";
-		case DAHDI_SIG_DACS:
-			return "DACS";
-		case DAHDI_SIG_DACS_RBS:
-			return "DACS+RBS";
-		case DAHDI_SIG_SF:
-			return "SF (ToneOnly)";
-		case DAHDI_SIG_NONE:
-		default:
-			return "Unconfigured";
+	case DAHDI_SIG_FXSLS:
+		return "FXSLS";
+	case DAHDI_SIG_FXSKS:
+		return "FXSKS";
+	case DAHDI_SIG_FXSGS:
+		return "FXSGS";
+	case DAHDI_SIG_FXOLS:
+		return "FXOLS";
+	case DAHDI_SIG_FXOKS:
+		return "FXOKS";
+	case DAHDI_SIG_FXOGS:
+		return "FXOGS";
+	case DAHDI_SIG_EM:
+		return "E&M";
+	case DAHDI_SIG_EM_E1:
+		return "E&M-E1";
+	case DAHDI_SIG_CLEAR:
+		return "Clear";
+	case DAHDI_SIG_HDLCRAW:
+		return "HDLCRAW";
+	case DAHDI_SIG_HDLCFCS:
+		return "HDLCFCS";
+	case DAHDI_SIG_HDLCNET:
+		return "HDLCNET";
+	case DAHDI_SIG_HARDHDLC:
+		return "Hardware-assisted HDLC";
+	case DAHDI_SIG_MTP2:
+		return "MTP2";
+	case DAHDI_SIG_SLAVE:
+		return "Slave";
+	case DAHDI_SIG_CAS:
+		return "CAS";
+	case DAHDI_SIG_DACS:
+		return "DACS";
+	case DAHDI_SIG_DACS_RBS:
+		return "DACS+RBS";
+	case DAHDI_SIG_SF:
+		return "SF (ToneOnly)";
+	case DAHDI_SIG_NONE:
+	default:
+		return "Unconfigured";
 	}
-
 }
 
-static inline int fill_alarm_string(char *buf, int count, int alarms)
+static int fill_alarm_string(char *buf, int count, int alarms)
 {
-	int	len = 0;
+	int len;
 
-	if (alarms > 0) {
-		if (alarms & DAHDI_ALARM_BLUE)
-			len += snprintf(buf + len, count - len, "BLUE ");
-		if (alarms & DAHDI_ALARM_YELLOW)
-			len += snprintf(buf + len, count - len, "YELLOW ");
-		if (alarms & DAHDI_ALARM_RED)
-			len += snprintf(buf + len, count - len, "RED ");
-		if (alarms & DAHDI_ALARM_LOOPBACK)
-			len += snprintf(buf + len, count - len, "LOOP ");
-		if (alarms & DAHDI_ALARM_RECOVER)
-			len += snprintf(buf + len, count - len, "RECOVERING ");
-		if (alarms & DAHDI_ALARM_NOTOPEN)
-			len += snprintf(buf + len, count - len, "NOTOPEN ");
-	}
-	if(len > 0) {
-		len--;
-		buf[len] = '\0';	/* strip last space */
-	}
+	if (alarms <= 0)
+		return 0;
+
+	len = snprintf(buf, count, "%s%s%s%s%s%s",
+			(alarms & DAHDI_ALARM_BLUE) ? "BLUE " : "",
+			(alarms & DAHDI_ALARM_YELLOW) ? "YELLOW " : "",
+			(alarms & DAHDI_ALARM_RED) ? "RED " : "",
+			(alarms & DAHDI_ALARM_LOOPBACK) ? "LOOP " : "",
+			(alarms & DAHDI_ALARM_RECOVER) ? "RECOVERING " : "",
+			(alarms & DAHDI_ALARM_NOTOPEN) ? "NOTOPEN " : "");
+
+	if (len)
+		buf[--len] = '\0';	/* strip last space */
+
 	return len;
 }
 
