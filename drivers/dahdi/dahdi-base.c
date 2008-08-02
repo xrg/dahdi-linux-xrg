@@ -388,7 +388,7 @@ int dahdi_register_echocan(const struct dahdi_echocan *ec)
 		}
 	}
 
-	if (!(cur = kzalloc(sizeof(*cur), GFP_KERNEL))) {
+	if (!(cur = kcalloc(1, sizeof(*cur), GFP_KERNEL))) {
 		write_unlock(&echocan_list_lock);
 		return -ENOMEM;
 	}
