@@ -15,7 +15,7 @@
  * from Cisco 3620 to IBM x305 here in F1 Group
  *
  * Copyright (C) 2001 Jim Dixon / Zapata Telephony.
- * Copyright (C) 2001 -2006 Digium, Inc.
+ * Copyright (C) 2001 - 2008 Digium, Inc.
  *
  * All rights reserved.
  *
@@ -1577,7 +1577,7 @@ static int dahdi_net_attach(struct net_device *dev, unsigned short encoding,
 																								 
 static struct dahdi_hdlc *dahdi_hdlc_alloc(void)
 {
-	return kzalloc(sizeof(struct dahdi_hdlc), GFP_KERNEL));
+	return kzalloc(sizeof(struct dahdi_hdlc), GFP_KERNEL);
 }
 
 #ifdef NEW_HDLC_INTERFACE
