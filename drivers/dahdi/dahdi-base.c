@@ -388,12 +388,10 @@ int dahdi_register_echocan(const struct dahdi_echocan *ec)
 		}
 	}
 
-	if (!(cur = kmalloc(sizeof(*cur), GFP_KERNEL))) {
+	if (!(cur = kzalloc(sizeof(*cur), GFP_KERNEL))) {
 		write_unlock(&echocan_list_lock);
 		return -ENOMEM;
 	}
-
-	memset(cur, 0, sizeof(*cur));
 
 	cur->ec = ec;
 	INIT_LIST_HEAD(&cur->list);
@@ -432,34 +430,42 @@ static inline void rotate_sums(void)
 	memset(conf_sums_next, 0, maxconfs * sizeof(sumtype));
 }
 
-  /* return quiescent (idle) signalling states, for the various signalling types */
+/*!
+ * \return quiescent (idle) signalling states, for the various signalling types 
+ */
 static int dahdi_q_sig(struct dahdi_chan *chan)
 {
 	int	x;
-
-	static unsigned int in_sig[NUM_SIGS][2] = {
-		{ DAHDI_SIG_NONE, 0},
-		{ DAHDI_SIG_EM, 0 | (DAHDI_ABIT << 8)},
-		{ DAHDI_SIG_FXSLS,DAHDI_BBIT | (DAHDI_BBIT << 8)},
-		{ DAHDI_SIG_FXSGS,DAHDI_ABIT | DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8)},
-		{ DAHDI_SIG_FXSKS,DAHDI_BBIT | DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8)},
-		{ DAHDI_SIG_FXOLS,0 | (DAHDI_ABIT << 8)},
-		{ DAHDI_SIG_FXOGS,DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8)},
-		{ DAHDI_SIG_FXOKS,0 | (DAHDI_ABIT << 8)},
-		{ DAHDI_SIG_SF, 0},
+	static const unsigned int in_sig[NUM_SIGS][2] = {
+		{ DAHDI_SIG_NONE,  0 },
+		{ DAHDI_SIG_EM,    (DAHDI_ABIT << 8) },
+		{ DAHDI_SIG_FXSLS, DAHDI_BBIT | (DAHDI_BBIT << 8) },
+		{ DAHDI_SIG_FXSGS, DAHDI_ABIT | DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8) },
+		{ DAHDI_SIG_FXSKS, DAHDI_BBIT | DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8) },
+		{ DAHDI_SIG_FXOLS, (DAHDI_ABIT << 8) },
+		{ DAHDI_SIG_FXOGS, DAHDI_BBIT | ((DAHDI_ABIT | DAHDI_BBIT) << 8) },
+		{ DAHDI_SIG_FXOKS, (DAHDI_ABIT << 8) },
+		{ DAHDI_SIG_SF,    0 },
 		{ DAHDI_SIG_EM_E1, DAHDI_DBIT | ((DAHDI_ABIT | DAHDI_DBIT) << 8) },
-	} ;
+	};
 	
 	/* must have span to begin with */
-	if (!chan->span) return(-1);
+	if (!chan->span)
+		return -1;
+
 	/* if RBS does not apply, return error */
-	if (!(chan->span->flags & DAHDI_FLAG_RBS) || 
-	    !chan->span->rbsbits) return(-1);
+	if (!(chan->span->flags & DAHDI_FLAG_RBS) || !chan->span->rbsbits)
+		return -1;
+
 	if (chan->sig == DAHDI_SIG_CAS)
 		return chan->idlebits;
-	for (x=0;x<NUM_SIGS;x++) {
-		if (in_sig[x][0] == chan->sig) return(in_sig[x][1]);
-	}	return(-1); /* not found -- error */
+
+	for (x = 0; x < NUM_SIGS; x++) {
+		if (in_sig[x][0] == chan->sig)
+			return in_sig[x][1];
+	}
+	
+	return -1; /* not found -- error */
 }
 
 #ifdef CONFIG_PROC_FS
