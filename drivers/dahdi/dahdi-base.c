@@ -1766,8 +1766,8 @@ static int dahdi_ppp_ioctl(struct ppp_channel *ppp, unsigned int cmd, unsigned l
 
 static struct ppp_channel_ops ztppp_ops =
 {
-	start_xmit: dahdi_ppp_xmit,
-	ioctl: dahdi_ppp_ioctl,
+	.start_xmit = dahdi_ppp_xmit,
+	.ioctl      = dahdi_ppp_ioctl,
 };
 
 #endif
@@ -1834,13 +1834,17 @@ static ssize_t dahdi_chan_read(struct file *file, char *usrbuf, size_t count, in
 	int res, rv;
 	int oldbuf,x;
 	unsigned long flags;
+
 	/* Make sure count never exceeds 65k, and make sure it's unsigned */
 	count &= 0xffff;
+
 	if (!chan) 
 		return -EINVAL;
+
 	if (count < 1)
 		return -EINVAL;
-	for(;;) {
+
+	for (;;) {
 		spin_lock_irqsave(&chan->lock, flags);
 		if (chan->eventinidx != chan->eventoutidx) {
 			spin_unlock_irqrestore(&chan->lock, flags);
@@ -1850,11 +1854,13 @@ static ssize_t dahdi_chan_read(struct file *file, char *usrbuf, size_t count, in
 		if (chan->rxdisable)
 			res = -1;
 		spin_unlock_irqrestore(&chan->lock, flags);
-		if (res >= 0) break;
+		if (res >= 0) 
+			break;
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 		rv = schluffen(&chan->readbufq);
-		if (rv) return (rv);
+		if (rv) 
+			return rv;
 	}
 	amnt = count;
 /* added */
@@ -1881,11 +1887,11 @@ static ssize_t dahdi_chan_read(struct file *file, char *usrbuf, size_t count, in
 			int left = amnt >> 1; /* amnt is in bytes */
 			int pos = 0;
 			int pass;
-			while(left) {
+			while (left) {
 				pass = left;
 				if (pass > 128)
 					pass = 128;
-				for (x=0;x<pass;x++)
+				for (x = 0; x < pass; x++)
 					lindata[x] = DAHDI_XLAW(chan->readbuf[res][x + pos], chan);
 				if (copy_to_user(usrbuf + (pos << 1), lindata, pass << 1))
 					return -EFAULT;
@@ -1925,14 +1931,18 @@ static ssize_t dahdi_chan_write(struct file *file, const char *usrbuf, size_t co
 {
 	unsigned long flags;
 	struct dahdi_chan *chan = chans[unit];
-	int res, amnt, oldbuf, rv,x;
+	int res, amnt, oldbuf, rv, x;
+
 	/* Make sure count never exceeds 65k, and make sure it's unsigned */
 	count &= 0xffff;
+
 	if (!chan) 
 		return -EINVAL;
+
 	if (count < 1)
 		return -EINVAL;
-	for(;;) {
+
+	for (;;) {
 		spin_lock_irqsave(&chan->lock, flags);
 		if ((chan->curtone || chan->pdialcount) && !(chan->flags & DAHDI_FLAG_PSEUDO)) {
 			chan->curtone = NULL;
@@ -1988,14 +1998,14 @@ static ssize_t dahdi_chan_write(struct file *file, const char *usrbuf, size_t co
 			int left = amnt >> 1; /* amnt is in bytes */
 			int pos = 0;
 			int pass;
-			while(left) {
+			while (left) {
 				pass = left;
 				if (pass > 128)
 					pass = 128;
 				if (copy_from_user(lindata, usrbuf + (pos << 1), pass << 1))
 					return -EFAULT;
 				left -= pass;
-				for (x=0;x<pass;x++)
+				for (x = 0; x < pass; x++)
 					chan->writebuf[res][x + pos] = DAHDI_LIN2X(lindata[x], chan);
 				pos += pass;
 			}
@@ -2054,10 +2064,9 @@ static int dahdi_chan_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static void set_txtone(struct dahdi_chan *ss,int fac, int init_v2, int init_v3)
+static void set_txtone(struct dahdi_chan *ss, int fac, int init_v2, int init_v3)
 {
-	if (fac == 0)
-	{
+	if (fac == 0) {
 		ss->v2_1 = 0;
 		ss->v3_1 = 0;
 		return;
@@ -2105,7 +2114,9 @@ who cares what the sig bits are as long as they are stable */
 	int x;
 
 	/* if no span, return doing nothing */
-	if (!chan->span) return;
+	if (!chan->span) 
+		return;
+
 	if (!chan->span->flags & DAHDI_FLAG_RBS) {
 		module_printk(KERN_NOTICE, "dahdi_rbs: Tried to set RBS hook state on non-RBS channel %s\n", chan->name);
 		return;
@@ -2125,18 +2136,13 @@ who cares what the sig bits are as long as they are stable */
 	chan->txstate = txstate;
 	
 	/* if tone signalling */
-	if (chan->sig == DAHDI_SIG_SF)
-	{
+	if (chan->sig == DAHDI_SIG_SF) {
 		chan->txhooksig = txsig;
-		if (chan->txtone) /* if set to make tone for tx */
-		{
+		if (chan->txtone) { /* if set to make tone for tx */
 			if ((txsig && !(chan->toneflags & DAHDI_REVERSE_TXTONE)) ||
-			 ((!txsig) && (chan->toneflags & DAHDI_REVERSE_TXTONE))) 
-			{
+			 ((!txsig) && (chan->toneflags & DAHDI_REVERSE_TXTONE))) {
 				set_txtone(chan,chan->txtone,chan->tx_v2,chan->tx_v3);
-			}
-			else
-			{
+			} else {
 				set_txtone(chan,0,0,0);
 			}
 		}
@@ -2151,7 +2157,7 @@ who cares what the sig bits are as long as they are stable */
 		chan->otimer = timeout * DAHDI_CHUNKSIZE;			/* Otimer is timer in samples */
 		return;
 	} else {
-		for (x=0;x<NUM_SIGS;x++) {
+		for (x = 0; x < NUM_SIGS; x++) {
 			if (outs[x][0] == chan->sig) {
 #ifdef CONFIG_DAHDI_DEBUG
 				module_printk(KERN_NOTICE, "Setting bits to %d for channel %s state %d in %d signalling\n", outs[x][txsig + 1], chan->name, txsig, chan->sig);
@@ -2170,32 +2176,36 @@ who cares what the sig bits are as long as they are stable */
 static int dahdi_cas_setbits(struct dahdi_chan *chan, int bits)
 {
 	/* if no span, return as error */
-	if (!chan->span) return -1;
+	if (!chan->span)
+		return -1;
 	if (chan->span->rbsbits) {
 		chan->txsig = bits;
 		chan->span->rbsbits(chan, bits);
 	} else {
 		module_printk(KERN_NOTICE, "Huh?  CAS setbits, but no RBS bits function\n");
 	}
+
 	return 0;
 }
 
 static int dahdi_hangup(struct dahdi_chan *chan)
 {
-	int x,res=0;
+	int x, res = 0;
 
 	/* Can't hangup pseudo channels */
 	if (!chan->span)
 		return 0;
+
 	/* Can't hang up a clear channel */
 	if (chan->flags & (DAHDI_FLAG_CLEAR | DAHDI_FLAG_NOSTDTXRX))
 		return -EINVAL;
 
 	chan->kewlonhook = 0;
 
-
 	if ((chan->sig == DAHDI_SIG_FXSLS) || (chan->sig == DAHDI_SIG_FXSKS) ||
-		(chan->sig == DAHDI_SIG_FXSGS)) chan->ringdebtimer = RING_DEBOUNCE_TIME;
+			(chan->sig == DAHDI_SIG_FXSGS)) {
+		chan->ringdebtimer = RING_DEBOUNCE_TIME;
+	}
 
 	if (chan->span->flags & DAHDI_FLAG_RBS) {
 		if (chan->sig == DAHDI_SIG_CAS) {
@@ -2217,15 +2227,19 @@ static int dahdi_hangup(struct dahdi_chan *chan)
 				res = 0;
 		}
 	}
+
 	/* if not registered yet, just return here */
-	if (!(chan->flags & DAHDI_FLAG_REGISTERED)) return res;
+	if (!(chan->flags & DAHDI_FLAG_REGISTERED))
+		return res;
+
 	/* Mark all buffers as empty */
-	for (x = 0;x < chan->numbufs;x++) {
+	for (x = 0; x < chan->numbufs; x++) {
 		chan->writen[x] = 
 		chan->writeidx[x]=
 		chan->readn[x]=
 		chan->readidx[x] = 0;
 	}	
+
 	if (chan->readbuf[0]) {
 		chan->inreadbuf = 0;
 		chan->inwritebuf = 0;
@@ -2241,6 +2255,7 @@ static int dahdi_hangup(struct dahdi_chan *chan)
 	chan->pdialcount = 0;
 	chan->cadencepos = 0;
 	chan->txdialbuf[0] = 0;
+
 	return res;
 }
 
@@ -2398,32 +2413,35 @@ static int dahdi_timing_open(struct inode *inode, struct file *file)
 
 static int dahdi_timer_release(struct inode *inode, struct file *file)
 {
-	struct dahdi_timer *t, *cur, *prev;
+	struct dahdi_timer *t, *cur, *prev = NULL;
 	unsigned long flags;
-	t = file->private_data;
-	if (t) {
-		spin_lock_irqsave(&zaptimerlock, flags);
-		prev = NULL;
-		cur = zaptimers;
-		while(cur) {
-			if (t == cur)
-				break;
-			prev = cur;
-			cur = cur->next;
-		}
-		if (cur) {
-			if (prev)
-				prev->next = cur->next;
-			else
-				zaptimers = cur->next;
-		}
-		spin_unlock_irqrestore(&zaptimerlock, flags);
-		if (!cur) {
-			module_printk(KERN_NOTICE, "Timer: Not on list??\n");
-			return 0;
-		}
-		kfree(t);
+
+	if (!(t = file->private_data))
+		return 0;
+
+	spin_lock_irqsave(&zaptimerlock, flags);
+
+	for (cur = zaptimers; cur; prev = cur, cur = cur->next) {
+		if (t == cur)
+			break;
 	}
+
+	if (cur) {
+		if (prev)
+			prev->next = cur->next;
+		else
+			zaptimers = cur->next;
+	}
+
+	spin_unlock_irqrestore(&zaptimerlock, flags);
+
+	if (!cur) {
+		module_printk(KERN_NOTICE, "Timer: Not on list??\n");
+		return 0;
+	}
+
+	kfree(t);
+
 	return 0;
 }
 
