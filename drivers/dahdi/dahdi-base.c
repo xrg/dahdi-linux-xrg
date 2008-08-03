@@ -6448,7 +6448,7 @@ void dahdi_ec_span(struct dahdi_span *span)
 
 /* return 0 if nothing detected, 1 if lack of tone, 2 if presence of tone */
 /* modifies buffer pointed to by 'amp' with notched-out values */
-static inline int sf_detect (sf_detect_state_t *s,
+static inline int sf_detect(struct sf_detect_state *s,
                  short *amp,
                  int samples,long p1, long p2, long p3)
 {

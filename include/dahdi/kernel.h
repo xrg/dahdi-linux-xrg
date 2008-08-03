@@ -90,8 +90,7 @@
 
 #include "ecdis.h"
 
-typedef struct
-{
+struct sf_detect_state {
 	long	x1;
 	long	x2;
 	long	y1;
@@ -100,7 +99,7 @@ typedef struct
 	long	e2;
 	int	samps;
 	int	lastdetect;
-} sf_detect_state_t;
+};
 
 struct dahdi_tone_state {
 	int v1_1;
@@ -149,7 +148,7 @@ struct dahdi_chan {
 	int v2_1;
 	int v3_1;
 	int toneflags;
-	sf_detect_state_t rd;
+	struct sf_detect_state rd;
 
 	struct dahdi_chan *master;	/*!< Our Master channel (could be us) */
 	/*! \brief Next slave (if appropriate) */
