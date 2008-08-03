@@ -421,13 +421,13 @@ static inline void __t4_pci_out(struct t4 *wc, const unsigned int addr, const un
 	if (pedanticpci) {
 		tmp = __t4_pci_in(wc, WC_VERSION);
 		if ((tmp & 0xffff0000) != 0xc01a0000)
-			printk("TE4XXP: Version Synchronization Error!\n");
+			printk(KERN_NOTICE "TE4XXP: Version Synchronization Error!\n");
 	}
 #if 0
 	tmp = __t4_pci_in(wc, addr);
 	if ((value != tmp) && (addr != WC_LEDS) && (addr != WC_LDATA) &&
 		(addr != WC_GPIO) && (addr != WC_INTR))
-		printk("Tried to load %08x into %08x, but got %08x instead\n", value, addr, tmp);
+		printk(KERN_DEBUG "Tried to load %08x into %08x, but got %08x instead\n", value, addr, tmp);
 #endif		
 }
 
@@ -532,18 +532,18 @@ static inline void __t4_framer_out(struct t4 *wc, int unit, const unsigned int a
 {
 	unit &= 0x3;
 	if (unlikely(debug & DEBUG_REGS))
-		printk("Writing %02x to address %02x of unit %d\n", value, addr, unit);
+		printk(KERN_INFO "Writing %02x to address %02x of unit %d\n", value, addr, unit);
 	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff));
 	__t4_pci_out(wc, WC_LDATA, value);
 	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff) | WC_LFRMR_CS | WC_LWRITE);
 	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff));	
-	if (unlikely(debug & DEBUG_REGS)) printk("Write complete\n");
+	if (unlikely(debug & DEBUG_REGS)) printk(KERN_INFO "Write complete\n");
 #if 0
 	if ((addr != FRMR_TXFIFO) && (addr != FRMR_CMDR) && (addr != 0xbc))
 	{ unsigned int tmp;
 	tmp = __t4_framer_in(wc, unit, addr);
 	if (tmp != value) {
-		printk("Expected %d from unit %d register %d but got %d instead\n", value, unit, addr, tmp);
+		printk(KERN_DEBUG "Expected %d from unit %d register %d but got %d instead\n", value, unit, addr, tmp);
 	} }
 #endif	
 }
@@ -632,9 +632,9 @@ static inline unsigned int __t4_oct_in(struct t4 *wc, unsigned int addr)
 #ifdef PEDANTIC_OCTASIC_CHECKING
 	while((__t4_raw_oct_in(wc, 0x0000) & (1 << 8)) && --count);
 	if (count != 1000)
-		printk("Yah, read can be slow...\n");
+		printk(KERN_DEBUG "Yah, read can be slow...\n");
 	if (!count)
-		printk("Read timed out!\n");
+		printk(KERN_NOTICE "Read timed out!\n");
 #endif
 	return __t4_raw_oct_in(wc, 0x0004);
 }
@@ -664,7 +664,7 @@ static inline void __t4_vpm_out(struct t4 *wc, int unit, const unsigned int addr
 {
 	unit &= 0x7;
 	if (debug & DEBUG_REGS)
-		printk("Writing %02x to address %02x of ec unit %d\n", value, addr, unit);
+		printk(KERN_DEBUG "Writing %02x to address %02x of ec unit %d\n", value, addr, unit);
 	__t4_pci_out(wc, WC_LADDR, (addr & 0xff));
 	__t4_pci_out(wc, WC_LDATA, value);
 	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff) | (1 << 11));
@@ -672,14 +672,14 @@ static inline void __t4_vpm_out(struct t4 *wc, int unit, const unsigned int addr
 	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff) | (1 << 11));
 	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff));	
 	__t4_pci_out(wc, WC_LADDR, 0);
-	if (debug & DEBUG_REGS) printk("Write complete\n");
+	if (debug & DEBUG_REGS) printk(KERN_DEBUG "Write complete\n");
 
       
 #if 0
 	{ unsigned int tmp;
 	tmp = t4_vpm_in(wc, unit, addr);
 	if (tmp != value) {
-		printk("Expected %d from unit %d echo register %d but got %d instead\n", value, unit, addr, tmp);
+		printk(KERN_DEBUG "Expected %d from unit %d echo register %d but got %d instead\n", value, unit, addr, tmp);
 	} }
 #endif
 }
@@ -696,9 +696,9 @@ static inline void __t4_oct_out(struct t4 *wc, unsigned int addr, unsigned int v
 #ifdef PEDANTIC_OCTASIC_CHECKING
 	while((__t4_raw_oct_in(wc, 0x0000) & (1 << 8)) && --count);
 	if (count != 1000)
-		printk("Yah, write can be slow\n");
+		printk(KERN_DEBUG "Yah, write can be slow\n");
 	if (!count)
-		printk("Write timed out!\n");
+		printk(KERN_NOTICE "Write timed out!\n");
 #endif
 }
 
@@ -734,7 +734,7 @@ static void t4_check_vpm450(struct t4 *wc)
 			else
 				channel -= 1;
 			if (unlikely(debug))
-				printk("Got tone %s of '%c' on channel %d of span %d\n",
+				printk(KERN_INFO "Got tone %s of '%c' on channel %d of span %d\n",
 					(start ? "START" : "STOP"), tone, channel, span + 1);
 			if (test_bit(channel, &wc->tspans[span]->dtmfmask) && (tone != 'u')) {
 				if (start) {
@@ -772,7 +772,7 @@ static void t4_check_vpm400(struct t4 *wc, unsigned int newio)
 	struct t4_span *ts;
 
 	if (debug && (newio != lastio)) 
-		printk("Last was %08x, new is %08x\n", lastio, newio);
+		printk(KERN_DEBUG "Last was %08x, new is %08x\n", lastio, newio);
 
 	lastio = newio;
  
@@ -823,7 +823,7 @@ static void t4_check_vpm400(struct t4 *wc, unsigned int newio)
 					spin_unlock_irqrestore(&chan->lock, flags);
 				}
 				if (debug)
-					printk("Digit Seen: %d, Span: %d, channel: %d, energy: %02x, 'channel %d' chip %d\n", digit, x % 4, base + 1, energy, channel, x);
+					printk(KERN_DEBUG "Digit Seen: %d, Span: %d, channel: %d, energy: %02x, 'channel %d' chip %d\n", digit, x % 4, base + 1, energy, channel, x);
 				
 			}
 			regval = regval >> 1;
@@ -854,7 +854,7 @@ static void t4_check_vpm400(struct t4 *wc, unsigned int newio)
 				digit = ts->dtmfdigit[base];
 				ts->dtmfdigit[base] = 0;
 				if (debug)
-					printk("Digit Gone: %d, Span: %d, channel: %d, energy: %02x, 'channel %d' chip %d\n", digit, x % 4, base + 1, energy, channel, x);
+					printk(KERN_DEBUG "Digit Gone: %d, Span: %d, channel: %d, energy: %02x, 'channel %d' chip %d\n", digit, x % 4, base + 1, energy, channel, x);
 				
 			}
 			regval = regval >> 1;
@@ -870,7 +870,7 @@ static void hdlc_stop(struct t4 *wc, unsigned int span)
 	unsigned char imr0, imr1, mode;
 	int i = 0;
 
-	if (debug & DEBUG_FRAMER) printk("Stopping HDLC controller on span %d\n", span+1);
+	if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Stopping HDLC controller on span %d\n", span+1);
 	
 	/* Clear receive and transmit timeslots */
 	for (i = 0; i < 4; i++) {
@@ -911,11 +911,11 @@ static inline void t4_framer_cmd_wait(struct t4 *wc, unsigned int span, int cmd)
 		if (!(sis & 0x04))
 			break;
 		if (!loops++ && (debug & DEBUG_FRAMER)) {
-			printk("!!!SIS Waiting before cmd %02x\n", cmd);
+			printk(KERN_NOTICE "!!!SIS Waiting before cmd %02x\n", cmd);
 		}
 	}
 	if (loops && (debug & DEBUG_FRAMER))
-		printk("!!!SIS waited %d loops\n", loops);
+		printk(KERN_NOTICE "!!!SIS waited %d loops\n", loops);
 
 	t4_framer_out(wc, span, FRMR_CMDR, cmd);
 }
@@ -927,7 +927,7 @@ static int hdlc_start(struct t4 *wc, unsigned int span, struct dahdi_chan *chan,
 	int offset = chan->chanpos;
 	unsigned long flags;
 
-	if (debug & DEBUG_FRAMER) printk("Starting HDLC controller for channel %d span %d\n", offset, span+1);
+	if (debug & DEBUG_FRAMER) printk(KERN_INFO "Starting HDLC controller for channel %d span %d\n", offset, span+1);
 
 	if (mode != FRMR_MODE_NO_ADDR_CMP)
 		return -1;
@@ -988,7 +988,7 @@ static void __set_clear(struct t4 *wc, int span)
 				ts->notclear |= (1 << i);
 			if ((i % 8)==7) {
 				if (debug)
-					printk("Putting %d in register %02x on span %d\n",
+					printk(KERN_DEBUG "Putting %d in register %02x on span %d\n",
 				       val, 0x2f + j, span + 1);
 				__t4_framer_out(wc, span, 0x2f + j, val);
 				val = 0;
@@ -1036,19 +1036,19 @@ static int t4_dacs(struct dahdi_chan *dst, struct dahdi_chan *src)
 		if (ts->spanflags & FLAG_2NDGEN)
 			t4_tsi_unassign(wc, src->span->offset, src->chanpos);
 		if (debug)
-			printk("Unassigning %d/%d by default and...\n", src->span->offset, src->chanpos);
+			printk(KERN_DEBUG "Unassigning %d/%d by default and...\n", src->span->offset, src->chanpos);
 		if (debug)
-			printk("Unassigning %d/%d by default\n", dst->span->offset, dst->chanpos);
+			printk(KERN_DEBUG "Unassigning %d/%d by default\n", dst->span->offset, dst->chanpos);
 		return -1;
 	}
 	if (src) {
 		t4_tsi_assign(wc, src->span->offset, src->chanpos, dst->span->offset, dst->chanpos);
 		if (debug)
-			printk("Assigning channel %d/%d -> %d/%d!\n", src->span->offset, src->chanpos, dst->span->offset, dst->chanpos);
+			printk(KERN_DEBUG "Assigning channel %d/%d -> %d/%d!\n", src->span->offset, src->chanpos, dst->span->offset, dst->chanpos);
 	} else {
 		t4_tsi_unassign(wc, dst->span->offset, dst->chanpos);
 		if (debug)
-			printk("Unassigning channel %d/%d!\n", dst->span->offset, dst->chanpos);
+			printk(KERN_DEBUG "Unassigning channel %d/%d!\n", dst->span->offset, dst->chanpos);
 	}
 	return 0;
 }
@@ -1108,7 +1108,7 @@ static int t4_echocan(struct dahdi_chan *chan, int eclen)
 		channel = channel << 2;
 		channel |= chan->span->offset;
 		if(debug & DEBUG_ECHOCAN) 
-			printk("echocan: Card is %d, Channel is %d, Span is %d, offset is %d length %d\n", 
+			printk(KERN_DEBUG "echocan: Card is %d, Channel is %d, Span is %d, offset is %d length %d\n", 
 				wc->num, chan->chanpos, chan->span->offset, channel, eclen);
 		vpm450m_setec(wc->vpm450m, channel, eclen);
 // Mark		msleep(10);
@@ -1116,7 +1116,7 @@ static int t4_echocan(struct dahdi_chan *chan, int eclen)
 	} else {
 		unit = t4_vpm_unit(chan->span->offset, channel);
 		if(debug & DEBUG_ECHOCAN) 
-			printk("echocan: Card is %d, Channel is %d, Span is %d, unit is %d, unit offset is %d length %d\n", 
+			printk(KERN_DEBUG "echocan: Card is %d, Channel is %d, Span is %d, unit is %d, unit offset is %d length %d\n", 
 				wc->num, chan->chanpos, chan->span->offset, unit, channel, eclen);
 		if (eclen)
 			t4_vpm_out(wc,unit,channel,0x3e);
@@ -1193,31 +1193,31 @@ static void inline t4_hdlc_xmit_fifo(struct t4 *wc, unsigned int span, struct t4
 	unsigned char buf[32];
 
 	res = dahdi_hdlc_getbuf(ts->sigchan, buf, &size);
-	if (debug & DEBUG_FRAMER) printk("Got buffer sized %d and res %d for %d\n", size, res, span);
+	if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Got buffer sized %d and res %d for %d\n", size, res, span);
 	if (size > 0) {
 		ts->sigactive = 1;
 
 		if (debug & DEBUG_FRAMER) {
-			printk("TX(");
+			printk(KERN_DEBUG "TX(");
 			for (i = 0; i < size; i++)
-				printk((i ? " %02x" : "%02x"), buf[i]);
-			printk(")\n");
+				printk(KERN_DEBUG "%s%02x", i ? " " : "", buf[i]);
+			printk(KERN_DEBUG ")\n");
 		}
 
 		for (i = 0; i < size; i++)
 			t4_framer_out(wc, span, FRMR_TXFIFO, buf[i]);
 
 		if (res) /* End of message */ {
-			if (debug & DEBUG_FRAMER) printk("transmiting XHF|XME\n");
+			if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "transmiting XHF|XME\n");
 			t4_framer_cmd_wait(wc, span, FRMR_CMDR_XHF | FRMR_CMDR_XME);
 #if 0
 			ts->sigactive = (__t4_framer_in(wc, span, FRMR_SIS) & FRMR_SIS_XFW) ? 0 : 1;
 #endif
 			++ts->frames_out;
 			if ((debug & DEBUG_FRAMER) && !(ts->frames_out & 0x0f))
-				printk("Transmitted %d frames on span %d\n", ts->frames_out, span);
+				printk(KERN_DEBUG "Transmitted %d frames on span %d\n", ts->frames_out, span);
 		} else { /* Still more to transmit */
-			if (debug & DEBUG_FRAMER) printk("transmiting XHF\n");
+			if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "transmiting XHF\n");
 			t4_framer_cmd_wait(wc, span, FRMR_CMDR_XHF);
 		}
 	}
@@ -1234,13 +1234,13 @@ static void t4_hdlc_hard_xmit(struct dahdi_chan *chan)
 
 	spin_lock_irqsave(&wc->reglock, flags);
 	if (!ts->sigchan) {
-		printk("t4_hdlc_hard_xmit: Invalid (NULL) signalling channel\n");
+		printk(KERN_NOTICE "t4_hdlc_hard_xmit: Invalid (NULL) signalling channel\n");
 		spin_unlock_irqrestore(&wc->reglock, flags);
 		return;
 	}
 	spin_unlock_irqrestore(&wc->reglock, flags);
 
-	if (debug & DEBUG_FRAMER) printk("t4_hdlc_hard_xmit on channel %s (sigchan %s), sigactive=%d\n", chan->name, ts->sigchan->name, ts->sigactive);
+	if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "t4_hdlc_hard_xmit on channel %s (sigchan %s), sigactive=%d\n", chan->name, ts->sigchan->name, ts->sigactive);
 
 	if ((ts->sigchan == chan) && !ts->sigactive)
 		t4_hdlc_xmit_fifo(wc, span, ts);
@@ -1254,37 +1254,37 @@ static int t4_maint(struct dahdi_span *span, int cmd)
 	if (ts->spantype == TYPE_E1) {
 		switch(cmd) {
 		case DAHDI_MAINT_NONE:
-			printk("XXX Turn off local and remote loops E1 XXX\n");
+			printk(KERN_INFO "XXX Turn off local and remote loops E1 XXX\n");
 			break;
 		case DAHDI_MAINT_LOCALLOOP:
-			printk("XXX Turn on local loopback E1 XXX\n");
+			printk(KERN_INFO "XXX Turn on local loopback E1 XXX\n");
 			break;
 		case DAHDI_MAINT_REMOTELOOP:
-			printk("XXX Turn on remote loopback E1 XXX\n");
+			printk(KERN_INFO "XXX Turn on remote loopback E1 XXX\n");
 			break;
 		case DAHDI_MAINT_LOOPUP:
-			printk("XXX Send loopup code E1 XXX\n");
+			printk(KERN_INFO "XXX Send loopup code E1 XXX\n");
 			break;
 		case DAHDI_MAINT_LOOPDOWN:
-			printk("XXX Send loopdown code E1 XXX\n");
+			printk(KERN_INFO "XXX Send loopdown code E1 XXX\n");
 			break;
 		case DAHDI_MAINT_LOOPSTOP:
-			printk("XXX Stop sending loop codes E1 XXX\n");
+			printk(KERN_INFO "XXX Stop sending loop codes E1 XXX\n");
 			break;
 		default:
-			printk("TE%dXXP: Unknown E1 maint command: %d\n", wc->numspans, cmd);
+			printk(KERN_NOTICE "TE%dXXP: Unknown E1 maint command: %d\n", wc->numspans, cmd);
 			break;
 		}
 	} else {
 		switch(cmd) {
 	    case DAHDI_MAINT_NONE:
-			printk("XXX Turn off local and remote loops T1 XXX\n");
+			printk(KERN_NOTICE "XXX Turn off local and remote loops T1 XXX\n");
 			break;
 	    case DAHDI_MAINT_LOCALLOOP:
-			printk("XXX Turn on local loop and no remote loop XXX\n");
+			printk(KERN_NOTICE "XXX Turn on local loop and no remote loop XXX\n");
 			break;
 	    case DAHDI_MAINT_REMOTELOOP:
-			printk("XXX Turn on remote loopup XXX\n");
+			printk(KERN_NOTICE "XXX Turn on remote loopup XXX\n");
 			break;
 	    case DAHDI_MAINT_LOOPUP:
 			t4_framer_out(wc, span->offset, 0x21, 0x50);	/* FMR5: Nothing but RBS mode */
@@ -1296,7 +1296,7 @@ static int t4_maint(struct dahdi_span *span, int cmd)
 			t4_framer_out(wc, span->offset, 0x21, 0x40);	/* FMR5: Nothing but RBS mode */
 			break;
 	    default:
-			printk("TE%dXXP: Unknown T1 maint command: %d\n", wc->numspans, cmd);
+			printk(KERN_NOTICE "TE%dXXP: Unknown T1 maint command: %d\n", wc->numspans, cmd);
 			break;
 	   }
     }
@@ -1311,7 +1311,7 @@ static int t4_rbsbits(struct dahdi_chan *chan, int bits)
 	struct t4_span *ts = wc->tspans[chan->span->offset];
 	unsigned long flags;
 	
-	if(debug & DEBUG_RBS) printk("Setting bits to %d on channel %s\n", bits, chan->name);
+	if(debug & DEBUG_RBS) printk(KERN_DEBUG "Setting bits to %d on channel %s\n", bits, chan->name);
 	spin_lock_irqsave(&wc->reglock, flags);	
 	k = chan->span->offset;
 	if (ts->spantype == TYPE_E1) { /* do it E1 way */
@@ -1353,7 +1353,7 @@ static int t4_rbsbits(struct dahdi_chan *chan, int bits)
 	} 
 	spin_unlock_irqrestore(&wc->reglock, flags);
 	if (debug & DEBUG_RBS)
-		printk("Finished setting RBS bits\n");
+		printk(KERN_DEBUG "Finished setting RBS bits\n");
 	return 0;
 }
 
@@ -1367,11 +1367,11 @@ static int t4_shutdown(struct dahdi_span *span)
 
 	tspan = span->offset + 1;
 	if (tspan < 0) {
-		printk("T%dXXP: Span '%d' isn't us?\n", wc->numspans, span->spanno);
+		printk(KERN_NOTICE "T%dXXP: Span '%d' isn't us?\n", wc->numspans, span->spanno);
 		return -1;
 	}
 
-	if (debug & DEBUG_MAIN) printk("Shutting down span %d (%s)\n", span->spanno, span->name);
+	if (debug & DEBUG_MAIN) printk(KERN_DEBUG "Shutting down span %d (%s)\n", span->spanno, span->name);
 
 	/* Stop HDLC controller if runned */
 	if (ts->sigchan)
@@ -1392,7 +1392,7 @@ static int t4_shutdown(struct dahdi_span *span)
 	    (!(wc->tspans[0]->span.flags & DAHDI_FLAG_RUNNING)) &&
 	    (!(wc->tspans[1]->span.flags & DAHDI_FLAG_RUNNING)))) {
 		/* No longer in use, disable interrupts */
-		printk("TE%dXXP: Disabling interrupts since there are no active spans\n", wc->numspans);
+		printk(KERN_INFO "TE%dXXP: Disabling interrupts since there are no active spans\n", wc->numspans);
 		set_bit(T4_STOP_DMA, &wc->checkflag);
 	} else
 		set_bit(T4_CHECK_TIMING, &wc->checkflag);
@@ -1405,7 +1405,7 @@ static int t4_shutdown(struct dahdi_span *span)
 		wc->spansstarted--;
 
 	if (debug & DEBUG_MAIN)
-		printk("Span %d (%s) shutdown\n", span->spanno, span->name);
+		printk(KERN_DEBUG "Span %d (%s) shutdown\n", span->spanno, span->name);
 	return 0;
 }
 
@@ -1415,9 +1415,9 @@ static int t4_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 	struct t4_span *ts = span->pvt;
 	struct t4 *wc = ts->owner;
 
-	printk("About to enter spanconfig!\n");
+	printk(KERN_INFO "About to enter spanconfig!\n");
 	if (debug & DEBUG_MAIN)
-		printk("TE%dXXP: Configuring span %d\n", wc->numspans, span->spanno);
+		printk(KERN_DEBUG "TE%dXXP: Configuring span %d\n", wc->numspans, span->spanno);
 
 	if (lc->sync < 0)
 		lc->sync = 0;
@@ -1446,7 +1446,7 @@ static int t4_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 	/* If we're already running, then go ahead and apply the changes */
 	if (span->flags & DAHDI_FLAG_RUNNING)
 		return t4_startup(span);
-	printk("Done with spanconfig!\n");
+	printk(KERN_INFO "Done with spanconfig!\n");
 	return 0;
 }
 
@@ -1460,9 +1460,9 @@ static int t4_chanconfig(struct dahdi_chan *chan, int sigtype)
 	alreadyrunning = ts->span.flags & DAHDI_FLAG_RUNNING;
 	if (debug & DEBUG_MAIN) {
 		if (alreadyrunning)
-			printk("TE%dXXP: Reconfigured channel %d (%s) sigtype %d\n", wc->numspans, chan->channo, chan->name, sigtype);
+			printk(KERN_DEBUG "TE%dXXP: Reconfigured channel %d (%s) sigtype %d\n", wc->numspans, chan->channo, chan->name, sigtype);
 		else
-			printk("TE%dXXP: Configured channel %d (%s) sigtype %d\n", wc->numspans, chan->channo, chan->name, sigtype);
+			printk(KERN_DEBUG "TE%dXXP: Configured channel %d (%s) sigtype %d\n", wc->numspans, chan->channo, chan->name, sigtype);
 	}
 
 	spin_lock_irqsave(&wc->reglock, flags);	
@@ -1475,13 +1475,13 @@ static int t4_chanconfig(struct dahdi_chan *chan, int sigtype)
 	/* (re)configure signalling channel */
 	if ((sigtype == DAHDI_SIG_HARDHDLC) || (ts->sigchan == chan)) {
 		if (debug & DEBUG_FRAMER)
-				printk("%sonfiguring hardware HDLC on %s\n", ((sigtype == DAHDI_SIG_HARDHDLC) ? "C" : "Unc"), chan->name);
+				printk(KERN_DEBUG "%sonfiguring hardware HDLC on %s\n", ((sigtype == DAHDI_SIG_HARDHDLC) ? "C" : "Unc"), chan->name);
 		if (alreadyrunning) {
 			if (ts->sigchan)
 				hdlc_stop(wc, ts->sigchan->span->offset);
 			if (sigtype == DAHDI_SIG_HARDHDLC) {
 				if (hdlc_start(wc, chan->span->offset, chan, ts->sigmode)) {
-					printk("Error initializing signalling controller\n");
+					printk(KERN_NOTICE "Error initializing signalling controller\n");
 					return -1;
 				}
 			} else {
@@ -1620,7 +1620,7 @@ static void t4_serial_setup(struct t4 *wc, int unit)
 {
 	if (!wc->globalconfig) {
 		wc->globalconfig = 1;
-		printk("TE%dXXP: Setting up global serial parameters\n", wc->numspans);
+		printk(KERN_INFO "TE%dXXP: Setting up global serial parameters\n", wc->numspans);
 		t4_framer_out(wc, 0, 0x85, 0xe0);	/* GPC1: Multiplex mode enabled, FSC is output, active low, RCLK from channel 0 */
 		t4_framer_out(wc, 0, 0x08, 0x01);	/* IPC: Interrupt push/pull active low */
 	
@@ -1665,7 +1665,7 @@ static void t4_serial_setup(struct t4 *wc, int unit)
 	t4_framer_out(wc, unit, 0x83, 0x35);	/* PC4: Some more unused stuff */
 	t4_framer_out(wc, unit, 0x84, 0x01);	/* PC5: XMFS active low, SCLKR is input, RCLK is output */
 	if (debug & DEBUG_MAIN)
-		printk("Successfully initialized serial bus for unit %d\n", unit);
+		printk(KERN_DEBUG "Successfully initialized serial bus for unit %d\n", unit);
 }
 
 static int syncsrc = 0;
@@ -1714,10 +1714,10 @@ static void __t4_set_timing_source(struct t4 *wc, int unit, int master, int slav
 		}
 	} else {
 		if (debug & DEBUG_MAIN)
-			printk("TE%dXXP: Timing source already set to %d\n", wc->numspans, unit);
+			printk(KERN_DEBUG "TE%dXXP: Timing source already set to %d\n", wc->numspans, unit);
 	}
 #if	0
-	printk("wct4xxp: Timing source set to %d\n",unit);
+	printk(KERN_DEBUG "wct4xxp: Timing source set to %d\n",unit);
 #endif
 }
 
@@ -1726,7 +1726,7 @@ static inline void __t4_update_timing(struct t4 *wc)
 	int i;
 	/* update sync src info */
 	if (wc->syncsrc != syncsrc) {
-		printk("Swapping card %d from %d to %d\n", wc->num, wc->syncsrc, syncsrc);
+		printk(KERN_INFO "Swapping card %d from %d to %d\n", wc->num, wc->syncsrc, syncsrc);
 		wc->syncsrc = syncsrc;
 		/* Update sync sources */
 		for (i = 0; i < wc->numspans; i++) {
@@ -1734,10 +1734,10 @@ static inline void __t4_update_timing(struct t4 *wc)
 		}
 		if (syncnum == wc->num) {
 			__t4_set_timing_source(wc, syncspan-1, 1, 0);
-			if (debug) printk("Card %d, using sync span %d, master\n", wc->num, syncspan);
+			if (debug) printk(KERN_DEBUG "Card %d, using sync span %d, master\n", wc->num, syncspan);
 		} else {
 			__t4_set_timing_source(wc, syncspan-1, 0, 1);
-			if (debug) printk("Card %d, using Timing Bus, NOT master\n", wc->num);	
+			if (debug) printk(KERN_DEBUG "Card %d, using Timing Bus, NOT master\n", wc->num);	
 		}
 	}
 }
@@ -1784,7 +1784,7 @@ static int __t4_findsync(struct t4 *wc)
 		}
 found:		
 		if ((syncnum != newsyncnum) || (syncsrc != newsyncsrc) || (newsyncspan != syncspan)) {
-			if (debug) printk("New syncnum: %d (was %d), syncsrc: %d (was %d), syncspan: %d (was %d)\n", newsyncnum, syncnum, newsyncsrc, syncsrc, newsyncspan, syncspan);
+			if (debug) printk(KERN_DEBUG "New syncnum: %d (was %d), syncsrc: %d (was %d), syncspan: %d (was %d)\n", newsyncnum, syncnum, newsyncsrc, syncsrc, newsyncspan, syncspan);
 			syncnum = newsyncnum;
 			syncsrc = newsyncsrc;
 			syncspan = newsyncspan;
@@ -1802,7 +1802,7 @@ found:
 static void __t4_set_timing_source_auto(struct t4 *wc)
 {
 	int x;
-	printk("timing source auto card %d!\n", wc->num);
+	printk(KERN_INFO "timing source auto card %d!\n", wc->num);
 	clear_bit(T4_CHECK_TIMING, &wc->checkflag);
 	if (timingcable) {
 		__t4_findsync(wc);
@@ -1901,7 +1901,7 @@ static void __t4_configure_t1(struct t4 *wc, int unit, int lineconfig, int txlev
 	__t4_framer_out(wc, unit, 0x17, 0xf4);	/* IMR3: We care about AIS and friends */
 	__t4_framer_out(wc, unit, 0x18, 0x3f);  /* IMR4: We care about slips on transmit */
 
-	printk("TE%dXXP: Span %d configured for %s/%s\n", wc->numspans, unit + 1, framing, line);
+	printk(KERN_INFO "TE%dXXP: Span %d configured for %s/%s\n", wc->numspans, unit + 1, framing, line);
 }
 
 static void __t4_configure_e1(struct t4 *wc, int unit, int lineconfig)
@@ -1980,7 +1980,7 @@ static void __t4_configure_e1(struct t4 *wc, int unit, int lineconfig)
 	__t4_framer_out(wc, unit, 0x17, 0xc4 | imr3extra);	/* IMR3: We care about AIS and friends */
 	__t4_framer_out(wc, unit, 0x18, 0x3f);  /* IMR4: We care about slips on transmit */
 
-	printk("TE%dXXP: Span %d configured for %s/%s%s\n", wc->numspans, unit + 1, framing, line, crc4);
+	printk(KERN_INFO "TE%dXXP: Span %d configured for %s/%s%s\n", wc->numspans, unit + 1, framing, line, crc4);
 }
 
 static int t4_startup(struct dahdi_span *span)
@@ -1994,10 +1994,10 @@ static int t4_startup(struct dahdi_span *span)
 	struct t4_span *ts = span->pvt;
 	struct t4 *wc = ts->owner;
 
-	printk("About to enter startup!\n");
+	printk(KERN_INFO "About to enter startup!\n");
 	tspan = span->offset + 1;
 	if (tspan < 0) {
-		printk("TE%dXXP: Span '%d' isn't us?\n", wc->numspans, span->spanno);
+		printk(KERN_INFO "TE%dXXP: Span '%d' isn't us?\n", wc->numspans, span->spanno);
 		return -1;
 	}
 
@@ -2057,7 +2057,7 @@ static int t4_startup(struct dahdi_span *span)
 
 		spin_unlock_irqrestore(&wc->reglock, flags);
 		if (hdlc_start(wc, span->offset, sigchan, ts->sigmode)) {
-			printk("Error initializing signalling controller\n");
+			printk(KERN_NOTICE "Error initializing signalling controller\n");
 			return -1;
 		}
 		spin_lock_irqsave(&wc->reglock, flags);
@@ -2068,11 +2068,11 @@ static int t4_startup(struct dahdi_span *span)
 	t4_check_alarms(wc, span->offset);
 	t4_check_sigbits(wc, span->offset);
 
-	if (wc->tspans[0]->sync == span->spanno) printk("SPAN %d: Primary Sync Source\n",span->spanno);
-	if (wc->tspans[1]->sync == span->spanno) printk("SPAN %d: Secondary Sync Source\n",span->spanno);
+	if (wc->tspans[0]->sync == span->spanno) printk(KERN_INFO "SPAN %d: Primary Sync Source\n",span->spanno);
+	if (wc->tspans[1]->sync == span->spanno) printk(KERN_INFO "SPAN %d: Secondary Sync Source\n",span->spanno);
 	if (wc->numspans == 4) {
-		if (wc->tspans[2]->sync == span->spanno) printk("SPAN %d: Tertiary Sync Source\n",span->spanno);
-		if (wc->tspans[3]->sync == span->spanno) printk("SPAN %d: Quaternary Sync Source\n",span->spanno);
+		if (wc->tspans[2]->sync == span->spanno) printk(KERN_INFO "SPAN %d: Tertiary Sync Source\n",span->spanno);
+		if (wc->tspans[3]->sync == span->spanno) printk(KERN_INFO "SPAN %d: Quaternary Sync Source\n",span->spanno);
 	}
 #ifdef VPM_SUPPORT
 	if (!alreadyrunning && !wc->vpm) {
@@ -2084,7 +2084,7 @@ static int t4_startup(struct dahdi_span *span)
 		t4_pci_out(wc, WC_DMACTRL, wc->dmactrl);
 	}
 #endif
-	printk("Completed startup!\n");
+	printk(KERN_INFO "Completed startup!\n");
 	return 0;
 }
 
@@ -2107,7 +2107,7 @@ static inline void e1_check(struct t4 *wc, int span, int val)
 			if (wc->numspans == 4)
 				wc->tspans[2]->e1check = wc->tspans[3]->e1check = 0;
 			if (debug & DEBUG_MAIN)
-				printk("Detected loss of E1 alignment on span %d!\n", span);
+				printk(KERN_DEBUG "Detected loss of E1 alignment on span %d!\n", span);
 			t4_reset_dma(wc);
 		}
 	}
@@ -2138,7 +2138,7 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 		for (x=0;x<wc->numspans;x++)
 			wc->tspans[x]->irqmisses++;
 		if (debug & DEBUG_MAIN)
-			printk("TE%dXXP: Double/missed interrupt detected\n", wc->numspans);
+			printk(KERN_DEBUG "TE%dXXP: Double/missed interrupt detected\n", wc->numspans);
 	}
 	for (x=0;x<DAHDI_CHUNKSIZE;x++) {
 		for (z=0;z<24;z++) {
@@ -2331,7 +2331,7 @@ static void t4_check_sigbits(struct t4 *wc, int span)
 	struct t4_span *ts = wc->tspans[span];
 
 	if (debug & DEBUG_RBS)
-		printk("Checking sigbits on span %d\n", span + 1);
+		printk(KERN_DEBUG "Checking sigbits on span %d\n", span + 1);
 
 	if (!(ts->span.flags & DAHDI_FLAG_RUNNING))
 		return;
@@ -2427,7 +2427,7 @@ static void t4_check_alarms(struct t4 *wc, int span)
 			if (!(ts->spanflags & FLAG_NMF)) {
 				__t4_framer_out(wc, span, 0x20, 0x9f | 0x20);	/* LIM0: Force RAI High */
 				ts->spanflags |= FLAG_NMF;
-				printk("NMF workaround on!\n");
+				printk(KERN_DEBUG "NMF workaround on!\n");
 			}
 			__t4_framer_out(wc, span, 0x1e, 0xc3);	/* Reset to CRC4 mode */
 			__t4_framer_out(wc, span, 0x1c, 0xf2);	/* Force Resync */
@@ -2436,7 +2436,7 @@ static void t4_check_alarms(struct t4 *wc, int span)
 			if ((ts->spanflags & FLAG_NMF)) {
 				__t4_framer_out(wc, span, 0x20, 0x9f);	/* LIM0: Clear forced RAI */
 				ts->spanflags &= ~FLAG_NMF;
-				printk("NMF workaround off!\n");
+				printk(KERN_DEBUG "NMF workaround off!\n");
 			}
 		}
 	} else {
@@ -2495,7 +2495,7 @@ static void t4_check_alarms(struct t4 *wc, int span)
 	if (alarms && !(ts->spanflags & FLAG_SENDINGYELLOW)) {
 		unsigned char fmr4;
 #if 1
-		printk("wct%dxxp: Setting yellow alarm on span %d\n", wc->numspans, span + 1);
+		printk(KERN_INFO "wct%dxxp: Setting yellow alarm on span %d\n", wc->numspans, span + 1);
 #endif
 		/* We manually do yellow alarm to handle RECOVER and NOTOPEN, otherwise it's auto anyway */
 		fmr4 = __t4_framer_in(wc, span, 0x20);
@@ -2504,7 +2504,7 @@ static void t4_check_alarms(struct t4 *wc, int span)
 	} else if ((!alarms) && (ts->spanflags & FLAG_SENDINGYELLOW)) {
 		unsigned char fmr4;
 #if 1
-		printk("wct%dxxp: Clearing yellow alarm on span %d\n", wc->numspans, span + 1);
+		printk(KERN_INFO "wct%dxxp: Clearing yellow alarm on span %d\n", wc->numspans, span + 1);
 #endif
 		/* We manually do yellow alarm to handle RECOVER  */
 		fmr4 = __t4_framer_in(wc, span, 0x20);
@@ -2619,7 +2619,7 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 	unsigned long flags;
 
 	if (debug & DEBUG_FRAMER)	
-		printk("framer interrupt span %d:%d!\n", wc->num, span + 1);
+		printk(KERN_DEBUG "framer interrupt span %d:%d!\n", wc->num, span + 1);
 
 	/* 1st gen cards isn't used interrupts */
 	gis = t4_framer_in(wc, span, FRMR_GIS);
@@ -2630,7 +2630,7 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 	isr4 = (gis & FRMR_GIS_ISR4) ? t4_framer_in(wc, span, FRMR_ISR4) : 0;
 
 	if (debug & DEBUG_FRAMER)
-		printk("gis: %02x, isr0: %02x, isr1: %02x, isr2: %02x, isr3: %02x, isr4: %02x\n", gis, isr0, isr1, isr2, isr3, isr4);
+		printk(KERN_DEBUG "gis: %02x, isr0: %02x, isr1: %02x, isr2: %02x, isr3: %02x, isr4: %02x\n", gis, isr0, isr1, isr2, isr3, isr4);
 
 	if (isr0)
 		t4_check_sigbits(wc, span);
@@ -2650,13 +2650,13 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 
 		if (debug & DEBUG_MAIN) {
 			if (isr3 & 0x02)
-				printk("TE%d10P: RECEIVE slip NEGATIVE on span %d\n", wc->numspans, span + 1);
+				printk(KERN_DEBUG "TE%d10P: RECEIVE slip NEGATIVE on span %d\n", wc->numspans, span + 1);
 			if (isr3 & 0x01)
-				printk("TE%d10P: RECEIVE slip POSITIVE on span %d\n", wc->numspans, span + 1);
+				printk(KERN_DEBUG "TE%d10P: RECEIVE slip POSITIVE on span %d\n", wc->numspans, span + 1);
 			if (isr4 & 0x80)
-				printk("TE%dXXP: TRANSMIT slip POSITIVE on span %d\n", wc->numspans, span + 1);
+				printk(KERN_DEBUG "TE%dXXP: TRANSMIT slip POSITIVE on span %d\n", wc->numspans, span + 1);
 			if (isr4 & 0x40)
-				printk("TE%d10P: TRANSMIT slip NEGATIVE on span %d\n", wc->numspans, span + 1);
+				printk(KERN_DEBUG "TE%d10P: TRANSMIT slip NEGATIVE on span %d\n", wc->numspans, span + 1);
 		}
 	} else
 		ts->span.timingslips = 0;
@@ -2673,7 +2673,7 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 
 	if (isr0 & FRMR_ISR0_RME) {
 		readsize = (t4_framer_in(wc, span, FRMR_RBCH) << 8) | t4_framer_in(wc, span, FRMR_RBCL);
-		if (debug & DEBUG_FRAMER) printk("Received data length is %d (%d)\n", readsize, readsize & FRMR_RBCL_MAX_SIZE);
+		if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Received data length is %d (%d)\n", readsize, readsize & FRMR_RBCL_MAX_SIZE);
 		/* RPF isn't set on last part of frame */
 		if ((readsize > 0) && ((readsize &= FRMR_RBCL_MAX_SIZE) == 0))
 			readsize = 32;
@@ -2684,7 +2684,7 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 		int i;
 		unsigned char readbuf[readsize];
 
-		if (debug & DEBUG_FRAMER) printk("Framer %d: Got RPF/RME! readsize is %d\n", sigchan->span->offset, readsize);
+		if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Framer %d: Got RPF/RME! readsize is %d\n", sigchan->span->offset, readsize);
 
 		for (i = 0; i < readsize; i++)
 			readbuf[i] = t4_framer_in(wc, span, FRMR_RXFIFO);
@@ -2693,10 +2693,10 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 		t4_framer_cmd_wait(wc, span, FRMR_CMDR_RMC);
 
 		if (debug & DEBUG_FRAMER) {
-			printk("RX(");
+			printk(KERN_DEBUG "RX(");
 			for (i = 0; i < readsize; i++)
-				printk((i ? " %02x" : "%02x"), readbuf[i]);
-			printk(")\n");
+				printk(KERN_DEBUG "%s%02x", i ? " " : "", readbuf[i]);
+			printk(KERN_DEBUG ")\n");
 		}
 
 		if (isr0 & FRMR_ISR0_RME) {
@@ -2714,24 +2714,24 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 
 			++ts->frames_in;
 			if ((debug & DEBUG_FRAMER) && !(ts->frames_in & 0x0f))
-				printk("Received %d frames on span %d\n", ts->frames_in, span);
-			if (debug & DEBUG_FRAMER) printk("Received HDLC frame %d.  RSIS = 0x%x (%x)\n", ts->frames_in, rsis, rsis_reg);
+				printk(KERN_DEBUG "Received %d frames on span %d\n", ts->frames_in, span);
+			if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Received HDLC frame %d.  RSIS = 0x%x (%x)\n", ts->frames_in, rsis, rsis_reg);
 			if (!(rsis & FRMR_RSIS_CRC16)) {
-				if (debug & DEBUG_FRAMER) printk("CRC check failed %d\n", span);
+				if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "CRC check failed %d\n", span);
 				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_BADFCS);
 			} else if (rsis & FRMR_RSIS_RAB) {
-				if (debug & DEBUG_FRAMER) printk("ABORT of current frame due to overflow %d\n", span);
+				if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "ABORT of current frame due to overflow %d\n", span);
 				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_ABORT);
 			} else if (rsis & FRMR_RSIS_RDO) {
-				if (debug & DEBUG_FRAMER) printk("HDLC overflow occured %d\n", span);
+				if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "HDLC overflow occured %d\n", span);
 				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_OVERRUN);
 			} else if (!(rsis & FRMR_RSIS_VFR)) {
-				if (debug & DEBUG_FRAMER) printk("Valid Frame check failed on span %d\n", span);
+				if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Valid Frame check failed on span %d\n", span);
 				dahdi_hdlc_abort(sigchan, DAHDI_EVENT_ABORT);
 			} else {
 				dahdi_hdlc_putbuf(sigchan, readbuf, readsize - 1);
 				dahdi_hdlc_finish(sigchan);
-				if (debug & DEBUG_FRAMER) printk("Received valid HDLC frame on span %d\n", span);
+				if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Received valid HDLC frame on span %d\n", span);
 			}
 #if 0
 			debug = olddebug;
@@ -2742,18 +2742,18 @@ static inline void t4_framer_interrupt(struct t4 *wc, int span)
 
 	/* Transmit side */
 	if (isr1 & FRMR_ISR1_XDU) {
-		if (debug & DEBUG_FRAMER) printk("XDU: Resetting signal controler!\n");
+		if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "XDU: Resetting signal controler!\n");
 		t4_framer_cmd_wait(wc, span, FRMR_CMDR_SRES);
 	} else if (isr1 & FRMR_ISR1_XPR) {
 		if (debug & DEBUG_FRAMER)
-			printk("Sigchan %d is %p\n", sigchan->chanpos, sigchan);
+			printk(KERN_DEBUG "Sigchan %d is %p\n", sigchan->chanpos, sigchan);
 
-		if (debug & DEBUG_FRAMER) printk("Framer %d: Got XPR!\n", sigchan->span->offset);
+		if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "Framer %d: Got XPR!\n", sigchan->span->offset);
 		t4_hdlc_xmit_fifo(wc, span, ts);
 	}
 
 	if (isr1 & FRMR_ISR1_ALLS) {
-		if (debug & DEBUG_FRAMER) printk("ALLS received\n");
+		if (debug & DEBUG_FRAMER) printk(KERN_DEBUG "ALLS received\n");
 	}
 
 }
@@ -2770,7 +2770,7 @@ DAHDI_IRQ_HANDLER(t4_interrupt)
 
 #if 0
 	if (wc->intcount < 20)
-		printk("Pre-interrupt\n");
+		printk(KERN_DEBUG "Pre-interrupt\n");
 #endif
 	
 	/* Make sure it's really for us */
@@ -2792,14 +2792,14 @@ DAHDI_IRQ_HANDLER(t4_interrupt)
 	__t4_pci_out(wc, WC_INTR, 0);
 
 	if (!wc->spansstarted) {
-		printk("Not prepped yet!\n");
+		printk(KERN_NOTICE "Not prepped yet!\n");
 		return IRQ_NONE;
 	}
 
 	wc->intcount++;
 #if 0
 	if (wc->intcount < 20)
-		printk("Got interrupt, status = %08x\n", status);
+		printk(KERN_DEBUG "Got interrupt, status = %08x\n", status);
 #endif		
 
 	if (status & 0x3) {
@@ -2810,10 +2810,10 @@ DAHDI_IRQ_HANDLER(t4_interrupt)
 #if 0
 	if ((wc->intcount < 10) || !(wc->intcount % 1000)) {
 		status2 = t4_framer_in(wc, 0, FRMR_CIS);
-		printk("Status2: %04x\n", status2);
+		printk(KERN_DEBUG "Status2: %04x\n", status2);
 		for (x = 0;x<wc->numspans;x++) {
 			status2 = t4_framer_in(wc, x, FRMR_FRS0);
-			printk("FRS0/%d: %04x\n", x, status2);
+			printk(KERN_DEBUG "FRS0/%d: %04x\n", x, status2);
 		}
 	}
 #endif
@@ -2898,7 +2898,7 @@ DAHDI_IRQ_HANDLER(t4_interrupt_gen2)
 #endif
 
 	if (unlikely(!wc->spansstarted)) {
-		printk("Not prepped yet!\n");
+		printk(KERN_INFO "Not prepped yet!\n");
 		return IRQ_NONE;
 	}
 
@@ -2906,7 +2906,7 @@ DAHDI_IRQ_HANDLER(t4_interrupt_gen2)
 
 	if (unlikely((wc->intcount < 20) && debug))
 
-		printk("2G: Got interrupt, status = %08x, CIS = %04x\n", status, t4_framer_in(wc, 0, FRMR_CIS));
+		printk(KERN_INFO "2G: Got interrupt, status = %08x, CIS = %04x\n", status, t4_framer_in(wc, 0, FRMR_CIS));
 
 	if (likely(status & 0x2)) {
 #ifdef ENABLE_WORKQUEUES
@@ -3022,7 +3022,7 @@ static void t4_vpm_set_dtmf_threshold(struct t4 *wc, unsigned int threshold)
 		t4_vpm_out(wc, x, 0xC4, (threshold >> 8) & 0xFF);
 		t4_vpm_out(wc, x, 0xC5, (threshold & 0xFF));
 	}
-	printk("VPM: DTMF threshold set to %d\n", threshold);
+	printk(KERN_INFO "VPM: DTMF threshold set to %d\n", threshold);
 }
 
 static unsigned int t4_vpm_mask(int chip)
@@ -3091,7 +3091,7 @@ static void t4_vpm450_init(struct t4 *wc)
 #endif
 
 	if (!vpmsupport) {
-		printk("VPM450: Support Disabled\n");
+		printk(KERN_INFO "VPM450: Support Disabled\n");
 		return;
 	}
 
@@ -3102,9 +3102,9 @@ static void t4_vpm450_init(struct t4 *wc)
 	check1 = __t4_raw_oct_in(wc, 0x0004);
 	check2 = __t4_raw_oct_in(wc, 0x000a);
 	if (debug)
-		printk("OCT Result: %04x/%04x\n", __t4_raw_oct_in(wc, 0x0004), __t4_raw_oct_in(wc, 0x000a));
+		printk(KERN_DEBUG "OCT Result: %04x/%04x\n", __t4_raw_oct_in(wc, 0x0004), __t4_raw_oct_in(wc, 0x000a));
 	if (__t4_raw_oct_in(wc, 0x0004) != 0x1234) {
-		printk("VPM450: Not Present\n");
+		printk(KERN_NOTICE "VPM450: Not Present\n");
 		return;
 	}
 
@@ -3119,7 +3119,7 @@ static void t4_vpm450_init(struct t4 *wc)
 #if defined(HOTPLUG_FIRMWARE)
 		if ((request_firmware(&firmware, oct064_firmware, &wc->dev->dev) != 0) ||
 		    !firmware) {
-			printk("VPM450: firmware %s not available from userspace\n", oct064_firmware);
+			printk(KERN_NOTICE "VPM450: firmware %s not available from userspace\n", oct064_firmware);
 			return;
 		}
 #else
@@ -3137,7 +3137,7 @@ static void t4_vpm450_init(struct t4 *wc)
 #if defined(HOTPLUG_FIRMWARE)
 		if ((request_firmware(&firmware, oct128_firmware, &wc->dev->dev) != 0) ||
 		    !firmware) {
-			printk("VPM450: firmware %s not available from userspace\n", oct128_firmware);
+			printk(KERN_NOTICE "VPM450: firmware %s not available from userspace\n", oct128_firmware);
 			return;
 		}
 #else
@@ -3152,12 +3152,12 @@ static void t4_vpm450_init(struct t4 *wc)
 #endif
 		break;
 	default:
-		printk("Unsupported channel capacity found on VPM module (%d).\n", vpm_capacity);
+		printk(KERN_NOTICE "Unsupported channel capacity found on VPM module (%d).\n", vpm_capacity);
 		return;
 	}
 
 	if (!(wc->vpm450m = init_vpm450m(wc, laws, wc->numspans, firmware))) {
-		printk("VPM450: Failed to initialize\n");
+		printk(KERN_NOTICE "VPM450: Failed to initialize\n");
 		if (firmware != &embedded_firmware)
 			release_firmware(firmware);
 		return;
@@ -3167,12 +3167,12 @@ static void t4_vpm450_init(struct t4 *wc)
 		release_firmware(firmware);
 
 	if (vpmdtmfsupport == -1) {
-		printk("VPM450: hardware DTMF disabled.\n");
+		printk(KERN_NOTICE "VPM450: hardware DTMF disabled.\n");
 		vpmdtmfsupport = 0;
 	}
 
 	wc->vpm = T4_VPM_PRESENT;
-	printk("VPM450: Present and operational servicing %d span(s)\n", wc->numspans);
+	printk(KERN_INFO "VPM450: Present and operational servicing %d span(s)\n", wc->numspans);
 		
 }
 
@@ -3184,7 +3184,7 @@ static void t4_vpm400_init(struct t4 *wc)
 	unsigned int i, x, y, gen2vpm=0;
 
 	if (!vpmsupport) {
-		printk("VPM400: Support Disabled\n");
+		printk(KERN_INFO "VPM400: Support Disabled\n");
 		return;
 	}
 
@@ -3194,7 +3194,7 @@ static void t4_vpm400_init(struct t4 *wc)
 	case 1:
 		break;
 	default:
-		printk("VPM400: %d is not a valid vpmspans value, using 4\n", vpmspans);
+		printk(KERN_NOTICE "VPM400: %d is not a valid vpmspans value, using 4\n", vpmspans);
 		vpmspans = 4;
 	}
 
@@ -3205,18 +3205,18 @@ static void t4_vpm400_init(struct t4 *wc)
 
 		ver = t4_vpm_in(wc, x, 0x1a0); /* revision */
 		if ((ver != 0x26) && (ver != 0x33)) {
-			printk("VPM400: %s\n", x ? "Inoperable" : "Not Present");
+			printk(KERN_NOTICE "VPM400: %s\n", x ? "Inoperable" : "Not Present");
 			return;
 		}
 		if (ver == 0x33) {
 			if (x && !gen2vpm) {
-				printk("VPM400: Inconsistent\n");
+				printk(KERN_NOTICE "VPM400: Inconsistent\n");
 				return;
 			}
 			ts->spanflags |= FLAG_VPM2GEN;
 			gen2vpm++;
 		} else if (gen2vpm) {
-			printk("VPM400: Inconsistent\n");
+			printk(KERN_NOTICE "VPM400: Inconsistent\n");
 			return;
 		}
 
@@ -3249,11 +3249,11 @@ static void t4_vpm400_init(struct t4 *wc)
 		reg &= 0xE0;
 		if (ts->spantype == TYPE_E1) {
 			if (x < vpmspans)
-				printk("VPM400: Span %d A-law mode\n", spanno);
+				printk(KERN_INFO "VPM400: Span %d A-law mode\n", spanno);
 			reg |= 0x01;
 		} else {
 			if (x < vpmspans)
-				printk("VPM400: Span %d U-law mode\n", spanno);
+				printk(KERN_INFO "VPM400: Span %d U-law mode\n", spanno);
 			reg &= ~0x01;
 		}
 		t4_vpm_out(wc,x,0x20,(reg | 0x20));
@@ -3309,10 +3309,10 @@ static void t4_vpm400_init(struct t4 *wc)
 
 	} 
 	if (vpmdtmfsupport == -1) {
-		printk("VPM400: hardware DTMF enabled.\n");
+		printk(KERN_INFO "VPM400: hardware DTMF enabled.\n");
 		vpmdtmfsupport = 0;
 	}
-	printk("VPM400%s: Present and operational servicing %d span(s)\n", (gen2vpm ? " (2nd Gen)" : ""), wc->numspans);
+	printk(KERN_INFO "VPM400%s: Present and operational servicing %d span(s)\n", (gen2vpm ? " (2nd Gen)" : ""), wc->numspans);
 	wc->vpm = T4_VPM_PRESENT;
 }
 
@@ -3366,7 +3366,7 @@ static void t4_tsi_unassign(struct t4 *wc, int tospan, int tochan)
 	wc->dmactrl |= (0x00004000 | (tots << 7));
 	__t4_pci_out(wc, WC_DMACTRL, wc->dmactrl);
 	if (debug & DEBUG_TSI)
-		printk("Sending '%08x\n", wc->dmactrl);
+		printk(KERN_DEBUG "Sending '%08x\n", wc->dmactrl);
 	wc->dmactrl &= ~0x00007fff;
 	__t4_pci_out(wc, WC_DMACTRL, wc->dmactrl);
 	spin_unlock_irqrestore(&wc->reglock, flags);
@@ -3377,9 +3377,9 @@ static int t4_hardware_init_1(struct t4 *wc, unsigned int cardflags)
 	unsigned int version;
 
 	version = t4_pci_in(wc, WC_VERSION);
-  	printk("TE%dXXP version %08x, burst %s\n", wc->numspans, version, (!(cardflags & FLAG_BURST) && noburst) ? "OFF" : "ON");
+  	printk(KERN_INFO "TE%dXXP version %08x, burst %s\n", wc->numspans, version, (!(cardflags & FLAG_BURST) && noburst) ? "OFF" : "ON");
 #ifdef ENABLE_WORKQUEUES
-	printk("TE%dXXP running with work queues.\n", wc->numspans);
+	printk(KERN_INFO "TE%dXXP running with work queues.\n", wc->numspans);
 #endif
 
 	/* Make sure DMA engine is not running and interrupts are acknowledged */
@@ -3419,7 +3419,7 @@ static int t4_hardware_init_2(struct t4 *wc)
 
 	if (t4_pci_in(wc, WC_VERSION) >= 0xc01a0165) {
 		wc->tspans[0]->spanflags |= FLAG_OCTOPT;
-		printk("Octasic optimized!\n");		
+		printk(KERN_INFO "Octasic optimized!\n");		
 	}
 	/* Setup LEDS, take out of reset */
 	t4_pci_out(wc, WC_LEDS, 0x000000ff);
@@ -3427,10 +3427,10 @@ static int t4_hardware_init_2(struct t4 *wc)
 	
 	t4_framer_out(wc, 0, 0x4a, 0xaa);
 	falcver = t4_framer_in(wc, 0 ,0x4a);
-	printk("FALC version: %08x, Board ID: %02x\n", falcver, wc->order);
+	printk(KERN_INFO "FALC version: %08x, Board ID: %02x\n", falcver, wc->order);
 
 	for (x=0;x< 11;x++)
-		printk("Reg %d: 0x%08x\n", x, t4_pci_in(wc, x));
+		printk(KERN_INFO "Reg %d: 0x%08x\n", x, t4_pci_in(wc, x));
 	return 0;
 }
 
@@ -3440,7 +3440,7 @@ static int __devinit t4_launch(struct t4 *wc)
 	unsigned long flags;
 	if (wc->tspans[0]->span.flags & DAHDI_FLAG_REGISTERED)
 		return 0;
-	printk("TE%dXXP: Launching card: %d\n", wc->numspans, wc->order);
+	printk(KERN_INFO "TE%dXXP: Launching card: %d\n", wc->numspans, wc->order);
 
 	/* Setup serial parameters and system interface */
 	for (x=0;x<wc->numspans;x++)
@@ -3539,12 +3539,12 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 	wc->last0 = 1;
 #if 0
 	if (!request_mem_region(wc->memaddr, wc->memlen, wc->variety))
-		printk("wct4: Unable to request memory region :(, using anyway...\n");
+		printk(KERN_INFO "wct4: Unable to request memory region :(, using anyway...\n");
 #endif
 	if (pci_request_regions(pdev, wc->variety))
-		printk("wct%dxxp: Unable to request regions\n", wc->numspans);
+		printk(KERN_INFO "wct%dxxp: Unable to request regions\n", wc->numspans);
 	
-	printk("Found TE%dXXP at base address %08lx, remapped to %p\n", wc->numspans, wc->memaddr, wc->membase);
+	printk(KERN_INFO "Found TE%dXXP at base address %08lx, remapped to %p\n", wc->numspans, wc->memaddr, wc->membase);
 	
 	wc->dev = pdev;
 	
@@ -3552,7 +3552,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 		/* 32 channels, Double-buffer, Read/Write, 4 spans */
 		(unsigned int *)pci_alloc_consistent(pdev, basesize * 2, &wc->writedma);
 	if (!wc->writechunk) {
-		printk("wct%dxxp: Unable to allocate DMA-able memory\n", wc->numspans);
+		printk(KERN_NOTICE "wct%dxxp: Unable to allocate DMA-able memory\n", wc->numspans);
 		return -ENOMEM;
 	}
 	
@@ -3587,7 +3587,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 	}
 	
 	if (x >= MAX_T4_CARDS) {
-		printk("No cards[] slot available!!\n");
+		printk(KERN_NOTICE "No cards[] slot available!!\n");
 		kfree(wc);
 		return -ENOMEM;
 	}
@@ -3643,14 +3643,14 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 	if (request_irq(pdev->irq, (dt->flags & FLAG_2NDGEN) ? t4_interrupt_gen2 : t4_interrupt, DAHDI_IRQ_SHARED_DISABLED, (wc->numspans == 2) ? "wct2xxp" : "wct4xxp", wc)) 
 #else
 		if (!(wc->tspans[0]->spanflags & FLAG_2NDGEN)) {
-			printk("This driver does not support 1st gen modules\n");
+			printk(KERN_NOTICE "This driver does not support 1st gen modules\n");
 			free_wc(wc);
 			return -ENODEV;
 		}	
 	if (request_irq(pdev->irq, t4_interrupt_gen2, DAHDI_IRQ_SHARED_DISABLED, "t4xxp", wc)) 
 #endif
 	{
-		printk("t4xxp: Unable to request IRQ %d\n", pdev->irq);
+		printk(KERN_NOTICE "t4xxp: Unable to request IRQ %d\n", pdev->irq);
 		free_wc(wc);
 		return -EIO;
 	}
@@ -3675,7 +3675,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 			break;
 	}
 	
-	printk("Found a Wildcard: %s\n", wc->variety);
+	printk(KERN_INFO "Found a Wildcard: %s\n", wc->variety);
 	wc->gpio = 0x00000000;
 	t4_pci_out(wc, WC_GPIO, wc->gpio);
 	t4_gpio_setdir(wc, (1 << 17), (1 << 17));
@@ -3686,9 +3686,9 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 		__t4_raw_oct_out(wc, 0x0004, x);
 		__t4_raw_oct_out(wc, 0x000a, x ^ 0xffff);
 		if (__t4_raw_oct_in(wc, 0x0004) != x) 
-			printk("Register 4 failed %04x\n", x);
+			printk(KERN_DEBUG "Register 4 failed %04x\n", x);
 		if (__t4_raw_oct_in(wc, 0x000a) != (x ^ 0xffff))
-			printk("Register 10 failed %04x\n", x);
+			printk(KERN_DEBUG "Register 10 failed %04x\n", x);
 	}
 #endif
 
@@ -3716,7 +3716,7 @@ static int t4_hardware_stop(struct t4 *wc)
 	t4_pci_out(wc, WC_GPIO, wc->gpio);
 	t4_pci_out(wc, WC_LEDS, 0x00000000);
 
-	printk("\nStopped TE%dXXP, Turned off DMA\n", wc->numspans);
+	printk(KERN_NOTICE "\nStopped TE%dXXP, Turned off DMA\n", wc->numspans);
 	return 0;
 }
 

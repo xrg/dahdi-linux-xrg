@@ -681,14 +681,14 @@ show_buffer(struct voicebus *vb, void *vbb)
 	int x;
 	unsigned char *c;
 	c = vbb;
-	printk("Packet %d\n", count);
+	printk(KERN_DEBUG "Packet %d\n", count);
 	for (x = 1; x <= vb->framesize; ++x) {
-		printk("%02x ", c[x]);
+		printk(KERN_DEBUG "%02x ", c[x]);
 		if (x % 16 == 0) {
-			printk("\n");
+			printk(KERN_DEBUG "\n");
 		}
 	}
-	printk("\n\n");
+	printk(KERN_DEBUG "\n\n");
 }
 #endif
 

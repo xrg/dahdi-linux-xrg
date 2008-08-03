@@ -194,7 +194,7 @@ static inline void cmd_decipher(struct t1 *wc, volatile unsigned char *readchunk
 		   	if (ident == wc->rxident) {
 				/* Store result */
 				wc->cmdq.cmds[x].data |= readchunk[CMD_BYTE(cs_slot,2,is_vpm)];
-				/*printk("answer in rxident=%d cs_slot=%d is %d CMD_BYTE=%d jiffies=%d\n", ident, cs_slot, last_read_command, CMD_BYTE(cs_slot, 2), jiffies); */
+				/*printk(KERN_INFO "answer in rxident=%d cs_slot=%d is %d CMD_BYTE=%d jiffies=%d\n", ident, cs_slot, last_read_command, CMD_BYTE(cs_slot, 2), jiffies); */
 				wc->cmdq.cmds[x].flags |= __CMD_FIN;
 				if (wc->cmdq.cmds[x].flags & (__CMD_WR | __CMD_LEDS))
 					/* clear out writes (and leds) since they need no ack */
@@ -458,7 +458,7 @@ static void t1_release(struct t1 *wc)
 		kfree(wc->chans[x]);
 	}
 	kfree(wc);
-	printk("Freed a Wildcard TE12xP\n");
+	printk(KERN_INFO "Freed a Wildcard TE12xP\n");
 }
 
 static void t4_serial_setup(struct t1 *wc)

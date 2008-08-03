@@ -1010,10 +1010,10 @@ static void detect_vmwi(xpd_t *xpd)
 			LINE_DBG(GENERAL, xpd, pos, "MSG:");
 			for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
 				if(debug)
-					printk(" %02X", writechunk[j]);
+					printk(KERN_DEBUG " %02X", writechunk[j]);
 			}
 			if(debug)
-				printk("\n");
+				printk(KERN_DEBUG "\n");
 		}
 #endif
 		if(unlikely(mem_equal(writechunk, FSK_COMMON_PATTERN, DAHDI_CHUNKSIZE)))
@@ -1033,7 +1033,7 @@ static void detect_vmwi(xpd_t *xpd)
 
 				LINE_NOTICE(xpd, i, "MSG WAITING Unexpected:");
 				for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
-					printk(" %02X", writechunk[j]);
+					printk( " %02X", writechunk[j]);
 				}
 				printk("\n");
 			}

@@ -88,8 +88,8 @@
 
 #define NOT_VPM -1
 
-#define module_printk(fmt, args...) printk("%s: " fmt, te12xp_driver.name, ## args)
-#define debug_printk(level, fmt, args...) if (debug >= level) printk("%s (%s): " fmt, te12xp_driver.name, __FUNCTION__, ## args)
+#define module_printk(fmt, args...) printk(KERN_INFO "%s: " fmt, te12xp_driver.name, ## args)
+#define debug_printk(level, fmt, args...) if (debug >= level) printk(KERN_DEBUG "%s (%s): " fmt, te12xp_driver.name, __FUNCTION__, ## args)
 extern spinlock_t ifacelock;
 
 struct command {

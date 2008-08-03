@@ -31,7 +31,7 @@
 static int debug;
 
 #define module_printk(level, fmt, args...) printk(level "%s: " fmt, THIS_MODULE->name, ## args)
-#define debug_printk(level, fmt, args...) if (debug >= level) printk("%s (%s): " fmt, THIS_MODULE->name, __FUNCTION__, ## args)
+#define debug_printk(level, fmt, args...) if (debug >= level) printk(KERN_DEBUG "%s (%s): " fmt, THIS_MODULE->name, __FUNCTION__, ## args)
 
 #include "hpec_user.h"
 #include "hpec.h"
@@ -51,7 +51,7 @@ static int __attribute__((regparm(0))) __attribute__((format (printf, 1, 2))) lo
 	va_start(args, format);
 	res = vsnprintf(buf, sizeof(buf), format, args);
 	va_end(args);
-	printk(buf);
+	printk(KERN_INFO "%s" buf);
 #endif
 
 	return res;

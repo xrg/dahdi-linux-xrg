@@ -745,13 +745,13 @@ DAHDI_IRQ_HANDLER(pciradio_interrupt)
 
 	if (ints & 0x10) {
 		/* Stop DMA, wait for watchdog */
-		printk("RADIO PCI Master abort\n");
+		printk(KERN_INFO "RADIO PCI Master abort\n");
 		pciradio_stop_dma(rad);
 		return IRQ_RETVAL(1);
 	}
 	
 	if (ints & 0x20) {
-		printk("RADIO PCI Target abort\n");
+		printk(KERN_INFO "RADIO PCI Target abort\n");
 		return IRQ_RETVAL(1);
 	}
 
@@ -906,14 +906,14 @@ DAHDI_IRQ_HANDLER(pciradio_interrupt)
 						    if (debug)
 							{
 								if (rad->present_code[x])
-								    printk("Chan %d got rx (ctcss code %d)\n",x + 1,
+								    printk(KERN_DEBUG "Chan %d got rx (ctcss code %d)\n",x + 1,
 									cttable_rx[rad->rxcode[x][rad->present_code[x]]].code);
 								else
-								    printk("Chan %d got rx\n",x + 1);
+								    printk(KERN_DEBUG "Chan %d got rx\n",x + 1);
 							}
 						    dahdi_hooksig(&rad->chans[x],DAHDI_RXSIG_OFFHOOK);
 						} else {
-						    if (debug) printk("Chan %d lost rx\n",x + 1);
+						    if (debug) printk(KERN_DEBUG "Chan %d lost rx\n",x + 1);
 						    dahdi_hooksig(&rad->chans[x],DAHDI_RXSIG_ONHOOK);
 						}
 						rad->encdec.req[x] = 1; 
@@ -1426,7 +1426,7 @@ static int pciradio_open(struct dahdi_chan *chan)
 
 static int pciradio_watchdog(struct dahdi_span *span, int event)
 {
-	printk("PCI RADIO: Restarting DMA\n");
+	printk(KERN_INFO "PCI RADIO: Restarting DMA\n");
 	pciradio_restart_dma(span->pvt);
 	return 0;
 }
@@ -1454,11 +1454,11 @@ static int pciradio_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 		rad->gottx[chan->chanpos - 1] = 0;
 		break;
 	default:
-		printk("pciradio: Can't set tx state to %d\n", txsig);
+		printk(KERN_DEBUG "pciradio: Can't set tx state to %d\n", txsig);
 		break;
 	}
 	if (debug) 
-		printk("pciradio: Setting Radio hook state to %d on chan %d\n", txsig, chan->chanpos);
+		printk(KERN_DEBUG "pciradio: Setting Radio hook state to %d on chan %d\n", txsig, chan->chanpos);
 	return 0;
 }
 
@@ -1491,7 +1491,7 @@ static int pciradio_initialize(struct pciradio *rad)
 
 	rad->span.pvt = rad;
 	if (dahdi_register(&rad->span, 0)) {
-		printk("Unable to register span with DAHDI\n");
+		printk(KERN_NOTICE "Unable to register span with DAHDI\n");
 		return -1;
 	}
 	return 0;
@@ -1539,10 +1539,10 @@ unsigned long endjif;
 	endjif = jiffies + 10;
 	while (inb(rad->ioaddr + RAD_AUXR) & (XINIT | XDONE) && (jiffies <= endjif));
 	if (endjif < jiffies) {
-		printk("Timeout waiting for INIT and DONE to go low\n");
+		printk(KERN_DEBUG "Timeout waiting for INIT and DONE to go low\n");
 		return -1;
 	}
-	if (debug) printk("fwload: Init and done gone to low\n");
+	if (debug) printk(KERN_DEBUG "fwload: Init and done gone to low\n");
 	/* De-assert PGM */
 	rad->ios |= XPGM;
 	outb(rad->ios, rad->ioaddr + RAD_AUXD);
@@ -1550,10 +1550,10 @@ unsigned long endjif;
 	endjif = jiffies + 10;
 	while (!(inb(rad->ioaddr + RAD_AUXR) & XINIT) && (jiffies <= endjif));
 	if (endjif < jiffies) {
-		printk("Timeout waiting for INIT to go high\n");
+		printk(KERN_DEBUG "Timeout waiting for INIT to go high\n");
 		return -1;
 	}
-	if (debug) printk("fwload: Init went high (clearing done)\nNow loading...\n");
+	if (debug) printk(KERN_DEBUG "fwload: Init went high (clearing done)\nNow loading...\n");
 	/* Assert CS+Write */
 	rad->ios &= ~XCS;
 	outb(rad->ios, rad->ioaddr + RAD_AUXD);
@@ -1566,33 +1566,33 @@ unsigned long endjif;
 		  /* if INIT drops, we're screwed, exit */
 		if (!(inb(rad->ioaddr + RAD_AUXR) & XINIT)) break;
 	   }
-	if (debug) printk("fwload: Transferred %d bytes into chip\n",x);
+	if (debug) printk(KERN_DEBUG "fwload: Transferred %d bytes into chip\n",x);
 	/* Wait for FIFO to clear */
 	endjif = jiffies + 2;
 	while (jiffies < endjif); /* wait */
-	printk("Transfered %d bytes into chip\n",x);
+	printk(KERN_DEBUG "Transfered %d bytes into chip\n",x);
 	/* De-assert CS+Write */
 	rad->ios |= XCS;
 	outb(rad->ios, rad->ioaddr + RAD_AUXD);
-	if (debug) printk("fwload: Loading done!\n");	
+	if (debug) printk(KERN_INFO "fwload: Loading done!\n");	
 	/* Wait for FIFO to clear */
 	endjif = jiffies + 2;
 	while (jiffies < endjif); /* wait */
 	if (!(inb(rad->ioaddr + RAD_AUXR) & XINIT))
 	   {
-		printk("Drove Init low!! CRC Error!!!\n");
+		printk(KERN_NOTICE "Drove Init low!! CRC Error!!!\n");
 		return -1;
 	   }
 	if (!(inb(rad->ioaddr + RAD_AUXR) & XDONE))
 	   {
-		printk("Did not get DONE signal. Short file maybe??\n");
+		printk(KERN_INFO "Did not get DONE signal. Short file maybe??\n");
 		return -1;
 	   }
 	wait_just_a_bit(2);
 	/* get the thingy started */
 	outb(0,rad->ioaddr + RAD_REGBASE);
 	outb(0,rad->ioaddr + RAD_REGBASE);
-	printk("Xilinx Chip successfully loaded, configured and started!!\n");
+	printk(KERN_INFO "Xilinx Chip successfully loaded, configured and started!!\n");
 
 	wait_just_a_bit(HZ/4);
 
@@ -1706,7 +1706,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 	for (x=0;x<RAD_MAX_IFACES;x++)
 		if (!ifaces[x]) break;
 	if (x >= RAD_MAX_IFACES) {
-		printk("Too many interfaces\n");
+		printk(KERN_NOTICE "Too many interfaces\n");
 		return -EIO;
 	}
 	
@@ -1734,7 +1734,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 			   32 bits.  Allocate an extra set just for control too */
 			rad->writechunk = pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &rad->writedma);
 			if (!rad->writechunk) {
-				printk("pciradio: Unable to allocate DMA-able memory\n");
+				printk(KERN_NOTICE "pciradio: Unable to allocate DMA-able memory\n");
 				if (rad->freeregion)
 					release_region(rad->ioaddr, 0xff);
 				return -ENOMEM;
@@ -1744,7 +1744,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 			rad->readdma = rad->writedma + DAHDI_MAX_CHUNKSIZE * 8;		/* in bytes */
 
 			if (pciradio_initialize(rad)) {
-				printk("pciradio: Unable to intialize\n");
+				printk(KERN_INFO "pciradio: Unable to intialize\n");
 				/* Set Reset Low */
 				x=inb(rad->ioaddr + RAD_CNTL);
 				outb((~0x1)&x, rad->ioaddr + RAD_CNTL);
@@ -1788,7 +1788,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 			}
 
 			if (request_irq(pdev->irq, pciradio_interrupt, DAHDI_IRQ_SHARED, "pciradio", rad)) {
-				printk("pciradio: Unable to request IRQ %d\n", pdev->irq);
+				printk(KERN_NOTICE "pciradio: Unable to request IRQ %d\n", pdev->irq);
 				if (rad->freeregion)
 					release_region(rad->ioaddr, 0xff);
 				pci_free_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)rad->writechunk, rad->writedma);
@@ -1804,7 +1804,7 @@ static int __devinit pciradio_init_one(struct pci_dev *pdev, const struct pci_de
 
 			/* Start DMA */
 			pciradio_start_dma(rad);
-			printk("Found a PCI Radio Card\n");
+			printk(KERN_INFO "Found a PCI Radio Card\n");
 			res = 0;
 		} else
 			res = -ENOMEM;
@@ -1818,7 +1818,7 @@ static void pciradio_release(struct pciradio *rad)
 	if (rad->freeregion)
 		release_region(rad->ioaddr, 0xff);
 	kfree(rad);
-	printk("Freed a PCI RADIO card\n");
+	printk(KERN_INFO "Freed a PCI RADIO card\n");
 }
 
 static void __devexit pciradio_remove_one(struct pci_dev *pdev)

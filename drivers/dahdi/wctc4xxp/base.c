@@ -283,7 +283,7 @@
 			down(&wc->cmdqsem); \
 	 		wc->last_command_sent = hex; \
 			if ( (((wc->cmdq_wndx + 1) % MAX_COMMANDS) == wc->cmdq_rndx) && debug ) \
-				printk("wcdte error: cmdq is full.\n"); \
+				printk(KERN_NOTICE "wcdte error: cmdq is full.\n"); \
 			else { \
 				unsigned char fifo[OTHER_CMD_LEN] = command; \
 				int i; \
@@ -438,7 +438,7 @@ static int __dump_descriptors(struct wcdte *wc)
 	if (debug_des_cnt == 0)
 		return 1;
 
-	printk("Transmit Descriptors (wc->tdbl = %d)\n", wc->tdbl);
+	printk(KERN_DEBUG "Transmit Descriptors (wc->tdbl = %d)\n", wc->tdbl);
 	for (i = 0; i < ERING_SIZE; i++)
 	{
 		writechunk = (volatile unsigned char *)(wc->writechunk);
@@ -446,9 +446,9 @@ static int __dump_descriptors(struct wcdte *wc)
 		o2 = i * 4;
 
 		if (i == wc->tdbl)
-			printk("->");
+			printk(KERN_DEBUG "->");
 		else
-			printk("  ");
+			printk(KERN_DEBUG "  ");
 		if ((le32_to_cpu(wc->descripchunk[o2]) & 0x80000000))
 			printk("AN983 owns : ");
 		else
@@ -459,7 +459,7 @@ static int __dump_descriptors(struct wcdte *wc)
 		printk("\n");
 	}
 
-	printk("Receive Descriptors (wc->rdbl = %d)\n", wc->rdbl);
+	printk(KERN_DEBUG "Receive Descriptors (wc->rdbl = %d)\n", wc->rdbl);
 	for (i = 0; i < ERING_SIZE; i++)
 	{
 		readchunk = (volatile unsigned char *)wc->readchunk;
@@ -468,9 +468,9 @@ static int __dump_descriptors(struct wcdte *wc)
 		o2 += ERING_SIZE * 4;
 
 		if (i == wc->rdbl)
-			printk("->");
+			printk(KERN_DEBUG "->");
 		else
-			printk("  ");
+			printk(KERN_DEBUG "  ");
 		if ((le32_to_cpu(wc->descripchunk[o2]) & 0x80000000))
 			printk("AN983 owns : ");
 		else
@@ -642,7 +642,7 @@ static inline int __transmit_demand(struct wcdte *wc)
 
 	if (debug_packets && (writechunk[12] == 0x88) && (writechunk[13] == 0x9B))
 	{
-		printk("wcdte debug: TX: ");
+		printk(KERN_DEBUG "wcdte debug: TX: ");
 		for (i=0; i<debug_packets; i++)
 			printk("%02X ", writechunk[i]);
 		printk("\n");
@@ -828,7 +828,7 @@ static int dte_operation(struct dahdi_transcoder_channel *ztc, int op)
 					down(&wc->cmdqsem);
 		
 					if ( (((wc->cmdq_wndx + 1) % MAX_COMMANDS) == wc->cmdq_rndx) && debug )
-						printk("wcdte error: cmdq is full.\n");
+						printk(KERN_NOTICE "wcdte error: cmdq is full.\n");
 					else
 					{
 						wc->cmdq[wc->cmdq_wndx].cmdlen = CMD_MSG_IP_UDP_RTP_LEN+inbytes;
@@ -886,7 +886,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 	{
 		if (debug_packets)
 		{
-			printk("wcdte debug: RX: ");
+			printk(KERN_DEBUG "wcdte debug: RX: ");
 			for (i=0; i<debug_packets; i++)
 				printk("%02X ", readchunk[i]);
 			printk("\n");
@@ -901,7 +901,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 			down(&wc->cmdqsem);
 			if ((readchunk[17] & 0x40) == 0) {
 				if ( (((wc->cmdq_wndx + 1) % MAX_COMMANDS) == wc->cmdq_rndx) && debug )
-					printk("wcdte error: cmdq is full (rndx = %d, wndx = %d).\n", wc->cmdq_rndx, wc->cmdq_wndx);
+					printk(KERN_NOTICE "wcdte error: cmdq is full (rndx = %d, wndx = %d).\n", wc->cmdq_rndx, wc->cmdq_wndx);
 				else
 				{
 					unsigned char fifo[OTHER_CMD_LEN] = CMD_MSG_ACK(rseq++, rchannel);
@@ -922,7 +922,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 				wake_up(&wc->regq);
 			} else {
 				if (debug)
-				printk("wcdte error: unexpected command response received (sent: %04X, received: %04X)\n", wc->last_command_sent, rcommand);
+				printk(KERN_DEBUG "wcdte error: unexpected command response received (sent: %04X, received: %04X)\n", wc->last_command_sent, rcommand);
 			}
 			up(&wc->cmdqsem);
 		}
@@ -939,7 +939,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 		if ((readchunk[22] == 0x75) && (readchunk[23] = 0xC1))
 		{
 			if (debug)
-				printk("wcdte error: received alert (0x%02X%02X) from dsp\n", readchunk[29], readchunk[28]);
+				printk(KERN_DEBUG "wcdte error: received alert (0x%02X%02X) from dsp\n", readchunk[29], readchunk[28]);
 			if (debug_des) {
 				down(&wc->cmdqsem);
 				__dump_descriptors(wc);
@@ -948,6 +948,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 		}
 
 		if (wc->dumping && (readchunk[22] == 0x04) && (readchunk[23] = 0x14)) {
+			printk(KERN_DEBUG);
 			for (i = 27; i < 227; i++)
 				printk("%02X ", readchunk[i]);
 			printk("\n");
@@ -968,7 +969,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 		if (ztc_ndx >= wc->numchannels)
 		{
 			if (debug)
-				printk("wcdte error: Invalid channel number received (ztc_ndx = %d) (numchannels = %d)\n", ztc_ndx, wc->numchannels);
+				printk(KERN_DEBUG "wcdte error: Invalid channel number received (ztc_ndx = %d) (numchannels = %d)\n", ztc_ndx, wc->numchannels);
 			rcodec = DTE_FORMAT_UNDEF;
 		}
 
@@ -981,7 +982,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 			if (zth == NULL)
 			{
 				if (debug)
-					printk("wcdte error: Tried to put DTE data into a freed zth header! (ztc_ndx = %d, ztc->chan_built = %d)\n", ztc_ndx, ztc->chan_built);
+					printk(KERN_DEBUG "wcdte error: Tried to put DTE data into a freed zth header! (ztc_ndx = %d, ztc->chan_built = %d)\n", ztc_ndx, ztc->chan_built);
 				if (debug_des) {
 					down(&wc->cmdqsem);
 					__dump_descriptors(wc);
@@ -1004,7 +1005,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 			if (zth == NULL)
 			{
 				if (debug)
-					printk("wcdte error: Tried to put DTE data into a freed zth header! (ztc_ndx = %d, ztc->chan_built = %d)\n", ztc_ndx, ztc->chan_built);
+					printk(KERN_DEBUG "wcdte error: Tried to put DTE data into a freed zth header! (ztc_ndx = %d, ztc->chan_built = %d)\n", ztc_ndx, ztc->chan_built);
 				if (debug_des) {
 					down(&wc->cmdqsem);
 					__dump_descriptors(wc);
@@ -1025,7 +1026,7 @@ static inline void wcdte_receiveprep(struct wcdte *wc, int dbl)
 		} else {
 			rtp_eseq = (st->last_dte_seqno + 1) & 0xFFFF;
 			if ( (rtp_rseq != rtp_eseq) && debug )
-				printk("wcdte error: Bad seqno from DTE! [%04X][%d][%d][%d]\n", (readchunk[37] | (readchunk[36] << 8)), rchannel, rtp_rseq, st->last_dte_seqno);
+				printk(KERN_NOTICE "wcdte error: Bad seqno from DTE! [%04X][%d][%d][%d]\n", (readchunk[37] | (readchunk[36] << 8)), rchannel, rtp_rseq, st->last_dte_seqno);
 
 			st->last_dte_seqno = rtp_rseq;
 		}
@@ -1197,28 +1198,28 @@ DAHDI_IRQ_HANDLER(wcdte_interrupt)
 	}
 		
 	if ((ints & 0x00008000) && debug)
-		printk("wcdte: Abnormal Interrupt: ");
+		printk(KERN_DEBUG "wcdte: Abnormal Interrupt: \n");
 
 	if ((ints & 0x00002000) && debug)
-		printk("wcdte: Fatal Bus Error INT\n");
+		printk(KERN_DEBUG "wcdte: Fatal Bus Error INT\n");
 
 	if ((ints & 0x00000100) && debug)
-		printk("wcdte: Receive Stopped INT\n");
+		printk(KERN_DEBUG "wcdte: Receive Stopped INT\n");
 
 	if ((ints & 0x00000080) && debug)
-		printk("wcdte: Receive Desciptor Unavailable INT\n");
+		printk(KERN_DEBUG "wcdte: Receive Desciptor Unavailable INT\n");
 
 	if ((ints & 0x00000020) && debug)
-		printk("wcdte: Transmit Under-flow INT\n");
+		printk(KERN_DEBUG "wcdte: Transmit Under-flow INT\n");
 
 	if ((ints & 0x00000008) && debug)
-		printk("wcdte: Jabber Timer Time-out INT\n");
+		printk(KERN_DEBUG "wcdte: Jabber Timer Time-out INT\n");
 
 	if ((ints & 0x00000004) && debug)
-		printk("wcdte: Transmit Descriptor Unavailable INT\n");
+		printk(KERN_DEBUG "wcdte: Transmit Descriptor Unavailable INT\n");
 
 	if ((ints & 0x00000002) && debug)
-		printk("wcdte: Transmit Processor Stopped INT\n");
+		printk(KERN_DEBUG "wcdte: Transmit Processor Stopped INT\n");
 
 	return IRQ_RETVAL(1);
 	
@@ -1334,13 +1335,13 @@ static int wcdte_waitfor_csmencaps(struct wcdte *wc, unsigned int mask, int wait
 	if (ret < 0)
 	{
 		if (debug)
-			printk("wcdte error: Wait interrupted, need to stop boot (ret = %d)\n", ret);
+			printk(KERN_DEBUG "wcdte error: Wait interrupted, need to stop boot (ret = %d)\n", ret);
 		return(1);
 	}
 	if (ret == 0)
 	{
 		if (debug)
-			printk("wcdte error: Waitfor CSMENCAPS response timed out (ret = %d) (cmd_snt = %04X)\n", ret, wc->last_command_sent);
+			printk(KERN_DEBUG "wcdte error: Waitfor CSMENCAPS response timed out (ret = %d) (cmd_snt = %04X)\n", ret, wc->last_command_sent);
 		if (debug_des) {
 			down(&wc->cmdqsem);
 			__dump_descriptors(wc);
@@ -1431,7 +1432,7 @@ static int wcdte_boot_processor(struct wcdte *wc, const struct firmware *firmwar
 	/* Turn off auto negotiation */
 	wcdte_write_phy(wc, 0, 0x2100);
 	if (debug)
-		printk("wcdte: PHY register 0 = %X", wcdte_read_phy(wc, 0));
+		printk(KERN_DEBUG "wcdte: PHY register 0 = %X", wcdte_read_phy(wc, 0));
 
 	/* Set reset */
 	wcdte_setctl(wc, 0x00A0, 0x04000000);
@@ -1452,7 +1453,7 @@ static int wcdte_boot_processor(struct wcdte *wc, const struct firmware *firmwar
 
 		if (delay_count >= 5000)
 		{
-			printk("wcdte error: Failed to link to DTE processor!\n");
+			printk(KERN_NOTICE "wcdte error: Failed to link to DTE processor!\n");
 			return(1);
 		}
 	} while ((reg & 0xE0000000) != 0xE0000000);
@@ -1466,7 +1467,7 @@ static int wcdte_boot_processor(struct wcdte *wc, const struct firmware *firmwar
 
 	reg = wcdte_getctl(wc, 0x00fc);
 	if (debug)
-		printk("wcdte: LINK STATUS: reg(0xfc) = %X\n", reg);
+		printk(KERN_DEBUG "wcdte: LINK STATUS: reg(0xfc) = %X\n", reg);
 
 	reg = wcdte_getctl(wc, 0x00A0);
 
@@ -1481,7 +1482,7 @@ static int wcdte_boot_processor(struct wcdte *wc, const struct firmware *firmwar
 		
 		down(&wc->cmdqsem);
 		if ( (((wc->cmdq_wndx + 1) % MAX_COMMANDS) == wc->cmdq_rndx) && debug )
-			printk("wcdte error: cmdq is full.\n");
+			printk(KERN_NOTICE "wcdte error: cmdq is full.\n");
 		else
 		{
 			wc->cmdq[wc->cmdq_wndx].cmdlen = length;
@@ -1515,7 +1516,7 @@ static int wcdte_boot_processor(struct wcdte *wc, const struct firmware *firmwar
 	/* Turn on booted LED */
 	wcdte_setctl(wc, 0x00A0, 0x04080000);
 	if(debug)
-		printk("wcdte: Successfully booted DTE processor.\n");
+		printk(KERN_DEBUG "wcdte: Successfully booted DTE processor.\n");
 
 	return(0);
 }
@@ -1673,7 +1674,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 	for (x=0;x<WC_MAX_IFACES;x++)
 		if (!ifaces[x]) break;
 	if (x >= WC_MAX_IFACES) {
-		printk("wcdte: Too many interfaces\n");
+		printk(KERN_NOTICE "wcdte: Too many interfaces\n");
 		return -EIO;
 	}
 
@@ -1717,7 +1718,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 			/* Allocate enought memory for all TX buffers, RX buffers, and descriptors */
 			wc->writechunk = (int *)pci_alloc_consistent(pdev, PCI_WINDOW_SIZE, &wc->writedma);
 			if (!wc->writechunk) {
-				printk("wcdte error: Unable to allocate DMA-able memory\n");
+				printk(KERN_NOTICE "wcdte error: Unable to allocate DMA-able memory\n");
 				if (wc->freeregion)
 					release_region(wc->iobase, 0xff);
 				return -ENOMEM;
@@ -1746,7 +1747,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 #if defined(HOTPLUG_FIRMWARE)
 			if ((request_firmware(&firmware, tc400m_firmware, &wc->dev->dev) != 0) ||
 			    !firmware) {
-				printk("TC400M: firmware %s not available from userspace\n", tc400m_firmware);
+				printk(KERN_NOTICE "TC400M: firmware %s not available from userspace\n", tc400m_firmware);
 				return -EIO;
 			}
 #else
@@ -1824,7 +1825,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 			dahdi_transcoder_register(uencode);
 			dahdi_transcoder_register(udecode);
 
-			printk("DAHDI DTE (%s) Transcoder support LOADED (firm ver = %d.%d)\n", wc->complexname, dte_firmware_ver, dte_firmware_ver_minor);
+			printk(KERN_INFO "DAHDI DTE (%s) Transcoder support LOADED (firm ver = %d.%d)\n", wc->complexname, dte_firmware_ver, dte_firmware_ver_minor);
 
 
 			/* Enable bus mastering */
@@ -1834,7 +1835,7 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 			pci_set_drvdata(pdev, wc);
 
 			if (request_irq(pdev->irq, wcdte_interrupt, DAHDI_IRQ_SHARED, "tc400b", wc)) {
-				printk("wcdte error: Unable to request IRQ %d\n", pdev->irq);
+				printk(KERN_NOTICE "wcdte error: Unable to request IRQ %d\n", pdev->irq);
 				if (wc->freeregion)
 					release_region(wc->iobase, 0xff);
 				pci_free_consistent(pdev, PCI_WINDOW_SIZE, (void *)wc->writechunk, wc->writedma);
@@ -1897,12 +1898,12 @@ static int __devinit wcdte_init_one(struct pci_dev *pdev, const struct pci_devic
 
 			reg = wcdte_getctl(wc, 0x00fc);
 			if (debug)
-				printk("wcdte debug: (post-boot) Reg fc is %08x\n", reg);
+				printk(KERN_DEBUG "wcdte debug: (post-boot) Reg fc is %08x\n", reg);
 			
-			printk("Found and successfully installed a Wildcard TC: %s \n", wc->variety);
+			printk(KERN_INFO "Found and successfully installed a Wildcard TC: %s \n", wc->variety);
 			if (debug) {
-				printk("TC400B operating in DEBUG mode\n");
-				printk("debug_des = %d, debug_des_cnt = %d, force_alert = %d,\n debug_notimeout = %d, debug_packets = %d\n", 
+				printk(KERN_DEBUG "TC400B operating in DEBUG mode\n");
+				printk(KERN_DEBUG "debug_des = %d, debug_des_cnt = %d, force_alert = %d,\n debug_notimeout = %d, debug_packets = %d\n", 
 					debug_des, debug_des_cnt, force_alert, debug_notimeout, debug_packets);
 			}
 			res = 0;
@@ -1929,8 +1930,8 @@ static void __devexit wcdte_remove_one(struct pci_dev *pdev)
 	if (wc) {
 		if (debug)
 		{
-			printk("wcdte debug: wc->ztsnd_rtx = %d\n", wc->ztsnd_rtx);
-			printk("wcdte debug: wc->ztsnd_0010_rtx = %d\n", wc->ztsnd_0010_rtx);
+			printk(KERN_DEBUG "wcdte debug: wc->ztsnd_rtx = %d\n", wc->ztsnd_rtx);
+			printk(KERN_DEBUG "wcdte debug: wc->ztsnd_0010_rtx = %d\n", wc->ztsnd_0010_rtx);
 						
 			for(i = 0; i < wc->numchannels; i++)
 			{
@@ -1940,8 +1941,8 @@ static void __devexit wcdte_remove_one(struct pci_dev *pdev)
 				ztc_de = &(wc->udecode->channels[i]);
 				st_de = ztc_de->pvt;
 
-				printk("wcdte debug: en[%d] snt = %d, rcv = %d [%d]\n", i, st_en->packets_sent, st_en->packets_received, st_en->packets_sent - st_en->packets_received);
-				printk("wcdte debug: de[%d] snt = %d, rcv = %d [%d]\n", i, st_de->packets_sent, st_de->packets_received, st_de->packets_sent - st_de->packets_received);
+				printk(KERN_DEBUG "wcdte debug: en[%d] snt = %d, rcv = %d [%d]\n", i, st_en->packets_sent, st_en->packets_received, st_en->packets_sent - st_en->packets_received);
+				printk(KERN_DEBUG "wcdte debug: de[%d] snt = %d, rcv = %d [%d]\n", i, st_de->packets_sent, st_de->packets_received, st_de->packets_sent - st_de->packets_received);
 			}
 		}
 

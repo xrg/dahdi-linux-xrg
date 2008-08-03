@@ -88,7 +88,7 @@ inline void vpm150m_cmd_dequeue(struct t1 *wc, volatile unsigned char *writechun
 	}
 	if (curcmd) {
 #if 0
-		printk("Found command txident = %d, desc = 0x%x, addr = 0x%x, data = 0x%x\n", curcmd->txident, curcmd->desc, curcmd->addr, curcmd->data);
+		printk(KERN_DEBUG "Found command txident = %d, desc = 0x%x, addr = 0x%x, data = 0x%x\n", curcmd->txident, curcmd->desc, curcmd->addr, curcmd->data);
 #endif
 		if (curcmd->flags & __VPM150M_RWPAGE) {
 			/* Set CTRL access to page*/
@@ -782,6 +782,7 @@ void t1_vpm150m_init(struct t1 *wc) {
 		set_bit(VPM150M_HPIRESET, &vpm150m->control);
 		msleep(2000);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -790,10 +791,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -801,10 +804,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 			msg[i] = 0xbeef;
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -812,10 +817,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 			msg[i] = 0x1111;
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -823,10 +830,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 			msg[i] = 0x2222;
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -835,7 +844,7 @@ void t1_vpm150m_init(struct t1 *wc) {
 #if defined(HOTPLUG_FIRMWARE)
 		if ((request_firmware(&firmware, vpmadt032_firmware, &pdev->dev) != 0) ||
 		    !firmware) {
-			printk("VPMADT032: firmware %s not available from userspace\n", vpmadt032_firmware);
+			printk(KERN_NOTICE "VPMADT032: firmware %s not available from userspace\n", vpmadt032_firmware);
 			goto failed_exit;
 		}
 #else

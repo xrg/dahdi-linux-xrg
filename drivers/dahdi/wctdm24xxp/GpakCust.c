@@ -251,7 +251,7 @@ unsigned short wctdm_vpm150m_getreg(struct wctdm *wc, unsigned int len, unsigned
 	unsigned short res;
 	wctdm_vpm150m_setpage(wc, addr >> 16);
 	if ((addr >> 16) != ((addr + len) >> 16))
-		printk("getreg: You found it!\n");
+		printk(KERN_INFO "getreg: You found it!\n");
 	res = wctdm_vpm150m_getreg_full(wc, 0, len, addr & 0xffff, data);
  	return res;
 }
@@ -261,7 +261,7 @@ int wctdm_vpm150m_setreg(struct wctdm *wc, unsigned int len, unsigned int addr, 
 	int res;
 	wctdm_vpm150m_setpage(wc, addr >> 16);
 	if ((addr >> 16) != ((addr + len) >> 16))
-		printk("getreg: You found it!\n");
+		printk(KERN_INFO "getreg: You found it!\n");
 	res = wctdm_vpm150m_setreg_full(wc, 0, len, addr & 0xffff, data);
 	return res;
 }
@@ -345,7 +345,7 @@ void gpakWriteDspMemory(
 	int i;
 	int transcount;
 
-	//printk("Writing %d words to memory\n", NumWords);
+	//printk(KERN_DEBUG "Writing %d words to memory\n", NumWords);
 	if (wc && wc->vpm150m) {
 		for (i = 0; i < NumWords;) {
 			if ((NumWords - i) > VPM150M_MAX_DATA)
@@ -359,7 +359,7 @@ void gpakWriteDspMemory(
 #if 0
 		for (i = 0; i < NumWords; i++) {
 			if (wctdm_vpm150m_getreg(wc, DspAddress + i) != pWordValues[i]) {
-				printk("Error in write.  Address %x is not %x\n", DspAddress + i, pWordValues[i]);
+				printk(KERN_NOTICE "Error in write.  Address %x is not %x\n", DspAddress + i, pWordValues[i]);
 			}
 		}
 #endif

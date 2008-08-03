@@ -278,7 +278,7 @@ static void t1xxp_release(struct t1xxp *wc)
 		kfree(wc->chans[x]);
 	}
 	kfree(wc);
-	printk("Freed a Wildcard\n");
+	printk(KERN_INFO "Freed a Wildcard\n");
 }
 
 static int t1xxp_close(struct dahdi_chan *chan)
@@ -309,7 +309,7 @@ static void t1xxp_start_dma(struct t1xxp *wc)
 	schedule_timeout(1);
 	outb(DELAY | 0x01, wc->ioaddr + WC_CNTL);
 	outb(0x01, wc->ioaddr + WC_OPER);
-	if (debug) printk("Started DMA\n");
+	if (debug) printk(KERN_DEBUG "Started DMA\n");
 }
 
 static void __t1xxp_stop_dma(struct t1xxp *wc)
@@ -331,7 +331,7 @@ static void __t1xxp_set_clear(struct t1xxp *wc)
 
 	/* No such thing under E1 */
 	if (wc->ise1) {
-		printk("Can't set clear mode on an E1!\n");
+		printk(KERN_NOTICE "Can't set clear mode on an E1!\n");
 		return;
 	}
 
@@ -379,7 +379,7 @@ static void t1xxp_t1_framer_start(struct t1xxp *wc)
 	/* Set outgoing LBO */
 	__t1_set_reg(wc, 0x7c, wc->span.txlevel << 5);
 
-	printk("Using %s/%s coding/framing\n", coding, framing);
+	printk(KERN_DEBUG "Using %s/%s coding/framing\n", coding, framing);
 	if (!alreadyrunning) {
 		/* Setup the clear channels */
 		__t1xxp_set_clear(wc);
@@ -447,7 +447,7 @@ static void t1xxp_e1_framer_start(struct t1xxp *wc)
 	__t1_set_reg(wc, 0x7c, wc->span.txlevel << 5);
 #endif
 
-	printk("Using %s/%s coding/framing%s 120 Ohms\n", coding, framing,crcing);
+	printk(KERN_DEBUG "Using %s/%s coding/framing%s 120 Ohms\n", coding, framing,crcing);
 	if (!alreadyrunning) {
 	
 		__t1_set_reg(wc,0x1b,0x8a); /* CCR3: LIRST & TSCLKM */
@@ -491,7 +491,7 @@ static int t1xxp_framer_sanity_check(struct t1xxp *wc)
 	wc->ise1 = (res & 0x80) ? (1 << 4) : 0;
 	spin_unlock_irqrestore(&wc->lock, flags);
 
-	printk("Framer: %s, Revision: %d (%s)\n", chips[chipid], res & 0xf, wc->ise1 ? "E1" : "T1");
+	printk(KERN_DEBUG "Framer: %s, Revision: %d (%s)\n", chips[chipid], res & 0xf, wc->ise1 ? "E1" : "T1");
 	return 0;
 }
 
@@ -624,7 +624,7 @@ static int t1xxp_startup(struct dahdi_span *span)
 		t1xxp_e1_framer_start(wc);
 	else
 		t1xxp_t1_framer_start(wc);
-	printk("Calling startup (flags is %d)\n", span->flags);
+	printk(KERN_INFO "Calling startup (flags is %d)\n", span->flags);
 
 	if (!alreadyrunning) {
 		/* Only if we're not already going */
@@ -673,7 +673,7 @@ static int t1xxp_maint(struct dahdi_span *span, int cmd)
 			res = -ENOSYS;
 			break;
 		default:
-			printk("wct1xxp/E1: Unknown maint command: %d\n", cmd);
+			printk(KERN_NOTICE "wct1xxp/E1: Unknown maint command: %d\n", cmd);
 			res = -EINVAL;
 			break;
 		}
@@ -705,7 +705,7 @@ static int t1xxp_maint(struct dahdi_span *span, int cmd)
 			__t1_set_reg(wc,0x30,0);	/* stop sending loopup code */
 			break;
 	    default:
-			printk("wct1xxp/T1: Unknown maint command: %d\n", cmd);
+			printk(KERN_NOTICE "wct1xxp/T1: Unknown maint command: %d\n", cmd);
 			res = -EINVAL;
 	   }
 	}
@@ -794,7 +794,7 @@ static int t1xxp_software_init(struct t1xxp *wc)
 		wc->chans[x]->chanpos = x + 1;
 	}
 	if (dahdi_register(&wc->span, 0)) {
-		printk("Unable to register span with DAHDI\n");
+		printk(KERN_NOTICE "Unable to register span with DAHDI\n");
 		return -1;
 	}
 	return 0;
@@ -899,10 +899,10 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 	oldcan = *canary;
 	if (((oldcan & 0xffff0000) >> 16) != CANARY) {
 		/* Check top part */
-		if (debug) printk("Expecting top %04x, got %04x\n", CANARY, (oldcan & 0xffff0000) >> 16);
+		if (debug) printk(KERN_DEBUG "Expecting top %04x, got %04x\n", CANARY, (oldcan & 0xffff0000) >> 16);
 		wc->span.irqmisses++;
 	} else if ((oldcan & 0xffff) != ((wc->canary - 1) & 0xffff)) {
-		if (debug) printk("Expecting bottom %d, got %d\n", wc->canary - 1, oldcan & 0xffff);
+		if (debug) printk(KERN_DEBUG "Expecting bottom %d, got %d\n", wc->canary - 1, oldcan & 0xffff);
 		wc->span.irqmisses++;
 	}
 	for (y=0;y<DAHDI_CHUNKSIZE;y++) {
@@ -920,7 +920,7 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 						control_set_reg(wc, WC_CLOCK, 0x02 | wc->sync | wc->ise1);
 						wc->clocktimeout = 100;
 #if 1
-						if (debug) printk("T1: Lost our place, resyncing\n");
+						if (debug) printk(KERN_DEBUG "T1: Lost our place, resyncing\n");
 #endif
 					}
 				}
@@ -929,7 +929,7 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 			if (!wc->clocktimeout && !wc->span.alarms) {
 				if ((rxbuf[32 * y + ((3 + WC_OFFSET + wc->offset) & 0x1f)] & 0x7f) != 0x1b) {
 					if (wc->miss) {
-						if (debug) printk("Double miss (%d, %d)...\n", wc->misslast, rxbuf[32 * y + ((3 + WC_OFFSET + wc->offset) & 0x1f)]);
+						if (debug) printk(KERN_DEBUG "Double miss (%d, %d)...\n", wc->misslast, rxbuf[32 * y + ((3 + WC_OFFSET + wc->offset) & 0x1f)]);
 						control_set_reg(wc, WC_CLOCK, 0x02 | wc->sync | wc->ise1);
 						wc->clocktimeout = 100;
 					} else {
@@ -1087,7 +1087,7 @@ static void t1xxp_check_alarms(struct t1xxp *wc)
 	/* If receiving alarms, go into Yellow alarm state */
 	if (alarms && (!wc->span.alarms)) {
 #if 0
-		printk("Going into yellow alarm\n");
+		printk(KERN_DEBUG "Going into yellow alarm\n");
 #endif
 		if (wc->ise1)
 			__t1_set_reg(wc, 0x21, 0x7f); 
@@ -1131,7 +1131,7 @@ static void t1xxp_do_counters(struct t1xxp *wc)
 			wc->span.alarms &= ~(DAHDI_ALARM_RECOVER);
 			/* Clear yellow alarm */
 #if 0
-			printk("Coming out of alarm\n");
+			printk(KERN_DEBUG "Coming out of alarm\n");
 #endif
 			if (wc->ise1)
 				__t1_set_reg(wc, 0x21, 0x5f);
@@ -1159,7 +1159,7 @@ DAHDI_IRQ_HANDLER(t1xxp_interrupt)
 	outb(ints, wc->ioaddr + WC_INTSTAT);
 
 	if (!wc->intcount) {
-		if (debug) printk("Got interrupt: 0x%04x\n", ints);
+		if (debug) printk(KERN_DEBUG "Got interrupt: 0x%04x\n", ints);
 	}
 	wc->intcount++;
 
@@ -1197,10 +1197,10 @@ DAHDI_IRQ_HANDLER(t1xxp_interrupt)
 	}
 	
 	if (ints & 0x10) 
-		printk("PCI Master abort\n");
+		printk(KERN_INFO "PCI Master abort\n");
 
 	if (ints & 0x20)
-		printk("PCI Target abort\n");
+		printk(KERN_INFO "PCI Target abort\n");
 
 	return IRQ_RETVAL(1);
 }
@@ -1241,10 +1241,10 @@ static int t1xxp_hardware_init(struct t1xxp *wc)
 	/* Second frame */
 	outl(wc->readdma + DAHDI_CHUNKSIZE * 32 * 2 - 4, wc->ioaddr + WC_DMARE);	/* End */
 	
-	if (debug) printk("Setting up DMA (write/read = %08lx/%08lx)\n", (long)wc->writedma, (long)wc->readdma);
+	if (debug) printk(KERN_DEBUG "Setting up DMA (write/read = %08lx/%08lx)\n", (long)wc->writedma, (long)wc->readdma);
 
 	/* Check out the controller */
-	if (debug) printk("Controller version: %02x\n", control_get_reg(wc, WC_VERSION));
+	if (debug) printk(KERN_DEBUG "Controller version: %02x\n", control_get_reg(wc, WC_VERSION));
 
 
 	control_set_reg(wc, WC_LEDTEST, 0x00);
@@ -1291,7 +1291,7 @@ static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_devic
 		/* 32 channels, Double-buffer, Read/Write */
 		(unsigned char *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
 	if (!wc->writechunk) {
-		printk("wct1xxp: Unable to allocate DMA-able memory\n");
+		printk(KERN_NOTICE "wct1xxp: Unable to allocate DMA-able memory\n");
 		return -ENOMEM;
 	}
 	
@@ -1314,7 +1314,7 @@ static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_devic
 	pci_set_drvdata(pdev, wc);
 	
 	if (request_irq(pdev->irq, t1xxp_interrupt, DAHDI_IRQ_SHARED_DISABLED, "t1xxp", wc)) {
-		printk("t1xxp: Unable to request IRQ %d\n", pdev->irq);
+		printk(KERN_NOTICE "t1xxp: Unable to request IRQ %d\n", pdev->irq);
 		kfree(wc);
 		return -EIO;
 	}
@@ -1343,7 +1343,7 @@ static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_devic
 	/* Misc. software stuff */
 	t1xxp_software_init(wc);
 	
-	printk("Found a Wildcard: %s\n", wc->variety);
+	printk(KERN_INFO "Found a Wildcard: %s\n", wc->variety);
 
 	return 0;
 }

@@ -344,7 +344,7 @@ static inline void init_cc(struct echo_can_state *ec, int N, int maxy, int maxu)
 static void echo_can_free(struct echo_can_state *ec)
 {
 #if defined(DC_NORMALIZE) && defined(MEC2_DCBIAS_MESSAGE)
-	printk("EC: DC bias calculated: %d V\n", ec->dc_estimate >> 15);
+	printk(KERN_INFO "EC: DC bias calculated: %d V\n", ec->dc_estimate >> 15);
 #endif
 	kfree(ec);
 }

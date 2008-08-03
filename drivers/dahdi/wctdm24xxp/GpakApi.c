@@ -950,7 +950,7 @@ gpakReadEventFIFOMessageStat_t gpakReadEventFIFOMessage(
             {
                 gpakUnlockAccess(DspId);
 #if 0
-		printk("EventDataLength > WORD_BUFFER_SIZE (%d)\n", EventDataLength);
+		printk(KERN_DEBUG "EventDataLength > WORD_BUFFER_SIZE (%d)\n", EventDataLength);
 #endif
                 return (RefInvalidEvent);
             }
@@ -966,7 +966,7 @@ gpakReadEventFIFOMessageStat_t gpakReadEventFIFOMessage(
                 TakeIndex -= BufrSize;
             if (EventDataLength != 4) {
 #if 0
-		    printk("EventDataLength != 4 it's %d\n", EventDataLength);
+		    printk(KERN_DEBUG "EventDataLength != 4 it's %d\n", EventDataLength);
 #endif
                 EventError = 1;
 	    }
@@ -974,7 +974,7 @@ gpakReadEventFIFOMessageStat_t gpakReadEventFIFOMessage(
 
         default:
 #if 0
-	    printk("Event Code not in switch\n");
+	    printk(KERN_DEBUG "Event Code not in switch\n");
 #endif
             EventError = 1;
             break;

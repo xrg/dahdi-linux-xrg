@@ -309,7 +309,7 @@ void dump_packet(const char *msg, const xpacket_t *packet, bool debug)
 		int i;
 		byte	*p = (byte *)packet;
 
-		printk(" BYTES: ");
+		printk(KERN_DEBUG " BYTES: ");
 		for(i = 0; i < XPACKET_LEN(packet); i++) {
 			static int limiter = 0;
 
@@ -325,11 +325,11 @@ void dump_packet(const char *msg, const xpacket_t *packet, bool debug)
 				break;
 			}
 			if (debug)
-				printk("%02X ", p[i]);
+				printk(KERN_DEBUG "%02X ", p[i]);
 		}
 	}
 #endif
-	printk("\n");
+	printk(KERN_DEBUG "\n");
 }
 
 void dump_reg_cmd(const char msg[], bool writing, xbus_t *xbus,

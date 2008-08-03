@@ -270,7 +270,7 @@ static inline void cmd_dequeue_vpm150m(struct wctdm *wc, volatile unsigned char 
 
 	if (test_bit(VPM150M_SPIRESET, &vpm150m->control) || test_bit(VPM150M_HPIRESET, &vpm150m->control)) {
 		if (debug & DEBUG_ECHOCAN)
-			printk("HW Resetting VPMADT032...\n");
+			printk(KERN_INFO "HW Resetting VPMADT032...\n");
 		for (x = 24; x < 28; x++) {
 			if (x == 24) {
 				if (test_and_clear_bit(VPM150M_SPIRESET, &vpm150m->control))
@@ -299,7 +299,7 @@ static inline void cmd_dequeue_vpm150m(struct wctdm *wc, volatile unsigned char 
 	}
 	if (curcmd) {
 #if 0
-		printk("Found command txident = %d, desc = 0x%x, addr = 0x%x, data = 0x%x\n", curcmd->txident, curcmd->desc, curcmd->addr, curcmd->data);
+		printk(KERN_DEBUG "Found command txident = %d, desc = 0x%x, addr = 0x%x, data = 0x%x\n", curcmd->txident, curcmd->desc, curcmd->addr, curcmd->data);
 #endif
 		if (curcmd->desc & __VPM150M_RWPAGE) {
 			/* Set CTRL access to page*/
@@ -379,7 +379,7 @@ static inline void cmd_dequeue_vpm150m(struct wctdm *wc, volatile unsigned char 
 
 		}
 	} else if (test_and_clear_bit(VPM150M_SWRESET, &vpm150m->control)) {
-		printk("Booting VPMADT032\n");
+		printk(KERN_INFO "Booting VPMADT032\n");
 		for (x = 24; x < 28; x++) {
 			if (x == 24)
 				writechunk[CMD_BYTE(x, 0, 0)] = (0x8 << 4);
@@ -446,7 +446,7 @@ static inline void cmd_dequeue(struct wctdm *wc, volatile unsigned char *writech
 			   !(wc->cmdq[card].cmds[x] & (__CMD_TX | __CMD_FIN))) {
 			   	curcmd = wc->cmdq[card].cmds[x];
 #if 0
-				printk("Transmitting command '%08x' in slot %d\n", wc->cmdq[card].cmds[x], wc->txident);
+				printk(KERN_DEBUG "Transmitting command '%08x' in slot %d\n", wc->cmdq[card].cmds[x], wc->txident);
 #endif			
 				wc->cmdq[card].cmds[x] |= (wc->txident << 24) | __CMD_TX;
 				break;
@@ -531,7 +531,7 @@ static inline void cmd_dequeue(struct wctdm *wc, volatile unsigned char *writech
 #if 0
 	/* XXX */
 	if (cmddesc < 40)
-		printk("Pass %d, card = %d (modtype=%d), pos = %d, CMD_BYTES = %d,%d,%d, (%02x,%02x,%02x) curcmd = %08x\n", cmddesc, card, wc->modtype[card], pos, CMD_BYTE(card, 0), CMD_BYTE(card, 1), CMD_BYTE(card, 2), writechunk[CMD_BYTE(card, 0)], writechunk[CMD_BYTE(card, 1)], writechunk[CMD_BYTE(card, 2)], curcmd);
+		printk(KERN_DEBUG "Pass %d, card = %d (modtype=%d), pos = %d, CMD_BYTES = %d,%d,%d, (%02x,%02x,%02x) curcmd = %08x\n", cmddesc, card, wc->modtype[card], pos, CMD_BYTE(card, 0), CMD_BYTE(card, 1), CMD_BYTE(card, 2), writechunk[CMD_BYTE(card, 0)], writechunk[CMD_BYTE(card, 1)], writechunk[CMD_BYTE(card, 2)], curcmd);
 #endif
 	spin_unlock_irqrestore(&wc->reglock, flags);
 #if 0
@@ -614,7 +614,7 @@ static inline void cmd_decifer(struct wctdm *wc, volatile unsigned char *readchu
 #if 0
 	/* XXX */
 	if (!pos && (cmddesc < 256))
-		printk("Card %d: Command '%08x' => %02x\n",card,  wc->cmdq[card].lasttx[pos], wc->cmdq[card].lastrd[pos]);
+		printk(KERN_DEBUG "Card %d: Command '%08x' => %02x\n",card,  wc->cmdq[card].lasttx[pos], wc->cmdq[card].lastrd[pos]);
 #endif
 	spin_unlock_irqrestore(&wc->reglock, flags);
 }
@@ -811,7 +811,7 @@ static inline void cmd_vpm150m_retransmit(struct wctdm *wc)
 	spin_lock_irqsave(&wc->reglock, flags);
 	for (x = 0; x < VPM150M_MAX_COMMANDS; x++) {
 		if (!(wc->vpm150m->cmdq[x].desc & __VPM150M_FIN)) {
-			//printk("Retransmit!\n");
+			//printk(KERN_DEBUG "Retransmit!\n");
 			wc->vpm150m->cmdq[x].desc &= ~(__VPM150M_TX);
 		}
 	}
@@ -905,7 +905,7 @@ static int wait_access(struct wctdm *wc, int card)
 
 	 }
 
-    if(count > (MAX-1)) printk(" ##### Loop error (%02x) #####\n", data);
+    if(count > (MAX-1)) printk(KERN_NOTICE " ##### Loop error (%02x) #####\n", data);
 
 	return 0;
 }
@@ -962,7 +962,7 @@ static int wctdm_proslic_getreg_indirect(struct wctdm *wc, int card, unsigned ch
 	} else
 		p = "failed to wait\n";
 	if (p)
-		printk(p);
+		printk(KERN_NOTICE "%s", p);
 	return res;
 }
 
@@ -988,14 +988,14 @@ static int wctdm_proslic_verify_indirect_regs(struct wctdm *wc, int card)
 	for (i=0; i<sizeof(indirect_regs) / sizeof(indirect_regs[0]); i++) 
 	{
 		if((j = wctdm_proslic_getreg_indirect(wc, card, (unsigned char) indirect_regs[i].address)) < 0) {
-			printk("Failed to read indirect register %d\n", i);
+			printk(KERN_NOTICE "Failed to read indirect register %d\n", i);
 			return -1;
 		}
 		initial= indirect_regs[i].initial;
 
 		if ( j != initial && (!(wc->flags[card] & FLAG_3215) || (indirect_regs[i].altaddr != 255)))
 		{
-			 printk("!!!!!!! %s  iREG %X = %X  should be %X\n",
+			 printk(KERN_NOTICE "!!!!!!! %s  iREG %X = %X  should be %X\n",
 				indirect_regs[i].name,indirect_regs[i].address,j,initial );
 			 passed = 0;
 		}	
@@ -1003,9 +1003,9 @@ static int wctdm_proslic_verify_indirect_regs(struct wctdm *wc, int card)
 
     if (passed) {
 		if (debug & DEBUG_CARD)
-			printk("Init Indirect Registers completed successfully.\n");
+			printk(KERN_DEBUG "Init Indirect Registers completed successfully.\n");
     } else {
-		printk(" !!!!! Init Indirect Registers UNSUCCESSFULLY.\n");
+		printk(KERN_NOTICE " !!!!! Init Indirect Registers UNSUCCESSFULLY.\n");
 		return -1;
     }
     return 0;
@@ -1021,7 +1021,7 @@ static inline void wctdm_proslic_recheck_sanity(struct wctdm *wc, int card)
 		wc->cmdq[card].isrshadow[1]=0;
 		wc->mods[card].fxs.palarms++;
 		if (wc->mods[card].fxs.palarms < MAX_ALARMS) {
-			printk("Power alarm (%02x) on module %d, resetting!\n", res, card + 1);
+			printk(KERN_NOTICE "Power alarm (%02x) on module %d, resetting!\n", res, card + 1);
 			if (wc->mods[card].fxs.lasttxhook == 4)
 				wc->mods[card].fxs.lasttxhook = 0x11;
 			wc->sethook[card] = CMD_WR(19, res);
@@ -1034,7 +1034,7 @@ static inline void wctdm_proslic_recheck_sanity(struct wctdm *wc, int card)
 			wc->cmdq[card].isrshadow[1] = 0;
 		} else {
 			if (wc->mods[card].fxs.palarms == MAX_ALARMS)
-				printk("Too many power alarms on card %d, NOT resetting!\n", card + 1);
+				printk(KERN_NOTICE "Too many power alarms on card %d, NOT resetting!\n", card + 1);
 		}
 	}
 #else
@@ -1050,7 +1050,7 @@ static inline void wctdm_proslic_recheck_sanity(struct wctdm *wc, int card)
 	if (res) {
 		wc->mods[card].fxs.palarms++;
 		if (wc->mods[card].fxs.palarms < MAX_ALARMS) {
-			printk("Power alarm on module %d, resetting!\n", card + 1);
+			printk(KERN_NOTICE "Power alarm on module %d, resetting!\n", card + 1);
 			if (wc->mods[card].fxs.lasttxhook == 4)
 				wc->mods[card].fxs.lasttxhook = 0x11;
 			wc->mods[card].fxs.lasttxhook |= 0x10;
@@ -1061,7 +1061,7 @@ static inline void wctdm_proslic_recheck_sanity(struct wctdm *wc, int card)
 			wc->cmdq[card].isrshadow[1] = wc->mods[card].fxs.lasttxhook;
 		} else {
 			if (wc->mods[card].fxs.palarms == MAX_ALARMS)
-				printk("Too many power alarms on card %d, NOT resetting!\n", card + 1);
+				printk(KERN_NOTICE "Too many power alarms on card %d, NOT resetting!\n", card + 1);
 		}
 	}
 #endif
@@ -1099,7 +1099,7 @@ static inline void wctdm_qrvdri_check_hook(struct wctdm *wc, int card)
 	if (wc->qrvdebtime[qrvcard] == 1)
 	{
 		b1 = wc->qrvhook[qrvcard + 2];
-if (debug) printk("QRV channel %d rx state changed to %d\n",qrvcard,wc->qrvhook[qrvcard + 2]);
+if (debug) printk(KERN_DEBUG "QRV channel %d rx state changed to %d\n",qrvcard,wc->qrvhook[qrvcard + 2]);
 		dahdi_hooksig(wc->chans[qrvcard], 
 			(b1) ? DAHDI_RXSIG_OFFHOOK : DAHDI_RXSIG_ONHOOK);
 		wc->qrvdebtime[card] = 0;
@@ -1113,7 +1113,7 @@ if (debug) printk("QRV channel %d rx state changed to %d\n",qrvcard,wc->qrvhook[
 	if (wc->qrvdebtime[qrvcard + 1] == 1)
 	{
 		b1 = wc->qrvhook[qrvcard + 3];
-if (debug) printk("QRV channel %d rx state changed to %d\n",qrvcard + 1,wc->qrvhook[qrvcard + 3]);
+if (debug) printk(KERN_DEBUG "QRV channel %d rx state changed to %d\n",qrvcard + 1,wc->qrvhook[qrvcard + 3]);
 		dahdi_hooksig(wc->chans[qrvcard + 1], 
 			(b1) ? DAHDI_RXSIG_OFFHOOK : DAHDI_RXSIG_ONHOOK);
 		wc->qrvdebtime[card] = 0;
@@ -1147,7 +1147,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 					if (!fxo->wasringing) {
 						fxo->wasringing = 1;
 						if (debug)
-							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
+							printk(KERN_DEBUG "RING on %d/%d!\n", wc->span.spanno, card + 1);
 						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_RING);
 					}
 					fxo->lastrdtx = res;
@@ -1156,7 +1156,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 					if ((fxo->ringdebounce == 0) && fxo->wasringing) {
 						fxo->wasringing = 0;
 						if (debug)
-							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
+							printk(KERN_DEBUG "NO RING on %d/%d!\n", wc->span.spanno, card + 1);
 						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 					}
 				}
@@ -1173,7 +1173,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 1;
 						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_RING);
 						if (debug)
-							printk("RING on %d/%d!\n", wc->span.spanno, card + 1);
+							printk(KERN_DEBUG "RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
 					fxo->ringdebounce = DAHDI_CHUNKSIZE * ringdebounce;
 				}
@@ -1184,7 +1184,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 						fxo->wasringing = 0;
 						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 						if (debug)
-							printk("NO RING on %d/%d!\n", wc->span.spanno, card + 1);
+							printk(KERN_DEBUG "NO RING on %d/%d!\n", wc->span.spanno, card + 1);
 					}
 					fxo->ringdebounce = 0;
 				}
@@ -1197,7 +1197,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 
 	if (fxovoltage) {
 		if (!(wc->intcount % 100)) {
-			printk("Port %d: Voltage: %d  Debounce %d\n", card + 1, 
+			printk(KERN_INFO "Port %d: Voltage: %d  Debounce %d\n", card + 1, 
 			       b, fxo->battdebounce);
 		}
 	}
@@ -1222,12 +1222,12 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				if (--fxo->battdebounce == 0) {
 					fxo->battery = BATTERY_LOST;
 					if (debug)
-						printk("NO BATTERY on %d/%d!\n", wc->span.spanno, card + 1);
+						printk(KERN_DEBUG "NO BATTERY on %d/%d!\n", wc->span.spanno, card + 1);
 #ifdef	JAPAN
 					if (!wc->ohdebounce && wc->offhook) {
 						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_ONHOOK);
 						if (debug)
-							printk("Signalled On Hook\n");
+							printk(KERN_DEBUG "Signalled On Hook\n");
 #ifdef	ZERO_BATT_RING
 						wc->onhook++;
 #endif
@@ -1264,14 +1264,14 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				if (--fxo->battdebounce == 0) {
 					fxo->battery = BATTERY_PRESENT;
 					if (debug)
-						printk("BATTERY on %d/%d (%s)!\n", wc->span.spanno, card + 1, 
+						printk(KERN_DEBUG "BATTERY on %d/%d (%s)!\n", wc->span.spanno, card + 1, 
 						       (b < 0) ? "-" : "+");			    
 #ifdef	ZERO_BATT_RING
 					if (wc->onhook) {
 						wc->onhook = 0;
 						dahdi_hooksig(&wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 						if (debug)
-							printk("Signalled Off Hook\n");
+							printk(KERN_DEBUG "Signalled Off Hook\n");
 					}
 #else
 					dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
@@ -1313,7 +1313,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		if (fxo->polaritydebounce < 1) {
 		    if (fxo->lastpol != fxo->polarity) {
 			if (debug & DEBUG_CARD)
-				printk("%lu Polarity reversed (%d -> %d)\n", jiffies, 
+				printk(KERN_DEBUG "%lu Polarity reversed (%d -> %d)\n", jiffies, 
 				       fxo->polarity, 
 				       fxo->lastpol);
 			if (fxo->polarity)
@@ -1340,24 +1340,24 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 		/* Reset the debounce (must be multiple of 4ms) */
 		wc->mods[card].fxs.debounce = 8 * (4 * 8);
 #if 0
-		printk("Resetting debounce card %d hook %d, %d\n", card, hook, wc->mods[card].fxs.debounce);
+		printk(KERN_DEBUG "Resetting debounce card %d hook %d, %d\n", card, hook, wc->mods[card].fxs.debounce);
 #endif
 	} else {
 		if (wc->mods[card].fxs.debounce > 0) {
 			wc->mods[card].fxs.debounce-= 4 * DAHDI_CHUNKSIZE;
 #if 0
-			printk("Sustaining hook %d, %d\n", hook, wc->mods[card].fxs.debounce);
+			printk(KERN_DEBUG "Sustaining hook %d, %d\n", hook, wc->mods[card].fxs.debounce);
 #endif
 			if (!wc->mods[card].fxs.debounce) {
 #if 0
-				printk("Counted down debounce, newhook: %d...\n", hook);
+				printk(KERN_DEBUG "Counted down debounce, newhook: %d...\n", hook);
 #endif
 				wc->mods[card].fxs.debouncehook = hook;
 			}
 			if (!wc->mods[card].fxs.oldrxhook && wc->mods[card].fxs.debouncehook) {
 				/* Off hook */
 				if (debug & DEBUG_CARD)
-					printk("wctdm: Card %d Going off hook\n", card);
+					printk(KERN_DEBUG "wctdm: Card %d Going off hook\n", card);
 				dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
 				if (robust)
 					wctdm_init_proslic(wc, card, 1, 0, 1);
@@ -1366,7 +1366,7 @@ static inline void wctdm_proslic_check_hook(struct wctdm *wc, int card)
 			} else if (wc->mods[card].fxs.oldrxhook && !wc->mods[card].fxs.debouncehook) {
 				/* On hook */
 				if (debug & DEBUG_CARD)
-					printk("wctdm: Card %d Going on hook\n", card);
+					printk(KERN_DEBUG "wctdm: Card %d Going on hook\n", card);
 				dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_ONHOOK);
 				wc->mods[card].fxs.oldrxhook = 0;
 			}
@@ -1381,14 +1381,14 @@ static inline void wctdm_vpm_check(struct wctdm *wc, int x)
 {
 	if (wc->cmdq[x].isrshadow[0]) {
 		if (debug & DEBUG_ECHOCAN)
-			printk("VPM: Detected dtmf ON channel %02x on chip %d!\n", wc->cmdq[x].isrshadow[0], x - NUM_CARDS);
+			printk(KERN_DEBUG "VPM: Detected dtmf ON channel %02x on chip %d!\n", wc->cmdq[x].isrshadow[0], x - NUM_CARDS);
 		wc->sethook[x] = CMD_WR(0xb9, wc->cmdq[x].isrshadow[0]);
 		wc->cmdq[x].isrshadow[0] = 0;
 		/* Cancel most recent lookup, if there is one */
 		wc->cmdq[x].cmds[USER_COMMANDS+0] = 0x00000000; 
 	} else if (wc->cmdq[x].isrshadow[1]) {
 		if (debug & DEBUG_ECHOCAN)
-			printk("VPM: Detected dtmf OFF channel %02x on chip %d!\n", wc->cmdq[x].isrshadow[1], x - NUM_CARDS);
+			printk(KERN_DEBUG "VPM: Detected dtmf OFF channel %02x on chip %d!\n", wc->cmdq[x].isrshadow[1], x - NUM_CARDS);
 		wc->sethook[x] = CMD_WR(0xbd, wc->cmdq[x].isrshadow[1]);
 		wc->cmdq[x].isrshadow[1] = 0;
 		/* Cancel most recent lookup, if there is one */
@@ -1412,7 +1412,7 @@ static int wctdm_echocan_with_params(struct dahdi_chan *chan, struct dahdi_echoc
 			channel >>= 2;
 	
 		if(debug & DEBUG_ECHOCAN) 
-			printk("echocan: Unit is %d, Channel is  %d length %d\n", 
+			printk(KERN_DEBUG "echocan: Unit is %d, Channel is  %d length %d\n", 
 				unit, channel, ecp->tap_length);
 		if (ecp->tap_length)
 			wctdm_vpm_out(wc,unit,channel,0x3e);
@@ -1521,7 +1521,7 @@ static int wctdm_voicedaa_insane(struct wctdm *wc, int card)
 		return -2;
 	blah = wctdm_getreg(wc, card, 11);
 	if (debug & DEBUG_CARD)
-		printk("VoiceDAA System: %02x\n", blah & 0xf);
+		printk(KERN_DEBUG "VoiceDAA System: %02x\n", blah & 0xf);
 	return 0;
 }
 
@@ -1532,11 +1532,11 @@ static int wctdm_proslic_insane(struct wctdm *wc, int card)
 
 	blah = wctdm_getreg(wc, card, 0);
 	if (debug & DEBUG_CARD) 
-		printk("ProSLIC on module %d, product %d, version %d\n", card, (blah & 0x30) >> 4, (blah & 0xf));
+		printk(KERN_DEBUG "ProSLIC on module %d, product %d, version %d\n", card, (blah & 0x30) >> 4, (blah & 0xf));
 
 #if 0
 	if ((blah & 0x30) >> 4) {
-		printk("ProSLIC on module %d is not a 3210.\n", card);
+		printk(KERN_DEBUG "ProSLIC on module %d is not a 3210.\n", card);
 		return -1;
 	}
 #endif
@@ -1545,7 +1545,7 @@ static int wctdm_proslic_insane(struct wctdm *wc, int card)
 		return -1;
 	}
 	if ((blah & 0xf) < 2) {
-		printk("ProSLIC 3210 version %d is too old\n", blah & 0xf);
+		printk(KERN_INFO "ProSLIC 3210 version %d is too old\n", blah & 0xf);
 		return -1;
 	}
 	if (wctdm_getreg(wc, card, 1) & 0x80)
@@ -1554,30 +1554,30 @@ static int wctdm_proslic_insane(struct wctdm *wc, int card)
 
 	blah = wctdm_getreg(wc, card, 8);
 	if (blah != 0x2) {
-		printk("ProSLIC on module %d insane (1) %d should be 2\n", card, blah);
+		printk(KERN_NOTICE "ProSLIC on module %d insane (1) %d should be 2\n", card, blah);
 		return -1;
 	} else if ( insane_report)
-		printk("ProSLIC on module %d Reg 8 Reads %d Expected is 0x2\n",card,blah);
+		printk(KERN_NOTICE "ProSLIC on module %d Reg 8 Reads %d Expected is 0x2\n",card,blah);
 
 	blah = wctdm_getreg(wc, card, 64);
 	if (blah != 0x0) {
-		printk("ProSLIC on module %d insane (2)\n", card);
+		printk(KERN_NOTICE "ProSLIC on module %d insane (2)\n", card);
 		return -1;
 	} else if ( insane_report)
-		printk("ProSLIC on module %d Reg 64 Reads %d Expected is 0x0\n",card,blah);
+		printk(KERN_NOTICE "ProSLIC on module %d Reg 64 Reads %d Expected is 0x0\n",card,blah);
 
 	blah = wctdm_getreg(wc, card, 11);
 	if (blah != 0x33) {
-		printk("ProSLIC on module %d insane (3)\n", card);
+		printk(KERN_NOTICE "ProSLIC on module %d insane (3)\n", card);
 		return -1;
 	} else if ( insane_report)
-		printk("ProSLIC on module %d Reg 11 Reads %d Expected is 0x33\n",card,blah);
+		printk(KERN_NOTICE "ProSLIC on module %d Reg 11 Reads %d Expected is 0x33\n",card,blah);
 
 	/* Just be sure it's setup right. */
 	wctdm_setreg(wc, card, 30, 0);
 
 	if (debug & DEBUG_CARD) 
-		printk("ProSLIC on module %d seems sane.\n", card);
+		printk(KERN_DEBUG "ProSLIC on module %d seems sane.\n", card);
 	return 0;
 }
 
@@ -1601,11 +1601,11 @@ static int wctdm_proslic_powerleak_test(struct wctdm *wc, int card)
 	}
 
 	if (vbat < 0x06) {
-		printk("Excessive leakage detected on module %d: %d volts (%02x) after %d ms\n", card,
+		printk(KERN_NOTICE "Excessive leakage detected on module %d: %d volts (%02x) after %d ms\n", card,
 		       376 * vbat / 1000, vbat, (int)((jiffies - origjiffies) * 1000 / HZ));
 		return -1;
 	} else if (debug & DEBUG_CARD) {
-		printk("Post-leakage voltage: %d volts\n", 376 * vbat / 1000);
+		printk(KERN_DEBUG "Post-leakage voltage: %d volts\n", 376 * vbat / 1000);
 	}
 	return 0;
 }
@@ -1637,12 +1637,12 @@ static int wctdm_powerup_proslic(struct wctdm *wc, int card, int fast)
 	}
 
 	if (vbat < 0xc0) {
-		printk("ProSLIC on module %d failed to powerup within %d ms (%d mV only)\n\n -- DID YOU REMEMBER TO PLUG IN THE HD POWER CABLE TO THE TDM CARD??\n",
+		printk(KERN_NOTICE "ProSLIC on module %d failed to powerup within %d ms (%d mV only)\n\n -- DID YOU REMEMBER TO PLUG IN THE HD POWER CABLE TO THE TDM CARD??\n",
 		       card, (int)(((jiffies - origjiffies) * 1000 / HZ)),
 			vbat * 375);
 		return -1;
 	} else if (debug & DEBUG_CARD) {
-		printk("ProSLIC on module %d powered up to -%d volts (%02x) in %d ms\n",
+		printk(KERN_DEBUG "ProSLIC on module %d powered up to -%d volts (%02x) in %d ms\n",
 		       card, vbat * 376 / 1000, vbat, (int)(((jiffies - origjiffies) * 1000 / HZ)));
 	}
 
@@ -1652,10 +1652,10 @@ static int wctdm_powerup_proslic(struct wctdm *wc, int card, int fast)
         if ( loopcurrent > 41 ) {
                 lim = 0;
                 if (debug & DEBUG_CARD)
-                        printk("Loop current out of range! Setting to default 20mA!\n");
+                        printk(KERN_DEBUG "Loop current out of range! Setting to default 20mA!\n");
         }
         else if (debug & DEBUG_CARD)
-                        printk("Loop current set to %dmA!\n",(lim*3)+20);
+                        printk(KERN_DEBUG "Loop current set to %dmA!\n",(lim*3)+20);
         wctdm_setreg(wc,card,LOOP_I_LIMIT,lim);
 
 	/* Engage DC-DC converter */
@@ -1664,7 +1664,7 @@ static int wctdm_powerup_proslic(struct wctdm *wc, int card, int fast)
 	origjiffies = jiffies;
 	while(0x80 & wctdm_getreg(wc, card, 93)) {
 		if ((jiffies - origjiffies) > 2 * HZ) {
-			printk("Timeout waiting for DC-DC calibration on module %d\n", card);
+			printk(KERN_DEBUG "Timeout waiting for DC-DC calibration on module %d\n", card);
 			return -1;
 		}
 	}
@@ -1675,7 +1675,7 @@ static int wctdm_powerup_proslic(struct wctdm *wc, int card, int fast)
 
 	/* Just check to be sure */
 	vbat = wctdm_getreg(wc, card, 82);
-	printk("ProSLIC on module %d powered up to -%d volts (%02x) in %d ms\n",
+	printk(KERN_DEBUG "ProSLIC on module %d powered up to -%d volts (%02x) in %d ms\n",
 		       card, vbat * 376 / 1000, vbat, (int)(((jiffies - origjiffies) * 1000 / HZ)));
 #endif
 #endif
@@ -1772,16 +1772,16 @@ static int wctdm_proslic_calibrate(struct wctdm *wc, int card)
 	origjiffies = jiffies;
 	while(wctdm_getreg(wc, card, 96)) {
 		if ((jiffies - origjiffies) > 2 * HZ) {
-			printk("Timeout waiting for calibration of module %d\n", card);
+			printk(KERN_NOTICE "Timeout waiting for calibration of module %d\n", card);
 			return -1;
 		}
 	}
 	
 	if (debug & DEBUG_CARD) {
 		/* Print calibration parameters */
-		printk("Calibration Vector Regs 98 - 107: \n");
+		printk(KERN_DEBUG "Calibration Vector Regs 98 - 107: \n");
 		for (x=98;x<108;x++) {
-			printk("%d: %02x\n", x, wctdm_getreg(wc, card, x));
+			printk(KERN_DEBUG "%d: %02x\n", x, wctdm_getreg(wc, card, x));
 		}
 	}
 	return 0;
@@ -1805,12 +1805,12 @@ static void wait_just_a_bit(int foo)
 static int wctdm_set_hwgain(struct wctdm *wc, int card, __s32 gain, __u32 tx)
 {
 	if (!(wc->modtype[card] == MOD_TYPE_FXO)) {
-		printk("Cannot adjust gain.  Unsupported module type!\n");
+		printk(KERN_NOTICE "Cannot adjust gain.  Unsupported module type!\n");
 		return -1;
 	}
 	if (tx) {
 		if (debug)
-			printk("setting FXO tx gain for card=%d to %d\n", card, gain);
+			printk(KERN_DEBUG "setting FXO tx gain for card=%d to %d\n", card, gain);
 		if (gain >=  -150 && gain <= 0) {
 			wctdm_setreg(wc, card, 38, 16 + (gain/-10));
 			wctdm_setreg(wc, card, 40, 16 + (-gain%10));
@@ -1818,12 +1818,12 @@ static int wctdm_set_hwgain(struct wctdm *wc, int card, __s32 gain, __u32 tx)
 			wctdm_setreg(wc, card, 38, gain/10);
 			wctdm_setreg(wc, card, 40, (gain%10));
 		} else {
-			printk("FXO tx gain is out of range (%d)\n", gain);
+			printk(KERN_NOTICE "FXO tx gain is out of range (%d)\n", gain);
 			return -1;
 		}
 	} else { /* rx */
 		if (debug)
-			printk("setting FXO rx gain for card=%d to %d\n", card, gain);
+			printk(KERN_DEBUG "setting FXO rx gain for card=%d to %d\n", card, gain);
 		if (gain >=  -150 && gain <= 0) {
 			wctdm_setreg(wc, card, 39, 16+ (gain/-10));
 			wctdm_setreg(wc, card, 41, 16 + (-gain%10));
@@ -1831,7 +1831,7 @@ static int wctdm_set_hwgain(struct wctdm *wc, int card, __s32 gain, __u32 tx)
 			wctdm_setreg(wc, card, 39, gain/10);
 			wctdm_setreg(wc, card, 41, (gain%10));
 		} else {
-			printk("FXO rx gain is out of range (%d)\n", gain);
+			printk(KERN_NOTICE "FXO rx gain is out of range (%d)\n", gain);
 			return -1;
 		}
 	}
@@ -1920,11 +1920,11 @@ static int wctdm_init_voicedaa(struct wctdm *wc, int card, int fast, int manual,
 		wait_just_a_bit(HZ/10);
 
 	if (!(wctdm_getreg(wc, card, 11) & 0xf0)) {
-		printk("VoiceDAA did not bring up ISO link properly!\n");
+		printk(KERN_NOTICE "VoiceDAA did not bring up ISO link properly!\n");
 		return -1;
 	}
 	if (debug & DEBUG_CARD)
-		printk("ISO-Cap is now up, line side: %02x rev %02x\n", 
+		printk(KERN_DEBUG "ISO-Cap is now up, line side: %02x rev %02x\n", 
 		       wctdm_getreg(wc, card, 11) >> 4,
 		       (wctdm_getreg(wc, card, 13) >> 2) & 0xf);
 	/* Enable on-hook line monitor */
@@ -1935,7 +1935,7 @@ static int wctdm_init_voicedaa(struct wctdm *wc, int card, int fast, int manual,
 	wctdm_set_hwgain(wc, card, fxorxgain, 0);
 
 	if(debug)
-		printk("DEBUG fxotxgain:%i.%i fxorxgain:%i.%i\n", (wctdm_getreg(wc, card, 38)/16) ? -(wctdm_getreg(wc, card, 38) - 16) : wctdm_getreg(wc, card, 38), (wctdm_getreg(wc, card, 40)/16) ? -(wctdm_getreg(wc, card, 40) - 16) : wctdm_getreg(wc, card, 40), (wctdm_getreg(wc, card, 39)/16) ? -(wctdm_getreg(wc, card, 39) - 16): wctdm_getreg(wc, card, 39), (wctdm_getreg(wc, card, 41)/16)?-(wctdm_getreg(wc, card, 41) - 16) : wctdm_getreg(wc, card, 41));
+		printk(KERN_DEBUG "DEBUG fxotxgain:%i.%i fxorxgain:%i.%i\n", (wctdm_getreg(wc, card, 38)/16) ? -(wctdm_getreg(wc, card, 38) - 16) : wctdm_getreg(wc, card, 38), (wctdm_getreg(wc, card, 40)/16) ? -(wctdm_getreg(wc, card, 40) - 16) : wctdm_getreg(wc, card, 40), (wctdm_getreg(wc, card, 39)/16) ? -(wctdm_getreg(wc, card, 39) - 16): wctdm_getreg(wc, card, 39), (wctdm_getreg(wc, card, 41)/16)?-(wctdm_getreg(wc, card, 41) - 16) : wctdm_getreg(wc, card, 41));
 	
 	return 0;
 		
@@ -1995,7 +1995,7 @@ static int wctdm_init_proslic(struct wctdm *wc, int card, int fast, int manual, 
 
 	/* Power up the DC-DC converter */
 	if (wctdm_powerup_proslic(wc, card, fast)) {
-		printk("Unable to do INITIAL ProSLIC powerup on module %d\n", card);
+		printk(KERN_NOTICE "Unable to do INITIAL ProSLIC powerup on module %d\n", card);
 		return -1;
 	}
 
@@ -2003,40 +2003,40 @@ static int wctdm_init_proslic(struct wctdm *wc, int card, int fast, int manual, 
 
 		/* Check for power leaks */
 		if (wctdm_proslic_powerleak_test(wc, card)) {
-			printk("ProSLIC module %d failed leakage test.  Check for short circuit\n", card);
+			printk(KERN_NOTICE "ProSLIC module %d failed leakage test.  Check for short circuit\n", card);
 		}
 		/* Power up again */
 		if (wctdm_powerup_proslic(wc, card, fast)) {
-			printk("Unable to do FINAL ProSLIC powerup on module %d\n", card);
+			printk(KERN_NOTICE "Unable to do FINAL ProSLIC powerup on module %d\n", card);
 			return -1;
 		}
 #ifndef NO_CALIBRATION
 		/* Perform calibration */
 		if(manual) {
 			if (wctdm_proslic_manual_calibrate(wc, card)) {
-				//printk("Proslic failed on Manual Calibration\n");
+				//printk(KERN_NOTICE "Proslic failed on Manual Calibration\n");
 				if (wctdm_proslic_manual_calibrate(wc, card)) {
-					printk("Proslic Failed on Second Attempt to Calibrate Manually. (Try -DNO_CALIBRATION in Makefile)\n");
+					printk(KERN_NOTICE "Proslic Failed on Second Attempt to Calibrate Manually. (Try -DNO_CALIBRATION in Makefile)\n");
 					return -1;
 				}
-				printk("Proslic Passed Manual Calibration on Second Attempt\n");
+				printk(KERN_INFO "Proslic Passed Manual Calibration on Second Attempt\n");
 			}
 		}
 		else {
 			if(wctdm_proslic_calibrate(wc, card))  {
-				//printk("ProSlic died on Auto Calibration.\n");
+				//printk(KERN_NOTICE "ProSlic died on Auto Calibration.\n");
 				if (wctdm_proslic_calibrate(wc, card)) {
-					printk("Proslic Failed on Second Attempt to Auto Calibrate\n");
+					printk(KERN_NOTICE "Proslic Failed on Second Attempt to Auto Calibrate\n");
 					return -1;
 				}
-				printk("Proslic Passed Auto Calibration on Second Attempt\n");
+				printk(KERN_INFO "Proslic Passed Auto Calibration on Second Attempt\n");
 			}
 		}
 		/* Perform DC-DC calibration */
 		wctdm_setreg(wc, card, 93, 0x99);
 		r19 = wctdm_getreg(wc, card, 107);
 		if ((r19 < 0x2) || (r19 > 0xd)) {
-			printk("DC-DC cal has a surprising direct 107 of 0x%02x!\n", r19);
+			printk(KERN_NOTICE "DC-DC cal has a surprising direct 107 of 0x%02x!\n", r19);
 			wctdm_setreg(wc, card, 107, 0x8);
 		}
 
@@ -2122,24 +2122,24 @@ static int wctdm_init_proslic(struct wctdm *wc, int card, int fast, int manual, 
 			wctdm_setreg(wc, card, 74, 0x3f);
 			if (wctdm_proslic_setreg_indirect(wc, card, 21, 0x247)) 
 				return -1;
-			printk("Boosting fast ringer on slot %d (89V peak)\n", card + 1);
+			printk(KERN_INFO "Boosting fast ringer on slot %d (89V peak)\n", card + 1);
 		} else if (lowpower) {
 			if (wctdm_proslic_setreg_indirect(wc, card, 21, 0x14b)) 
 				return -1;
-			printk("Reducing fast ring power on slot %d (50V peak)\n", card + 1);
+			printk(KERN_INFO "Reducing fast ring power on slot %d (50V peak)\n", card + 1);
 		} else
-			printk("Speeding up ringer on slot %d (25Hz)\n", card + 1);
+			printk(KERN_INFO "Speeding up ringer on slot %d (25Hz)\n", card + 1);
 	} else {
 		/* Beef up Ringing voltage to 89V */
 		if (boostringer) {
 			wctdm_setreg(wc, card, 74, 0x3f);
 			if (wctdm_proslic_setreg_indirect(wc, card, 21, 0x1d1)) 
 				return -1;
-			printk("Boosting ringer on slot %d (89V peak)\n", card + 1);
+			printk(KERN_INFO "Boosting ringer on slot %d (89V peak)\n", card + 1);
 		} else if (lowpower) {
 			if (wctdm_proslic_setreg_indirect(wc, card, 21, 0x108)) 
 				return -1;
-			printk("Reducing ring power on slot %d (50V peak)\n", card + 1);
+			printk(KERN_INFO "Reducing ring power on slot %d (50V peak)\n", card + 1);
 		}
 	}
 
@@ -2172,7 +2172,7 @@ static int wctdm_init_proslic(struct wctdm *wc, int card, int fast, int manual, 
 	}
 
 	if (debug)
-		printk("DEBUG: fxstxgain:%s fxsrxgain:%s\n",((wctdm_getreg(wc, card, 9)/8) == 1)?"3.5":(((wctdm_getreg(wc,card,9)/4) == 1)?"-3.5":"0.0"),((wctdm_getreg(wc, card, 9)/2) == 1)?"3.5":((wctdm_getreg(wc,card,9)%2)?"-3.5":"0.0"));
+		printk(KERN_DEBUG "DEBUG: fxstxgain:%s fxsrxgain:%s\n",((wctdm_getreg(wc, card, 9)/8) == 1)?"3.5":(((wctdm_getreg(wc,card,9)/4) == 1)?"-3.5":"0.0"),((wctdm_getreg(wc, card, 9)/2) == 1)?"3.5":((wctdm_getreg(wc,card,9)%2)?"-3.5":"0.0"));
 
 	wc->mods[card].fxs.lasttxhook = 0x11;
 	wctdm_setreg(wc, card, 64, 0x01);
@@ -2260,7 +2260,7 @@ long l;
 
 	/* actually do something with the values */
 	qrvcard = (chan->chanpos - 1) & 0xfc;
-	if (debug) printk("@@@@@ radmodes: %d,%d  rxgains: %d,%d   txgains: %d,%d\n",
+	if (debug) printk(KERN_DEBUG "@@@@@ radmodes: %d,%d  rxgains: %d,%d   txgains: %d,%d\n",
 	wc->radmode[qrvcard],wc->radmode[qrvcard + 1],
 		wc->rxgain[qrvcard],wc->rxgain[qrvcard + 1],
 			wc->txgain[qrvcard],wc->txgain[qrvcard + 1]);
@@ -2270,7 +2270,7 @@ long l;
 	if (wc->rxgain[qrvcard] < 1200) r |= 1;
 	if (wc->rxgain[qrvcard + 1] < 1200) r |= 2;
 	wctdm_setreg(wc, qrvcard, 7, r);
-	if (debug) printk("@@@@@ setting reg 7 to %02x hex\n",r);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 7 to %02x hex\n",r);
 	r = 0;
 	if (wc->radmode[qrvcard] & RADMODE_PREEMP) r |= 3;
 	else if (wc->txgain[qrvcard] >= 3600) r |= 1;
@@ -2279,35 +2279,35 @@ long l;
 	else if (wc->txgain[qrvcard + 1] >= 3600) r |= 4;
 	else if (wc->txgain[qrvcard + 1] >= 1200) r |= 8;
 	wctdm_setreg(wc, qrvcard, 4, r);
-	if (debug) printk("@@@@@ setting reg 4 to %02x hex\n",r);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 4 to %02x hex\n",r);
 	r = 0;
 	if (wc->rxgain[qrvcard] >= 2400) r |= 1; 
 	if (wc->rxgain[qrvcard + 1] >= 2400) r |= 2; 
 	wctdm_setreg(wc, qrvcard, 0x25, r);
-	if (debug) printk("@@@@@ setting reg 0x25 to %02x hex\n",r);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 0x25 to %02x hex\n",r);
 	r = 0;
 	if (wc->txgain[qrvcard] < 2400) r |= 1; else r |= 4;
 	if (wc->txgain[qrvcard + 1] < 2400) r |= 8; else r |= 0x20;
 	wctdm_setreg(wc, qrvcard, 0x26, r);
-	if (debug) printk("@@@@@ setting reg 0x26 to %02x hex\n",r);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 0x26 to %02x hex\n",r);
 	l = ((long)(wc->rxgain[qrvcard] % 1200) * 10000) / 46875;
 	if (l == 0) l = 1;
 	if (wc->rxgain[qrvcard] >= 2400) l += 181;
 	wctdm_setreg(wc, qrvcard, 0x0b, (unsigned char)l);
-	if (debug) printk("@@@@@ setting reg 0x0b to %02x hex\n",(unsigned char)l);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 0x0b to %02x hex\n",(unsigned char)l);
 	l = ((long)(wc->rxgain[qrvcard + 1] % 1200) * 10000) / 46875;
 	if (l == 0) l = 1;
 	if (wc->rxgain[qrvcard + 1] >= 2400) l += 181;
 	wctdm_setreg(wc, qrvcard, 0x0c, (unsigned char)l);
-	if (debug) printk("@@@@@ setting reg 0x0c to %02x hex\n",(unsigned char)l);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 0x0c to %02x hex\n",(unsigned char)l);
 	l = ((long)(wc->txgain[qrvcard] % 1200) * 10000) / 46875;
 	if (l == 0) l = 1;
 	wctdm_setreg(wc, qrvcard, 0x0f, (unsigned char)l);
-	if (debug) printk("@@@@@ setting reg 0x0f to %02x hex\n", (unsigned char)l);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 0x0f to %02x hex\n", (unsigned char)l);
 	l = ((long)(wc->txgain[qrvcard + 1] % 1200) * 10000) / 46875;
 	if (l == 0) l = 1;
 	wctdm_setreg(wc, qrvcard, 0x10,(unsigned char)l);
-	if (debug) printk("@@@@@ setting reg 0x10 to %02x hex\n",(unsigned char)l);
+	if (debug) printk(KERN_DEBUG "@@@@@ setting reg 0x10 to %02x hex\n",(unsigned char)l);
 	return;
 }
 
@@ -2378,19 +2378,19 @@ static int wctdm_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long 
 		if (regop.indirect) {
 			if (wc->modtype[chan->chanpos - 1] != MOD_TYPE_FXS)
 				return -EINVAL;
-			printk("Setting indirect %d to 0x%04x on %d\n", regop.reg, regop.val, chan->chanpos);
+			printk(KERN_INFO "Setting indirect %d to 0x%04x on %d\n", regop.reg, regop.val, chan->chanpos);
 			wctdm_proslic_setreg_indirect(wc, chan->chanpos - 1, regop.reg, regop.val);
 		} else {
 			regop.val &= 0xff;
 			if (regop.reg == 64)
 				wc->mods[chan->chanpos-1].fxs.lasttxhook = (regop.val & 0x0f) |  0x10;
 			
-			printk("Setting direct %d to %04x on %d\n", regop.reg, regop.val, chan->chanpos);
+			printk(KERN_INFO "Setting direct %d to %04x on %d\n", regop.reg, regop.val, chan->chanpos);
 			wctdm_setreg(wc, chan->chanpos - 1, regop.reg, regop.val);
 		}
 		break;
 	case WCTDM_SET_ECHOTUNE:
-		printk("-- Setting echo registers: \n");
+		printk(KERN_INFO "-- Setting echo registers: \n");
 		if (copy_from_user(&echoregs, (struct wctdm_echo_coefs*)data, sizeof(echoregs)))
 			return -EFAULT;
 
@@ -2408,7 +2408,7 @@ static int wctdm_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long 
 			wctdm_setreg(wc, chan->chanpos - 1, 51, echoregs.coef7);
 			wctdm_setreg(wc, chan->chanpos - 1, 52, echoregs.coef8);
 
-			printk("-- Set echo registers successfully\n");
+			printk(KERN_INFO "-- Set echo registers successfully\n");
 
 			break;
 		} else {
@@ -2423,7 +2423,7 @@ static int wctdm_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long 
 		wctdm_set_hwgain(wc, chan->chanpos-1, hwgain.newgain, hwgain.tx);
 
 		if (debug)
-			printk("Setting hwgain on channel %d to %d for %s direction\n", 
+			printk(KERN_DEBUG "Setting hwgain on channel %d to %d for %s direction\n", 
 				chan->chanpos-1, hwgain.newgain, hwgain.tx ? "tx" : "rx");
 		break;
 #ifdef VPM_SUPPORT
@@ -2608,7 +2608,7 @@ static int wctdm_open(struct dahdi_chan *chan)
 
 static int wctdm_watchdog(struct dahdi_span *span, int event)
 {
-	printk("TDM: Called watchdog\n");
+	printk(KERN_INFO "TDM: Called watchdog\n");
 	return 0;
 }
 
@@ -2661,7 +2661,7 @@ static int wctdm_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 			wc->qrvhook[chan->chanpos - 1] = 0;
 			break;
 		default:
-			printk("wctdm24xxp: Can't set tx state to %d\n", txsig);
+			printk(KERN_NOTICE "wctdm24xxp: Can't set tx state to %d\n", txsig);
 		}
 		reg = 0;
 		if (!wc->qrvhook[qrvcard]) reg |= 1;
@@ -2682,7 +2682,7 @@ static int wctdm_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 			/* wctdm_setreg(wc, chan->chanpos - 1, 5, 0x8); */
 			break;
 		default:
-			printk("wctdm24xxp: Can't set tx state to %d\n", txsig);
+			printk(KERN_NOTICE "wctdm24xxp: Can't set tx state to %d\n", txsig);
 		}
 	} else {
 		switch(txsig) {
@@ -2717,10 +2717,10 @@ static int wctdm_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 			wc->mods[chan->chanpos - 1].fxs.lasttxhook = 0x10;
 			break;
 		default:
-			printk("wctdm24xxp: Can't set tx state to %d\n", txsig);
+			printk(KERN_NOTICE "wctdm24xxp: Can't set tx state to %d\n", txsig);
 		}
 		if (debug & DEBUG_CARD)
-			printk("Setting FXS hook state to %d (%02x)\n", txsig, reg);
+			printk(KERN_DEBUG "Setting FXS hook state to %d (%02x)\n", txsig, reg);
 
 		
 		wc->sethook[chan->chanpos - 1] = CMD_WR(64, wc->mods[chan->chanpos - 1].fxs.lasttxhook);
@@ -2733,19 +2733,19 @@ static void wctdm_dacs_connect(struct wctdm *wc, int srccard, int dstcard)
 {
 
 	if (wc->dacssrc[dstcard] > - 1) {
-		printk("wctdm_dacs_connect: Can't have double sourcing yet!\n");
+		printk(KERN_NOTICE "wctdm_dacs_connect: Can't have double sourcing yet!\n");
 		return;
 	}
 	if (!((wc->modtype[srccard] == MOD_TYPE_FXS)||(wc->modtype[srccard] == MOD_TYPE_FXO))){
-		printk("wctdm_dacs_connect: Unsupported modtype for card %d\n", srccard);
+		printk(KERN_NOTICE "wctdm_dacs_connect: Unsupported modtype for card %d\n", srccard);
 		return;
 	}
 	if (!((wc->modtype[dstcard] == MOD_TYPE_FXS)||(wc->modtype[dstcard] == MOD_TYPE_FXO))){
-		printk("wctdm_dacs_connect: Unsupported modtype for card %d\n", dstcard);
+		printk(KERN_NOTICE "wctdm_dacs_connect: Unsupported modtype for card %d\n", dstcard);
 		return;
 	}
 	if (debug)
-		printk("connect %d => %d\n", srccard, dstcard);
+		printk(KERN_DEBUG "connect %d => %d\n", srccard, dstcard);
 	wc->dacssrc[dstcard] = srccard;
 
 	/* make srccard transmit to srccard+24 on the TDM bus */
@@ -2776,7 +2776,7 @@ static void wctdm_dacs_disconnect(struct wctdm *wc, int card)
 {
 	if (wc->dacssrc[card] > -1) {
 		if (debug)
-			printk("wctdm_dacs_disconnect: restoring TX for %d and RX for %d\n",wc->dacssrc[card], card);
+			printk(KERN_DEBUG "wctdm_dacs_disconnect: restoring TX for %d and RX for %d\n",wc->dacssrc[card], card);
 
 		/* restore TX (source card) */
 		if(wc->modtype[wc->dacssrc[card]] == MOD_TYPE_FXS){
@@ -2786,7 +2786,7 @@ static void wctdm_dacs_disconnect(struct wctdm *wc, int card)
 			wctdm_setreg(wc, card, 34, (card * 8) & 0xff);
 			wctdm_setreg(wc, card, 35, (card * 8) >> 8);
 		} else {
-			printk("WARNING: wctdm_dacs_disconnect() called on unsupported modtype\n");
+			printk(KERN_WARNING "WARNING: wctdm_dacs_disconnect() called on unsupported modtype\n");
 		}
 
 		/* restore RX (this card) */
@@ -2797,7 +2797,7 @@ static void wctdm_dacs_disconnect(struct wctdm *wc, int card)
 			wctdm_setreg(wc, card, 36, (card * 8) & 0xff);
 			wctdm_setreg(wc, card, 37, (card * 8) >> 8);
 		} else {
-			printk("WARNING: wctdm_dacs_disconnect() called on unsupported modtype\n");
+			printk(KERN_WARNING "WARNING: wctdm_dacs_disconnect() called on unsupported modtype\n");
 		}
 
 		wc->dacssrc[card] = -1;
@@ -2816,11 +2816,11 @@ static int wctdm_dacs(struct dahdi_chan *dst, struct dahdi_chan *src)
 	if(src) {
 		wctdm_dacs_connect(wc, src->chanpos - 1, dst->chanpos - 1);
 		if (debug)
-			printk("dacs connecct: %d -> %d!\n\n", src->chanpos, dst->chanpos);
+			printk(KERN_DEBUG "dacs connecct: %d -> %d!\n\n", src->chanpos, dst->chanpos);
 	} else {
 		wctdm_dacs_disconnect(wc, dst->chanpos - 1);
 		if (debug)
-			printk("dacs disconnect: %d!\n", dst->chanpos);
+			printk(KERN_DEBUG "dacs disconnect: %d!\n", dst->chanpos);
 	}
 	return 0;
 }
@@ -2839,7 +2839,7 @@ static int wctdm_initialize(struct wctdm *wc)
 	wc->span.manufacturer = "Digium";
 	strncpy(wc->span.devicetype, wc->variety, sizeof(wc->span.devicetype) - 1);
 	if (alawoverride) {
-		printk("ALAW override parameter detected.  Device will be operating in ALAW\n");
+		printk(KERN_INFO "ALAW override parameter detected.  Device will be operating in ALAW\n");
 		wc->span.deflaw = DAHDI_LAW_ALAW;
 	} else
 		wc->span.deflaw = DAHDI_LAW_MULAW;
@@ -2990,11 +2990,11 @@ static void vpm150m_bh(struct work_struct *data)
 			if (enable) {
 				res = gpakAlgControl(vpm150m->dspid, i, EnableDTMFMuteA, &pstatus);
 				if (debug & DEBUG_ECHOCAN)
-					printk("DTMF mute enable took %d ms\n", wc->intcount - start);
+					printk(KERN_DEBUG "DTMF mute enable took %d ms\n", wc->intcount - start);
 			} else {
 				res = gpakAlgControl(vpm150m->dspid, i, DisableDTMFMuteA, &pstatus);
 				if (debug & DEBUG_ECHOCAN)
-					printk("DTMF mute disable took %d ms\n", wc->intcount - start);
+					printk(KERN_DEBUG "DTMF mute disable took %d ms\n", wc->intcount - start);
 			}
 			if (!res)
 				change_bit(i, &vpm150m->curdtmfmutestate);
@@ -3012,10 +3012,10 @@ static void vpm150m_bh(struct work_struct *data)
 			res = gpakReadEventFIFOMessage(vpm150m->dspid, &channel, &eventcode, &eventdata);
 
 			if (debug & DEBUG_ECHOCAN)
-				printk("ReadEventFIFOMessage took %d ms\n", wc->intcount - start);
+				printk(KERN_DEBUG "ReadEventFIFOMessage took %d ms\n", wc->intcount - start);
 
 			if (res == RefInvalidEvent || res == RefDspCommFailure) {
-				printk("VPM Comm Error\n");
+				printk(KERN_NOTICE "VPM Comm Error\n");
 				continue;
 			}
 
@@ -3029,7 +3029,7 @@ static void vpm150m_bh(struct work_struct *data)
 				char zaptone = vpm150mtone_to_zaptone(tone);
 
 				if (debug & DEBUG_ECHOCAN)
-					printk("Channel %d: Detected DTMF tone %d of duration %d!!!\n", channel + 1, tone, duration);
+					printk(KERN_DEBUG "Channel %d: Detected DTMF tone %d of duration %d!!!\n", channel + 1, tone, duration);
 
 				if (test_bit(channel, &wc->dtmfmask) && (eventdata.toneEvent.ToneDuration > 0)) {
 					struct dahdi_chan *chan = wc->chans[channel];
@@ -3051,13 +3051,13 @@ static void vpm150m_bh(struct work_struct *data)
 						}
 						if (!test_bit(channel, &wc->dtmfactive)) {
 							if (debug & DEBUG_ECHOCAN)
-								printk("Queuing DTMFDOWN %c\n", zaptone);
+								printk(KERN_DEBUG "Queuing DTMFDOWN %c\n", zaptone);
 							set_bit(channel, &wc->dtmfactive);
 							dahdi_qevent_lock(chan, (DAHDI_EVENT_DTMFDOWN | zaptone));
 						}
 					} else if ((tone == EndofMFDigit) && test_bit(channel, &wc->dtmfactive)) {
 						if (debug & DEBUG_ECHOCAN)
-							printk("Queuing DTMFUP %c\n", vpm150mtone_to_zaptone(vpm150m->curtone[channel]));
+							printk(KERN_DEBUG "Queuing DTMFUP %c\n", vpm150mtone_to_zaptone(vpm150m->curtone[channel]));
 						dahdi_qevent_lock(chan, (DAHDI_EVENT_DTMFUP | vpm150mtone_to_zaptone(vpm150m->curtone[channel])));
 						clear_bit(channel, &wc->dtmfactive);
 					}
@@ -3080,7 +3080,7 @@ static void vpm150m_bh(struct work_struct *data)
 			GpakChannelConfig_t chanconfig;
 
 			if (debug & DEBUG_ECHOCAN)
-				printk("Reconfiguring chan %d for nlp %d, nlp_thresh %d, and max_supp %d\n", i + 1, vpm150m->desiredecstate[i].nlp_type,
+				printk(KERN_DEBUG "Reconfiguring chan %d for nlp %d, nlp_thresh %d, and max_supp %d\n", i + 1, vpm150m->desiredecstate[i].nlp_type,
 					vpm150m->desiredecstate[i].nlp_threshold, vpm150m->desiredecstate[i].nlp_max_suppress);
 
 			vpm150m_set_chanconfig_from_state(&vpm150m->desiredecstate[i], i, &chanconfig);
@@ -3100,11 +3100,11 @@ static void vpm150m_bh(struct work_struct *data)
 			if (vpm150m->desiredecstate[i].tap_length) {
 				res = gpakAlgControl(vpm150m->dspid, i, EnableEcanA, &pstatus);
 				if (debug & DEBUG_ECHOCAN)
-					printk("Echocan enable took %d ms\n", wc->intcount - start);
+					printk(KERN_DEBUG "Echocan enable took %d ms\n", wc->intcount - start);
 			} else {
 				res = gpakAlgControl(vpm150m->dspid, i, BypassEcanA, &pstatus);
 				if (debug & DEBUG_ECHOCAN)
-					printk("Echocan disable took %d ms\n", wc->intcount - start);
+					printk(KERN_DEBUG "Echocan disable took %d ms\n", wc->intcount - start);
 			}
 		}
 
@@ -3197,15 +3197,15 @@ static int vpm150m_config_hw(struct wctdm *wc)
 	portconfig.EightSlotMask3 = 0x0000;
 
 	if ((configportstatus = gpakConfigurePorts(vpm150m->dspid, &portconfig, &pstatus))) {
-		printk("Configuration of ports failed (%d)!\n", configportstatus);
+		printk(KERN_NOTICE "Configuration of ports failed (%d)!\n", configportstatus);
 		return -1;
 	} else {
 		if (debug & DEBUG_ECHOCAN)
-			printk("Configured McBSP ports successfully\n");
+			printk(KERN_DEBUG "Configured McBSP ports successfully\n");
 	}
 
 	if ((res = gpakPingDsp(vpm150m->dspid, &vpm150m->version))) {
-		printk("Error pinging DSP (%d)\n", res);
+		printk(KERN_NOTICE "Error pinging DSP (%d)\n", res);
 		return -1;
 	}
 
@@ -3223,29 +3223,30 @@ static int vpm150m_config_hw(struct wctdm *wc)
 		vpm150m_set_chanconfig_from_state(&vpm150m->curecstate[i], i, &chanconfig);
 	
 		if ((res = gpakConfigureChannel(vpm150m->dspid, i, tdmToTdm, &chanconfig, &cstatus))) {
-			printk("Unable to configure channel (%d)\n", res);
+			printk(KERN_NOTICE "Unable to configure channel (%d)", res);
 			if (res == 1) {
-				printk("Reason %d\n", cstatus);
+				printk(", reason %d", cstatus);
 			}
+			printk("\n");
 	
 			return -1;
 		}
 
 		if ((res = gpakAlgControl(vpm150m->dspid, i, BypassEcanA, &algstatus))) {
-			printk("Unable to disable echo can on channel %d (reason %d:%d)\n", i + 1, res, algstatus);
+			printk(KERN_NOTICE "Unable to disable echo can on channel %d (reason %d:%d)\n", i + 1, res, algstatus);
 			return -1;
 		}
 
 		if (vpmdtmfsupport) {
 			if ((res = gpakAlgControl(vpm150m->dspid, i, DisableDTMFMuteA, &algstatus))) {
-				printk("Unable to disable dtmf muting  on channel %d (reason %d:%d)\n", i + 1, res, algstatus);
+				printk(KERN_NOTICE "Unable to disable dtmf muting  on channel %d (reason %d:%d)\n", i + 1, res, algstatus);
 				return -1;
 			}
 		}
 	}
 
 	if ((res = gpakPingDsp(vpm150m->dspid, &vpm150m->version))) {
-		printk("Error pinging DSP (%d)\n", res);
+		printk(KERN_NOTICE "Error pinging DSP (%d)\n", res);
 		return -1;
 	}
 
@@ -3253,7 +3254,7 @@ static int vpm150m_config_hw(struct wctdm *wc)
 	vpm150m->wc = wc;
 
 	if (!vpm150m->wq) {
-		printk("Unable to create work queue!\n");
+		printk(KERN_NOTICE "Unable to create work queue!\n");
 		return -1;
 	}
 
@@ -3304,7 +3305,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 #endif
 
 	if (!vpmsupport) {
-		printk("VPM: Support Disabled\n");
+		printk(KERN_NOTICE "VPM: Support Disabled\n");
 		wc->vpm150m = NULL;
 		return VPMADT032_DISABLED;
 	}
@@ -3312,7 +3313,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 	vpm150m = kmalloc(sizeof(struct vpm150m), GFP_KERNEL);
 
 	if (!vpm150m) {
-		printk("Unable to allocate VPM150M!\n");
+		printk(KERN_NOTICE "Unable to allocate VPM150M!\n");
 		return VPMADT032_FAILED;
 	}
 
@@ -3328,7 +3329,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 	}
 
 	if (debug & DEBUG_ECHOCAN)
-		printk("Setting VPMADT032 DSP ID to %d\n", vpm150m->dspid);
+		printk(KERN_DEBUG "Setting VPMADT032 DSP ID to %d\n", vpm150m->dspid);
 
 	spin_lock_irqsave(&wc->reglock, flags);
 	wc->vpm150m = vpm150m;
@@ -3338,7 +3339,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 		schluffen(&wc->regq);
 
 	if (debug & DEBUG_ECHOCAN)
-		printk("VPMADT032 Testing page access: ");
+		printk(KERN_DEBUG "VPMADT032 Testing page access: ");
 	for (i = 0; i < 0xf; i++) {
 		int x;
 		for (x = 0; x < 3; x++) {
@@ -3346,19 +3347,19 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 			reg = wctdm_vpm150m_getpage(wc);
 			if (reg != i) {
 				if (debug & DEBUG_ECHOCAN)
-					printk("Failed: Sent %x != %x VPMADT032 Failed HI page test\n", i, reg);
+					printk(KERN_DEBUG "Failed: Sent %x != %x VPMADT032 Failed HI page test\n", i, reg);
 				res = VPMADT032_NOT_FOUND;
 				goto failed_exit;
 			}
 		}
 	}
 	if (debug & DEBUG_ECHOCAN)
-		printk("Passed\n");
+		printk(KERN_DEBUG "Passed\n");
 
 	/* Set us up to page 0 */
 	wctdm_vpm150m_setpage(wc, 0);
 	if (debug & DEBUG_ECHOCAN)
-		printk("VPMADT032 now doing address test: ");
+		printk(KERN_DEBUG "VPMADT032 now doing address test: ");
 	for (i = 0; i < 16; i++) {
 		int x;
 		for (x = 0; x < 2; x++) {
@@ -3375,8 +3376,8 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 		printk("Passed\n");
 
 #ifndef VPM150M_SUPPORT
-	printk("Found VPMADT032 module but it is not able to function in anything less than a version 2.6 kernel\n");
-	printk("Please update your kernel to a 2.6 or later kernel to enable it\n");
+	printk(KERN_NOTICE "Found VPMADT032 module but it is not able to function in anything less than a version 2.6 kernel\n");
+	printk(KERN_NOTICE "Please update your kernel to a 2.6 or later kernel to enable it\n");
 	goto failed_exit;
 #else
 
@@ -3394,7 +3395,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 #if defined(HOTPLUG_FIRMWARE)
 		if ((request_firmware(&firmware, vpmadt032_firmware, &pdev->dev) != 0) ||
 		    !firmware) {
-			printk("VPMADT032: firmware %s not available from userspace\n", vpmadt032_firmware);
+			printk(KERN_NOTICE "VPMADT032: firmware %s not available from userspace\n", vpmadt032_firmware);
 			goto failed_exit;
 		}
 #else
@@ -3409,7 +3410,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 		while (test_bit(VPM150M_HPIRESET, &vpm150m->control))
 			schluffen(&wc->regq);
 
-		printk("VPMADT032 Loading firwmare... ");
+		printk(KERN_INFO "VPMADT032 Loading firwmare... ");
 		downloadstatus = gpakDownloadDsp(vpm150m->dspid, &fw);
 
 		if (firmware != &embedded_firmware)
@@ -3435,9 +3436,9 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 
 	if (!pingstatus) {
 		if (debug & DEBUG_ECHOCAN)
-			printk("Version of DSP is %x\n", vpm150m->version);
+			printk(KERN_DEBUG "Version of DSP is %x\n", vpm150m->version);
 	} else {
-		printk("VPMADT032 Failed! Unable to ping the DSP (%d)!\n", pingstatus);
+		printk(KERN_NOTICE "VPMADT032 Failed! Unable to ping the DSP (%d)!\n", pingstatus);
 		goto failed_exit;
 	}
 
@@ -3465,7 +3466,7 @@ static void wctdm_vpm_set_dtmf_threshold(struct wctdm *wc, unsigned int threshol
 		wctdm_vpm_out(wc, x, 0xC4, (threshold >> 8) & 0xFF);
 		wctdm_vpm_out(wc, x, 0xC5, (threshold & 0xFF));
 	}
-	printk("VPM: DTMF threshold set to %d\n", threshold);
+	printk(KERN_INFO "VPM: DTMF threshold set to %d\n", threshold);
 }
 
 static void wctdm_vpm_init(struct wctdm *wc)
@@ -3477,7 +3478,7 @@ static void wctdm_vpm_init(struct wctdm *wc)
 	unsigned int i, x, y;
 
 	if (!vpmsupport) {
-		printk("VPM: Support Disabled\n");
+		printk(KERN_INFO "VPM: Support Disabled\n");
 		wc->vpm = 0;
 		return;
 	}
@@ -3485,16 +3486,16 @@ static void wctdm_vpm_init(struct wctdm *wc)
 	for (x=0;x<NUM_EC;x++) {
 		ver = wctdm_vpm_in(wc, x, 0x1a0); /* revision */
 		if (debug & DEBUG_ECHOCAN)
-			printk("VPM100: Chip %d: ver %02x\n", x, ver);
+			printk(KERN_DEBUG "VPM100: Chip %d: ver %02x\n", x, ver);
 		if (ver != 0x33) {
-			printk("VPM100: %s\n", x ? "Inoperable" : "Not Present");
+			printk(KERN_DEBUG "VPM100: %s\n", x ? "Inoperable" : "Not Present");
 			wc->vpm = 0;
 			return;
 		}	
 
 		if (!x) {
 			vpmver = wctdm_vpm_in(wc, x, 0x1a6) & 0xf;
-			printk("VPM Revision: %02x\n", vpmver);
+			printk(KERN_INFO "VPM Revision: %02x\n", vpmver);
 		}
 
 
@@ -3535,11 +3536,11 @@ static void wctdm_vpm_init(struct wctdm *wc)
 		reg &= 0xE0;
 		if (alawoverride) {
 			if (!x)
-				printk("VPM: A-law mode\n");
+				printk(KERN_INFO "VPM: A-law mode\n");
 			reg |= 0x01;
 		} else {
 			if (!x)
-				printk("VPM: U-law mode\n");
+				printk(KERN_INFO "VPM: U-law mode\n");
 			reg &= ~0x01;
 		}
 		wctdm_vpm_out(wc,x,0x20,(reg | 0x20));
@@ -3588,7 +3589,7 @@ static void wctdm_vpm_init(struct wctdm *wc)
 	else
 		wc->vpm = 1;
 
-	printk("Enabling VPM100 gain adjustments on any FXO ports found\n");
+	printk(KERN_INFO "Enabling VPM100 gain adjustments on any FXO ports found\n");
 	for (i = 0; i < wc->type; i++) {
 		if (wc->modtype[i] == MOD_TYPE_FXO) {
 			/* Apply negative Tx gain of 4.5db to DAA */
@@ -3652,10 +3653,10 @@ retry:
 			wc->cardflag |= (1 << x);
 			if (debug & DEBUG_CARD) {
 				readi = wctdm_getreg(wc,x,LOOP_I_LIMIT);
-				printk("Proslic module %d loop current is %dmA\n",x,
+				printk(KERN_DEBUG "Proslic module %d loop current is %dmA\n",x,
 					((readi*3)+20));
 			}
-			printk("Port %d: Installed -- AUTO FXS/DPO\n", x + 1);
+			printk(KERN_INFO "Port %d: Installed -- AUTO FXS/DPO\n", x + 1);
 		} else {
 			if(ret!=-2) {
 				sane=1;
@@ -3664,20 +3665,20 @@ retry:
 					wc->cardflag |= (1 << x);
                                 if (debug & DEBUG_CARD) {
                                         readi = wctdm_getreg(wc,x,LOOP_I_LIMIT);
-                                        printk("Proslic module %d loop current is %dmA\n",x,
+                                        printk(KERN_DEBUG "Proslic module %d loop current is %dmA\n",x,
                                  	       ((readi*3)+20));
                                 }
-					printk("Port %d: Installed -- MANUAL FXS\n",x + 1);
+					printk(KERN_INFO "Port %d: Installed -- MANUAL FXS\n",x + 1);
 				} else {
-					printk("Port %d: FAILED FXS (%s)\n", x + 1, fxshonormode ? fxo_modes[_opermode].name : "FCC");
+					printk(KERN_NOTICE "Port %d: FAILED FXS (%s)\n", x + 1, fxshonormode ? fxo_modes[_opermode].name : "FCC");
 					wc->chans[x]->sigcap = DAHDI_SIG_BROKEN | __DAHDI_SIG_FXO;
 				} 
 			} else if (!(ret = wctdm_init_voicedaa(wc, x, 0, 0, sane))) {
 				wc->cardflag |= (1 << x);
-				printk("Port %d: Installed -- AUTO FXO (%s mode)\n",x + 1, fxo_modes[_opermode].name);
+				printk(KERN_INFO "Port %d: Installed -- AUTO FXO (%s mode)\n",x + 1, fxo_modes[_opermode].name);
  			} else if (!wctdm_init_qrvdri(wc,x)) {
  				wc->cardflag |= 1 << x;
- 				printk("Port %d: Installed -- QRV DRI card\n",x + 1);
+ 				printk(KERN_INFO "Port %d: Installed -- QRV DRI card\n",x + 1);
 			} else {
  				if ((wc->type != 24) && ((x & 0x3) == 1) && !wc->altcs[x]) {
  					spin_lock_irqsave(&wc->reglock, flags);
@@ -3695,10 +3696,10 @@ retry:
  					wc->modtype[x] = MOD_TYPE_FXS;
  					spin_unlock_irqrestore(&wc->reglock, flags);
  					if (debug & DEBUG_CARD)
- 						printk("Trying port %d with alternate chip select\n", x + 1);
+ 						printk(KERN_DEBUG "Trying port %d with alternate chip select\n", x + 1);
  					goto retry;
 				} else {
- 					printk("Port %d: Not installed\n", x + 1);
+ 					printk(KERN_NOTICE "Port %d: Not installed\n", x + 1);
  					wc->modtype[x] = MOD_TYPE_NONE;
  					wc->cardflag |= (1 << x);
  				}
@@ -3708,7 +3709,7 @@ retry:
 #ifdef VPM_SUPPORT
 	wctdm_vpm_init(wc);
 	if (wc->vpm) {
-		printk("VPM: Present and operational (Rev %c)\n", 'A' + wc->vpm - 1);
+		printk(KERN_INFO "VPM: Present and operational (Rev %c)\n", 'A' + wc->vpm - 1);
 		wc->ctlreg |= 0x10;
 	} else {
 		enum vpmadt032_init_result res;
@@ -3723,7 +3724,7 @@ retry:
 		}
 		switch (res) {
 		case VPMADT032_SUCCESS:
-			printk("VPMADT032: Present and operational (Firmware version %x)\n", wc->vpm150m->version);
+			printk(KERN_INFO "VPMADT032: Present and operational (Firmware version %x)\n", wc->vpm150m->version);
 			wc->ctlreg |= 0x10;
 			break;
 		case VPMADT032_DISABLED:
@@ -3853,13 +3854,13 @@ retry:
 	
 	/* We should be ready for DAHDI to come in now. */
 	if (dahdi_register(&wc->span, 0)) {
-		printk("Unable to register span with DAHDI\n");
+		printk(KERN_NOTICE "Unable to register span with DAHDI\n");
 		return -1;
 	}
 
 	wc->initialized = 1;
 
-	printk("Found a Wildcard TDM: %s (%d modules)\n", wc->variety, wc->type);
+	printk(KERN_INFO "Found a Wildcard TDM: %s (%d modules)\n", wc->variety, wc->type);
 	ret = 0;
 	
 	return ret;
@@ -3919,7 +3920,7 @@ static void __devexit wctdm_remove_one(struct pci_dev *pdev)
 		/* Release span, possibly delayed */
 		if (!wc->usecount) {
 			wctdm_release(wc);
-			printk("Freed a Wildcard\n");
+			printk(KERN_INFO "Freed a Wildcard\n");
 		}
 		else
 			wc->dead = 1;
@@ -3959,10 +3960,10 @@ static int __init wctdm_init(void)
 	if (x < sizeof(fxo_modes) / sizeof(fxo_modes[0])) {
 		_opermode = x;
 	} else {
-		printk("Invalid/unknown operating mode '%s' specified.  Please choose one of:\n", opermode);
+		printk(KERN_NOTICE "Invalid/unknown operating mode '%s' specified.  Please choose one of:\n", opermode);
 		for (x = 0; x < sizeof(fxo_modes) / sizeof(fxo_modes[0]); x++)
-			printk("  %s\n", fxo_modes[x].name);
-		printk("Note this option is CASE SENSITIVE!\n");
+			printk(KERN_NOTICE "  %s\n", fxo_modes[x].name);
+		printk(KERN_NOTICE "Note this option is CASE SENSITIVE!\n");
 		return -ENODEV;
 	}
 

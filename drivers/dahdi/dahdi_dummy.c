@@ -321,7 +321,7 @@ void cleanup_module(void)
 	dahdi_unregister(&ztd->span);
 	kfree(ztd);
 	if (debug)
-		printk("ztdummy: cleanup() finished\n");
+		printk(KERN_DEBUG "ztdummy: cleanup() finished\n");
 }
 
 

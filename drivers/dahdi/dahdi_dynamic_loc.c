@@ -152,7 +152,7 @@ static int digit2int(char d)
 	}
 	spin_unlock_irqrestore(&zlock, flags);
 	if (cur == z) {
-		printk("TDMoL: Removed interface for %s, key %d id %d\n", z->span->name, z->key, z->id);
+		printk(KERN_INFO "TDMoL: Removed interface for %s, key %d id %d\n", z->span->name, z->key, z->id);
 		module_put(THIS_MODULE);
 		kfree(z);
 	}
@@ -194,12 +194,12 @@ static int digit2int(char d)
 		for (l = zdevs; l; l = l->next)
 			if (l->key == z->key) {
 				if (l->id == z->id) {
-					printk ("TDMoL: Duplicate id (%d) for key %d\n", z->id, z->key);
+					printk(KERN_DEBUG "TDMoL: Duplicate id (%d) for key %d\n", z->id, z->key);
 					goto CLEAR_AND_DEL_FROM_PEERS;
 				}
 				if (monitor == -1) {
 					if (l->peer) {
-						printk ("TDMoL: Span with key %d and id %d already has a R/W peer\n", z->key, z->id);
+						printk(KERN_DEBUG "TDMoL: Span with key %d and id %d already has a R/W peer\n", z->key, z->id);
 						goto CLEAR_AND_DEL_FROM_PEERS;
 					} else {
 						l->peer = z;
@@ -208,7 +208,7 @@ static int digit2int(char d)
 				}
 				if (monitor == l->id) {
 					if (l->monitor_rx_peer) {
-						printk ("TDMoL: Span with key %d and id %d already has a monitoring peer\n", z->key, z->id);
+						printk(KERN_DEBUG "TDMoL: Span with key %d and id %d already has a monitoring peer\n", z->key, z->id);
 						goto CLEAR_AND_DEL_FROM_PEERS;
 					} else {
 						l->monitor_rx_peer = z;
@@ -219,9 +219,9 @@ static int digit2int(char d)
 		zdevs = z;
 		spin_unlock_irqrestore(&zlock, flags);
 		if(!try_module_get(THIS_MODULE))
-			printk("TDMoL: Unable to increment module use count\n");
+			printk(KERN_DEBUG "TDMoL: Unable to increment module use count\n");
 
-		printk("TDMoL: Added new interface for %s, key %d id %d\n", span->name, z->key, z->id);
+		printk(KERN_INFO "TDMoL: Added new interface for %s, key %d id %d\n", span->name, z->key, z->id);
 	}
 	return z;
 
@@ -236,7 +236,7 @@ CLEAR_AND_DEL_FROM_PEERS:
 	return NULL;
 	
 INVALID_ADDRESS:
-	printk ("TDMoL: Invalid address %s\n", address);
+	printk (KERN_NOTICE "TDMoL: Invalid address %s\n", address);
 	return NULL;
 }
 

@@ -1677,8 +1677,8 @@ static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 #ifdef CONFIG_DAHDI_DEBUG
 		module_printk(KERN_NOTICE, "Buffered %d bytes to go out in buffer %d\n", ss->writen[oldbuf], oldbuf);
 		for (x=0;x<ss->writen[oldbuf];x++)
-		     printk("%02x ", ss->writebuf[oldbuf][x]);
-		printk("\n");
+		     module_printk(KERN_DEBUG,"%02x ", ss->writebuf[oldbuf][x]);
+		module_printk(KERN_DEBUG "\n");
 #endif
 		retval = 0;
 		/* Free the SKB */
@@ -1778,8 +1778,8 @@ static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 #ifdef CONFIG_DAHDI_DEBUG
 		module_printk(KERN_NOTICE, "Buffered %d bytes (skblen = %d) to go out in buffer %d\n", ss->writen[oldbuf], skb->len, oldbuf);
 		for (x=0;x<ss->writen[oldbuf];x++)
-		     printk("%02x ", ss->writebuf[oldbuf][x]);
-		printk("\n");
+		     module_printk(KERN_DEBUG, "%02x ", ss->writebuf[oldbuf][x]);
+		module_printk(KERN_DEBUG, "\n");
 #endif
 		retval = 1;
 	}
@@ -1906,8 +1906,8 @@ static ssize_t dahdi_chan_read(struct file *file, char *usrbuf, size_t count, in
 			myamnt = chan->readn[res];
 		module_printk(KERN_NOTICE, "dahdi_chan_read(unit: %d, inwritebuf: %d, outwritebuf: %d amnt: %d\n", 
 			      unit, chan->inwritebuf, chan->outwritebuf, myamnt);
-		printk("\t("); for (x = 0; x < myamnt; x++) printk((x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
-		printk(")\n");
+		module_printk(KERN_DEBUG, "\t("); for (x = 0; x < myamnt; x++) module_printk((KERN_DEBUG, x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
+		module_printk(KERN_DEBUG, ")\n");
 	}
 #endif
 /* end addition */
@@ -2019,8 +2019,8 @@ static ssize_t dahdi_chan_write(struct file *file, const char *usrbuf, size_t co
  		int x;
  		module_printk(KERN_NOTICE, "dahdi_chan_write/in(unit: %d, res: %d, outwritebuf: %d amnt: %d, txdisable: %d)\n",
 			      unit, res, chan->outwritebuf, amnt, chan->txdisable);
- 		printk("\t("); for (x = 0; x < amnt; x++) printk((x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
- 		printk(")\n");
+ 		module_printk(KERN_DEBUG, "\t("); for (x = 0; x < amnt; x++) module_printk(KERN_DEBUG, (x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
+ 		module_printk(KERN_DEBUG, ")\n");
  	}
 #endif
 

@@ -290,7 +290,7 @@ static void ztdeth_destroy(void *pvt)
 	}
 	spin_unlock_irqrestore(&zlock, flags);
 	if (cur == z) {	/* Successfully removed */
-		printk("TDMoE: Removed interface for %s\n", z->span->name);
+		printk(KERN_INFO "TDMoE: Removed interface for %s\n", z->span->name);
 		kfree(z);
 		module_put(THIS_MODULE);
 	}
@@ -317,7 +317,7 @@ static void *ztdeth_create(struct dahdi_span *span, char *addr)
 			tmp2++;
 			dahdi_copy_string(z->ethdev, tmp, sizeof(z->ethdev));
 		} else {
-			printk("Invalid TDMoE address (no device) '%s'\n", addr);
+			printk(KERN_NOTICE "Invalid TDMoE address (no device) '%s'\n", addr);
 			kfree(z);
 			return NULL;
 		}
@@ -345,12 +345,12 @@ static void *ztdeth_create(struct dahdi_span *span, char *addr)
 					tmp3 = strchr(tmp2, ':');
 			}
 			if (x != 6) {
-				printk("TDMoE: Invalid MAC address in: %s\n", addr);
+				printk(KERN_NOTICE "TDMoE: Invalid MAC address in: %s\n", addr);
 				kfree(z);
 				return NULL;
 			}
 		} else {
-			printk("TDMoE: Missing MAC address\n");
+			printk(KERN_NOTICE "TDMoE: Missing MAC address\n");
 			kfree(z);
 			return NULL;
 		}
@@ -364,7 +364,7 @@ static void *ztdeth_create(struct dahdi_span *span, char *addr)
 				if (*tmp3 >= '0' && *tmp3 <= '9') {
 					sub += (*tmp3 - '0') * mul;
 				} else {
-					printk("TDMoE: Invalid subaddress\n");
+					printk(KERN_NOTICE "TDMoE: Invalid subaddress\n");
 					kfree(z);
 					return NULL;
 				}
@@ -379,7 +379,7 @@ static void *ztdeth_create(struct dahdi_span *span, char *addr)
 #endif
 				z->ethdev);
 		if (!z->dev) {
-			printk("TDMoE: Invalid device '%s'\n", z->ethdev);
+			printk(KERN_NOTICE "TDMoE: Invalid device '%s'\n", z->ethdev);
 			kfree(z);
 			return NULL;
 		}
@@ -388,14 +388,14 @@ static void *ztdeth_create(struct dahdi_span *span, char *addr)
 		for (x=0;x<5;x++)
 			sprintf(src + strlen(src), "%02x:", z->dev->dev_addr[x]);
 		sprintf(src + strlen(src), "%02x", z->dev->dev_addr[5]);
-		printk("TDMoE: Added new interface for %s at %s (addr=%s, src=%s, subaddr=%d)\n", span->name, z->dev->name, addr, src, ntohs(z->subaddr));
+		printk(KERN_INFO "TDMoE: Added new interface for %s at %s (addr=%s, src=%s, subaddr=%d)\n", span->name, z->dev->name, addr, src, ntohs(z->subaddr));
 
 		spin_lock_irqsave(&zlock, flags);
 		z->next = zdevs;
 		zdevs = z;
 		spin_unlock_irqrestore(&zlock, flags);
 		if(!try_module_get(THIS_MODULE))
-			printk("TDMoE: Unable to increment module use count\n");
+			printk(KERN_DEBUG "TDMoE: Unable to increment module use count\n");
 	}
 	return z;
 }

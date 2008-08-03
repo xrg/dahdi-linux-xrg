@@ -113,7 +113,7 @@ int dahdi_transcoder_register(struct dahdi_transcoder *tc)
 
 	tc->next = trans;
 	trans = tc;
-	printk("Registered codec translator '%s' with %d transcoders (srcs=%08x, dsts=%08x)\n", 
+	printk(KERN_INFO "Registered codec translator '%s' with %d transcoders (srcs=%08x, dsts=%08x)\n", 
 	       tc->name, tc->numchannels, tc->srcfmts, tc->dstfmts);
 	res = 0;
 	spin_unlock(&translock);
@@ -143,7 +143,7 @@ int dahdi_transcoder_unregister(struct dahdi_transcoder *tc)
 	else
 		trans = tc->next;
 	tc->next = NULL;
-	printk("Unregistered codec translator '%s' with %d transcoders (srcs=%08x, dsts=%08x)\n", 
+	printk(KERN_INFO "Unregistered codec translator '%s' with %d transcoders (srcs=%08x, dsts=%08x)\n", 
 	       tc->name, tc->numchannels, tc->srcfmts, tc->dstfmts);
 	res = 0;
 	spin_unlock(&translock);
@@ -155,7 +155,7 @@ int dahdi_transcoder_unregister(struct dahdi_transcoder *tc)
 int dahdi_transcoder_alert(struct dahdi_transcoder_channel *ztc)
 {
 	if (debug)
-		printk("DAHDI Transcoder Alert!\n");
+		printk(KERN_DEBUG "DAHDI Transcoder Alert!\n");
 	if (ztc->tch)
 		ztc->tch->status &= ~DAHDI_TC_FLAG_BUSY;
 	wake_up_interruptible(&ztc->ready);
@@ -182,7 +182,7 @@ static int dahdi_tc_open(struct inode *inode, struct file *file)
 	ztc->flags = DAHDI_TC_FLAG_TRANSIENT | DAHDI_TC_FLAG_BUSY;
 	ztc->tch = zth;
 	if (debug)
-		printk("Allocated Transcoder Channel, header is at %p!\n", zth);
+		printk(KERN_DEBUG "Allocated Transcoder Channel, header is at %p!\n", zth);
 	zth->magic = DAHDI_TRANSCODE_MAGIC;
 	file->private_data = ztc;
 	for (page = virt_to_page(zth);
@@ -216,7 +216,7 @@ static void ztc_release(struct dahdi_transcoder_channel *ztc)
 	if (ztc->flags & DAHDI_TC_FLAG_TRANSIENT)
 		kfree(ztc);
 	if (debug)
-		printk("Released Transcoder!\n");
+		printk(KERN_DEBUG "Released Transcoder!\n");
 }
 
 static int dahdi_tc_release(struct inode *inode, struct file *file)
@@ -327,7 +327,7 @@ static int dahdi_tc_ioctl(struct inode *inode, struct file *file, unsigned int c
 		return -EFAULT;
 
 	if (debug)
-		printk("DAHDI Transcode ioctl op = %d!\n", op);
+		printk(KERN_DEBUG "DAHDI Transcode ioctl op = %d!\n", op);
 
 	switch(op) {
 	case DAHDI_TCOP_GETINFO:
@@ -377,13 +377,13 @@ static int dahdi_tc_mmap(struct file *file, struct vm_area_struct *vma)
 	/* Do not allow an offset */
 	if (vma->vm_pgoff) {
 		if (debug)
-			printk("zttranscode: Attempted to mmap with offset!\n");
+			printk(KERN_DEBUG "zttranscode: Attempted to mmap with offset!\n");
 		return -EINVAL;
 	}
 
 	if ((vma->vm_end - vma->vm_start) != sizeof(struct dahdi_transcode_header)) {
 		if (debug)
-			printk("zttranscode: Attempted to mmap with size %d != %zd!\n", (int) (vma->vm_end - vma->vm_start), sizeof(struct dahdi_transcode_header));
+			printk(KERN_DEBUG "zttranscode: Attempted to mmap with size %d != %zd!\n", (int) (vma->vm_end - vma->vm_start), sizeof(struct dahdi_transcode_header));
 		return -EINVAL;
 	}
 
@@ -399,12 +399,12 @@ static int dahdi_tc_mmap(struct file *file, struct vm_area_struct *vma)
 #endif
 	if (res) {
 		if (debug)
-			printk("zttranscode: remap failed!\n");
+			printk(KERN_DEBUG "zttranscode: remap failed!\n");
 		return -EAGAIN;
 	}
 
 	if (debug)
-		printk("zttranscode: successfully mapped transcoder!\n");
+		printk(KERN_DEBUG "zttranscode: successfully mapped transcoder!\n");
 
 	return 0;
 }
@@ -445,7 +445,7 @@ int dahdi_transcode_init(void)
 	int res;
 
 	if (dahdi_transcode_fops) {
-		printk("Whoa, dahdi_transcode_fops already set?!\n");
+		printk(KERN_NOTICE "Whoa, dahdi_transcode_fops already set?!\n");
 		return -EBUSY;
 	}
 
@@ -454,7 +454,7 @@ int dahdi_transcode_init(void)
 	if ((res = dahdi_register_chardev(&transcode_chardev)))
 		return res;
 
-	printk("DAHDI Transcoder support loaded\n");
+	printk(KERN_INFO "DAHDI Transcoder support loaded\n");
 
 	return 0;
 }
@@ -465,7 +465,7 @@ void dahdi_transcode_cleanup(void)
 
 	dahdi_transcode_fops = NULL;
 
-	printk("DAHDI Transcoder support unloaded\n");
+	printk(KERN_INFO "DAHDI Transcoder support unloaded\n");
 }
 
 module_param(debug, int, S_IRUGO | S_IWUSR);
