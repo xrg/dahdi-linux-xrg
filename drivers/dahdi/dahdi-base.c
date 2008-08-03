@@ -189,7 +189,9 @@ static int deftaps = 64;
 
 static int debug;
 
-/* states for transmit signalling */
+/*! 
+ * \brief states for transmit signalling 
+ */
 enum dahdi_txstate {
 	DAHDI_TXSTATE_ONHOOK,
 	DAHDI_TXSTATE_OFFHOOK,
@@ -206,7 +208,7 @@ enum dahdi_txstate {
 	DAHDI_TXSTATE_AFTERKEWL,
 	DAHDI_TXSTATE_PULSEBREAK,
 	DAHDI_TXSTATE_PULSEMAKE,
-	DAHDI_TXSTATE_PULSEAFTER
+	DAHDI_TXSTATE_PULSEAFTER,
 };
 
 typedef short sumtype[DAHDI_MAX_CHUNKSIZE];
@@ -2112,39 +2114,70 @@ static void set_txtone(struct dahdi_chan *ss, int fac, int init_v2, int init_v3)
 	return;
 }
 
-static void dahdi_rbs_sethook(struct dahdi_chan *chan, int txsig, int txstate, int timeout)
+static void dahdi_rbs_sethook(struct dahdi_chan *chan, int txsig, int txstate, 
+		int timeout)
 {
-static int outs[NUM_SIGS][5] = {
-/* We set the idle case of the DAHDI_SIG_NONE to this pattern to make idle E1 CAS
-channels happy. Should not matter with T1, since on an un-configured channel, 
-who cares what the sig bits are as long as they are stable */
-	{ DAHDI_SIG_NONE, 		DAHDI_ABIT | DAHDI_CBIT | DAHDI_DBIT, 0, 0, 0 },  /* no signalling */
-	{ DAHDI_SIG_EM, 		0, DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
-		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0 },  /* E and M */
-	{ DAHDI_SIG_FXSLS, 	DAHDI_BBIT | DAHDI_DBIT, 
-		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
-			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0 }, /* FXS Loopstart */
-	{ DAHDI_SIG_FXSGS, 	DAHDI_BBIT | DAHDI_DBIT, 
-#ifdef CONFIG_CAC_GROUNDSTART
-		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0, 0 }, /* FXS Groundstart (CAC-style) */
-#else
-		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, DAHDI_ABIT | DAHDI_CBIT, 0 }, /* FXS Groundstart (normal) */
+	static const struct {
+		unsigned int sig_type;
+		/* Index is dahdi_txsig enum */
+		unsigned int bits[DAHDI_TXSIG_TOTAL];
+	} outs[NUM_SIGS] = {
+		{
+			/* 
+			 * We set the idle case of the DAHDI_SIG_NONE to this pattern to make idle E1 CAS
+			 * channels happy. Should not matter with T1, since on an un-configured channel, 
+			 * who cares what the sig bits are as long as they are stable 
+			 */
+			.sig_type = DAHDI_SIG_NONE,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_ACD,
+		}, {
+			.sig_type = DAHDI_SIG_EM,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_ABCD,
+			.bits[DAHDI_TXSIG_START]   = DAHDI_BITS_ABCD,
+		}, {
+			.sig_type = DAHDI_SIG_FXSLS,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_BD,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_ABCD,
+			.bits[DAHDI_TXSIG_START]   = DAHDI_BITS_ABCD,
+		}, {
+			.sig_type = DAHDI_SIG_FXSGS,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_BD,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_ABCD,
+#ifndef CONFIG_CAC_GROUNDSTART
+			.bits[DAHDI_TXSIG_START]   = DAHDI_BITS_AC,
 #endif
-	{ DAHDI_SIG_FXSKS,		DAHDI_BBIT | DAHDI_DBIT, 
-		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
-			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 0 }, /* FXS Kewlstart */
-	{ DAHDI_SIG_FXOLS,		DAHDI_BBIT | DAHDI_DBIT, DAHDI_BBIT | DAHDI_DBIT, 0, 0 }, /* FXO Loopstart */
-	{ DAHDI_SIG_FXOGS,		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT,
-		 DAHDI_BBIT | DAHDI_DBIT, 0, 0 }, /* FXO Groundstart */
-	{ DAHDI_SIG_FXOKS,		DAHDI_BBIT | DAHDI_DBIT, DAHDI_BBIT | DAHDI_DBIT, 0, 
-		DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT }, /* FXO Kewlstart */
-	{ DAHDI_SIG_SF,	DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 
-			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 
-			DAHDI_ABIT | DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT, 
-			DAHDI_BBIT | DAHDI_CBIT | DAHDI_DBIT },  /* no signalling */
-	{ DAHDI_SIG_EM_E1, 	DAHDI_DBIT, DAHDI_ABIT | DAHDI_BBIT | DAHDI_DBIT,
-		DAHDI_ABIT | DAHDI_BBIT | DAHDI_DBIT, DAHDI_DBIT },  /* E and M  E1 */
-	} ;
+		}, {
+			.sig_type = DAHDI_SIG_FXSKS,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_BD,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_ABCD,
+			.bits[DAHDI_TXSIG_START]   = DAHDI_BITS_ABCD,
+		}, {
+			.sig_type = DAHDI_SIG_FXOLS,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_BD,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_BD,
+		}, {
+			.sig_type = DAHDI_SIG_FXOGS,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_ABCD,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_BD,
+		}, {
+			.sig_type = DAHDI_SIG_FXOKS,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_BD,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_BD,
+			.bits[DAHDI_TXSIG_KEWL]    = DAHDI_BITS_ABCD,
+		}, {
+			.sig_type = DAHDI_SIG_SF,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_BITS_BCD,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_ABCD,
+			.bits[DAHDI_TXSIG_START]   = DAHDI_BITS_ABCD,
+			.bits[DAHDI_TXSIG_KEWL]    = DAHDI_BITS_BCD,
+		}, {
+			.sig_type = DAHDI_SIG_EM_E1,
+			.bits[DAHDI_TXSIG_ONHOOK]  = DAHDI_DBIT,
+			.bits[DAHDI_TXSIG_OFFHOOK] = DAHDI_BITS_ABD,
+			.bits[DAHDI_TXSIG_START]   = DAHDI_BITS_ABD,
+			.bits[DAHDI_TXSIG_KEWL]    = DAHDI_DBIT,
+		}
+	};
 	int x;
 
 	/* if no span, return doing nothing */
@@ -2192,12 +2225,12 @@ who cares what the sig bits are as long as they are stable */
 		return;
 	} else {
 		for (x = 0; x < NUM_SIGS; x++) {
-			if (outs[x][0] == chan->sig) {
+			if (outs[x].sig_type == chan->sig) {
 #ifdef CONFIG_DAHDI_DEBUG
-				module_printk(KERN_NOTICE, "Setting bits to %d for channel %s state %d in %d signalling\n", outs[x][txsig + 1], chan->name, txsig, chan->sig);
+				module_printk(KERN_NOTICE, "Setting bits to %d for channel %s state %d in %d signalling\n", outs[x].bits[txsig], chan->name, txsig, chan->sig);
 #endif
 				chan->txhooksig = txsig;
-				chan->txsig = outs[x][txsig+1];
+				chan->txsig = outs[x].bits[txsig];
 				chan->span->rbsbits(chan, chan->txsig);
 				chan->otimer = timeout * DAHDI_CHUNKSIZE;	/* Otimer is timer in samples */
 				return;

@@ -541,7 +541,7 @@ static int FXO_card_dahdi_postregistration(xpd_t *xpd, bool on)
 	return 0;
 }
 
-static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
+static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, enum dahdi_txsig txsig)
 {
 	struct FXO_priv_data	*priv;
 	int			ret = 0;

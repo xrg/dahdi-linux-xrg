@@ -635,7 +635,7 @@ static int send_ring(xpd_t *xpd, lineno_t chan, bool on)
 	return ret;
 }
 
-static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
+static int FXS_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, enum dahdi_txsig txsig)
 {
 	struct FXS_priv_data	*priv;
 	int			ret = 0;

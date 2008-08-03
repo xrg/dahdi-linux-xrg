@@ -225,7 +225,7 @@ struct xops {
 	void (*card_pcm_tospan)(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack);
 	int (*card_dahdi_preregistration)(xpd_t *xpd, bool on);
 	int (*card_dahdi_postregistration)(xpd_t *xpd, bool on);
-	int (*card_hooksig)(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig);
+	int (*card_hooksig)(xbus_t *xbus, xpd_t *xpd, int pos, enum dahdi_txsig txsig);
 	int (*card_ioctl)(xpd_t *xpd, int pos, unsigned int cmd, unsigned long arg);
 	int (*card_open)(xpd_t *xpd, lineno_t pos);
 	int (*card_close)(xpd_t *xpd, lineno_t pos);

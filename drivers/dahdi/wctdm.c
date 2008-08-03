@@ -1945,7 +1945,7 @@ static int wctdm_close(struct dahdi_chan *chan)
 	return 0;
 }
 
-static int wctdm_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
+static int wctdm_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 {
 	struct wctdm *wc = chan->pvt;
 	int reg=0;

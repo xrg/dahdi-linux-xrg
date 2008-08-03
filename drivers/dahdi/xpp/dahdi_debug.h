@@ -104,13 +104,14 @@ static inline char *rxsig2str(dahdi_rxsig_t sig)
 	return "Unknown rxsig";
 }
 
-static inline char *txsig2str(dahdi_txsig_t sig)
+static inline char *txsig2str(enum dahdi_txsig sig)
 {
 	switch(sig) {
 		case DAHDI_TXSIG_ONHOOK:	return "TXSIG_ONHOOK";
 		case DAHDI_TXSIG_OFFHOOK:	return "TXSIG_OFFHOOK";
 		case DAHDI_TXSIG_START:	return "TXSIG_START";
 		case DAHDI_TXSIG_KEWL:	return "TXSIG_KEWL";				/* Drop battery if possible */
+		case DAHDI_TXSIG_TOTAL: break;
 	}
 	return "Unknown txsig";
 }

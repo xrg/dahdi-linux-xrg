@@ -770,7 +770,7 @@ int xpp_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long arg)
 	return 0;
 }
 
-static int xpp_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
+static int xpp_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 {
 	xpd_t	*xpd = chan->pvt;
 	xbus_t	*xbus;

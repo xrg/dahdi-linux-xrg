@@ -1441,7 +1441,7 @@ static int pciradio_close(struct dahdi_chan *chan)
 	return 0;
 }
 
-static int pciradio_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
+static int pciradio_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 {
 	struct pciradio *rad = chan->pvt;
 

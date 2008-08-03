@@ -419,12 +419,14 @@ int dahdi_register_chardev(struct dahdi_chardev *dev);
 int dahdi_unregister_chardev(struct dahdi_chardev *dev);
 
 /*! \brief defines for transmit signalling */
-typedef enum {
+enum dahdi_txsig {
 	DAHDI_TXSIG_ONHOOK,  /*!< On hook */
 	DAHDI_TXSIG_OFFHOOK, /*!< Off hook */
 	DAHDI_TXSIG_START,   /*!< Start / Ring */
-	DAHDI_TXSIG_KEWL     /*!< Drop battery if possible */
-} dahdi_txsig_t;
+	DAHDI_TXSIG_KEWL,     /*!< Drop battery if possible */
+	/*! Leave this as the last entry */
+	DAHDI_TXSIG_TOTAL,
+};
 
 typedef enum {
 	DAHDI_RXSIG_ONHOOK,
@@ -575,7 +577,7 @@ struct dahdi_span {
 	   generate ring, etc directly) then you can just specify a
 	   sethook function, and we'll call you with appropriate hook states
 	   to set.  Still set the DAHDI_FLAG_RBS in this case as well */
-	int (*hooksig)(struct dahdi_chan *chan, dahdi_txsig_t hookstate);
+	int (*hooksig)(struct dahdi_chan *chan, enum dahdi_txsig hookstate);
 	
 	/*! Option 3: If you can't use sig bits, you can write a function
 	   which handles the individual hook states  */
