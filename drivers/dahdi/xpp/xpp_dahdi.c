@@ -803,23 +803,23 @@ int xpp_maint(struct dahdi_span *span, int cmd)
 	DBG(GENERAL, "span->mainttimer=%d\n", span->mainttimer);
 	switch(cmd) {
 		case DAHDI_MAINT_NONE:
-			printk(KERN_INFO "XXX Turn off local and remote loops XXX\n");
+			INFO("XXX Turn off local and remote loops XXX\n");
 			break;
 		case DAHDI_MAINT_LOCALLOOP:
-			printk(KERN_INFO "XXX Turn on local loopback XXX\n");
+			INFO("XXX Turn on local loopback XXX\n");
 			break;
 		case DAHDI_MAINT_REMOTELOOP:
-			printk(KERN_INFO "XXX Turn on remote loopback XXX\n");
+			INFO("XXX Turn on remote loopback XXX\n");
 			break;
 		case DAHDI_MAINT_LOOPUP:
-			printk(KERN_INFO "XXX Send loopup code XXX\n");
+			INFO("XXX Send loopup code XXX\n");
 			// CALL_XMETHOD(LOOPBACK_AX, xpd->xbus, xpd, loopback_data, ARRAY_SIZE(loopback_data));
 			break;
 		case DAHDI_MAINT_LOOPDOWN:
-			printk(KERN_INFO "XXX Send loopdown code XXX\n");
+			INFO("XXX Send loopdown code XXX\n");
 			break;
 		case DAHDI_MAINT_LOOPSTOP:
-			printk(KERN_INFO "XXX Stop sending loop codes XXX\n");
+			INFO("XXX Stop sending loop codes XXX\n");
 			break;
 		default:
 			ERR("XPP: Unknown maint command: %d\n", cmd);

@@ -1010,10 +1010,10 @@ static void detect_vmwi(xpd_t *xpd)
 			LINE_DBG(GENERAL, xpd, pos, "MSG:");
 			for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
 				if(debug)
-					printk(KERN_DEBUG " %02X", writechunk[j]);
+					printk(" %02X", writechunk[j]);
 			}
 			if(debug)
-				printk(KERN_DEBUG "\n");
+				printk("\n");
 		}
 #endif
 		if(unlikely(mem_equal(writechunk, FSK_COMMON_PATTERN, DAHDI_CHUNKSIZE)))

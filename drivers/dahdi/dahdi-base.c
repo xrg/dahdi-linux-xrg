@@ -1614,6 +1614,20 @@ static struct dahdi_hdlc *dahdi_hdlc_alloc(void)
 	return kzalloc(sizeof(struct dahdi_hdlc), GFP_KERNEL);
 }
 
+static inline print_debug_writebuf(struct dahdi_chan* ss, struct sk_buff *skb,
+		int oldbuf)
+{
+#ifdef CONFIG_DAHDI_DEBUG
+	int x;
+
+	module_printk(KERN_NOTICE, "Buffered %d bytes to go out in buffer %d\n", ss->writen[oldbuf], oldbuf);
+	module_printk(KERN_DEBUG "");
+	for (x=0;x<ss->writen[oldbuf];x++)
+		printk("%02x ", ss->writebuf[oldbuf][x]);
+	printk("\n");
+#endif
+}
+
 #ifdef NEW_HDLC_INTERFACE
 static int dahdi_xmit(struct sk_buff *skb, struct net_device *dev)
 {
@@ -1674,12 +1688,7 @@ static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 		dev->trans_start = jiffies;
 		stats->tx_packets++;
 		stats->tx_bytes += ss->writen[oldbuf];
-#ifdef CONFIG_DAHDI_DEBUG
-		module_printk(KERN_NOTICE, "Buffered %d bytes to go out in buffer %d\n", ss->writen[oldbuf], oldbuf);
-		for (x=0;x<ss->writen[oldbuf];x++)
-		     module_printk(KERN_DEBUG,"%02x ", ss->writebuf[oldbuf][x]);
-		module_printk(KERN_DEBUG "\n");
-#endif
+		print_debug_writebuf(ss, skb, outbug);
 		retval = 0;
 		/* Free the SKB */
 		dev_kfree_skb_any(skb);
@@ -1775,12 +1784,7 @@ static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 			   some space for us */
 			ss->outwritebuf = oldbuf;
 		}
-#ifdef CONFIG_DAHDI_DEBUG
-		module_printk(KERN_NOTICE, "Buffered %d bytes (skblen = %d) to go out in buffer %d\n", ss->writen[oldbuf], skb->len, oldbuf);
-		for (x=0;x<ss->writen[oldbuf];x++)
-		     module_printk(KERN_DEBUG, "%02x ", ss->writebuf[oldbuf][x]);
-		module_printk(KERN_DEBUG, "\n");
-#endif
+		print_debug_writebuf(ss, skb, outbug);
 		retval = 1;
 	}
 	spin_unlock_irqrestore(&ss->lock, flags);
@@ -1906,8 +1910,11 @@ static ssize_t dahdi_chan_read(struct file *file, char *usrbuf, size_t count, in
 			myamnt = chan->readn[res];
 		module_printk(KERN_NOTICE, "dahdi_chan_read(unit: %d, inwritebuf: %d, outwritebuf: %d amnt: %d\n",
 			      unit, chan->inwritebuf, chan->outwritebuf, myamnt);
-		module_printk(KERN_DEBUG, "\t("); for (x = 0; x < myamnt; x++) module_printk((KERN_DEBUG, x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
-		module_printk(KERN_DEBUG, ")\n");
+
+		module_printk(KERN_DEBUG, "\t("); 
+		for (x = 0; x < myamnt; x++) 
+			printk((x ? " %02x" : "%02x"), (unsigned char)usrbuf[x]);
+		printk(")\n");
 	}
 #endif
 /* end addition */

@@ -682,10 +682,11 @@ show_buffer(struct voicebus *vb, void *vbb)
 	unsigned char *c;
 	c = vbb;
 	printk(KERN_DEBUG "Packet %d\n", count);
+	printk(KERN_DEBUG "");
 	for (x = 1; x <= vb->framesize; ++x) {
-		printk(KERN_DEBUG "%02x ", c[x]);
+		printk("%02x ", c[x]);
 		if (x % 16 == 0) {
-			printk(KERN_DEBUG "\n");
+			printk("\n");
 		}
 	}
 	printk(KERN_DEBUG "\n\n");
