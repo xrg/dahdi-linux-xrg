@@ -257,7 +257,7 @@ static void handle_fxo_leds(xpd_t *xpd)
 
 static void update_dahdi_ring(xpd_t *xpd, int pos, bool on)
 {
-	dahdi_rxsig_t	rxsig;
+	enum dahdi_rxsig	rxsig;
 
 	BUG_ON(!xpd);
 	if(on) {

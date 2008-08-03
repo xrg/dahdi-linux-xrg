@@ -540,7 +540,7 @@ void update_xpd_status(xpd_t *xpd, int alarm_flag)
 
 void update_line_status(xpd_t *xpd, int pos, bool to_offhook)
 {
-	dahdi_rxsig_t	rxsig;
+	enum dahdi_rxsig	rxsig;
 
 	BUG_ON(!xpd);
 	if(to_offhook) {

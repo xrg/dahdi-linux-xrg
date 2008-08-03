@@ -427,13 +427,13 @@ enum dahdi_txsig {
 	DAHDI_TXSIG_TOTAL,
 };
 
-typedef enum {
+enum dahdi_rxsig {
 	DAHDI_RXSIG_ONHOOK,
 	DAHDI_RXSIG_OFFHOOK,
 	DAHDI_RXSIG_START,
 	DAHDI_RXSIG_RING,
 	DAHDI_RXSIG_INITIAL
-} dahdi_rxsig_t;
+};
 	
 /* Span flags */
 #define DAHDI_FLAG_REGISTERED		(1 << 0)
@@ -720,7 +720,7 @@ char *dahdi_lboname(int lbo);
 void dahdi_rbsbits(struct dahdi_chan *chan, int bits);
 
 /*! \brief Tell DAHDI abou changes in received signalling */
-void dahdi_hooksig(struct dahdi_chan *chan, dahdi_rxsig_t rxsig);
+void dahdi_hooksig(struct dahdi_chan *chan, enum dahdi_rxsig rxsig);
 
 /*! \brief Queue an event on a channel */
 void dahdi_qevent_nolock(struct dahdi_chan *chan, int event);

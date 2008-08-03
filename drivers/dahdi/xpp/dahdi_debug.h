@@ -92,7 +92,7 @@
 
 void dump_poll(int debug, const char *msg, int poll);
 
-static inline char *rxsig2str(dahdi_rxsig_t sig)
+static inline char *rxsig2str(enum dahdi_rxsig sig)
 {
 	switch(sig) {
 		case DAHDI_RXSIG_ONHOOK:	return "ONHOOK";

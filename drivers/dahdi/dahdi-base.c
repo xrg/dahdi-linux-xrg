@@ -6131,7 +6131,7 @@ static inline void __rbs_otimer_expire(struct dahdi_chan *chan)
 	}
 }
 
-static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, dahdi_rxsig_t rxsig)
+static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, enum dahdi_rxsig rxsig)
 {
 
 	/* State machines for receive hookstate transitions 
@@ -6304,7 +6304,7 @@ static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, dahdi_rxsig_t rxsig)
 	}
 }
 
-void dahdi_hooksig(struct dahdi_chan *chan, dahdi_rxsig_t rxsig)
+void dahdi_hooksig(struct dahdi_chan *chan, enum dahdi_rxsig rxsig)
 {
 	  /* skip if no change */
 	unsigned long flags;
