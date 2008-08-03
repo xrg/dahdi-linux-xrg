@@ -666,24 +666,28 @@ static int dahdi_first_empty_alias(void)
 static void recalc_maxconfs(void)
 {
 	int x;
-	for (x=DAHDI_MAX_CONF-1;x>0;x--) {
+
+	for (x = DAHDI_MAX_CONF - 1; x > 0; x--) {
 		if (confrev[x]) {
-			maxconfs = x+1;
+			maxconfs = x + 1;
 			return;
 		}
 	}
+
 	maxconfs = 0;
 }
 
 static void recalc_maxlinks(void)
 {
 	int x;
-	for (x=DAHDI_MAX_CONF-1;x>0;x--) {
+
+	for (x = DAHDI_MAX_CONF - 1; x > 0; x--) {
 		if (conf_links[x].src || conf_links[x].dst) {
-			maxlinks = x+1;
+			maxlinks = x + 1;
 			return;
 		}
 	}
+
 	maxlinks = 0;
 }
 
@@ -691,19 +695,21 @@ static int dahdi_first_empty_conference(void)
 {
 	/* Find the first conference which has no alias */
 	int x;
-	for (x=DAHDI_MAX_CONF-1;x>0;x--) {
+
+	for (x = DAHDI_MAX_CONF - 1; x > 0; x--) {
 		if (!confalias[x])
 			return x;
 	}
+
 	return -1;
 }
 
 static int dahdi_get_conf_alias(int x)
 {
 	int a;
-	if (confalias[x]) {
+
+	if (confalias[x])
 		return confalias[x];
-	}
 
 	/* Allocate an alias */
 	a = dahdi_first_empty_alias();
@@ -712,6 +718,7 @@ static int dahdi_get_conf_alias(int x)
 
 	/* Highest conference may have changed */
 	recalc_maxconfs();
+
 	return a;
 }
 
@@ -720,19 +727,24 @@ static void dahdi_check_conf(int x)
 	int y;
 
 	/* return if no valid conf number */
-	if (x <= 0) return;
+	if (x <= 0) 
+		return;
+
 	/* Return if there is no alias */
 	if (!confalias[x])
 		return;
-	for (y=0;y<maxchans;y++) {
+
+	for (y = 0; y < maxchans; y++) {
 		if (chans[y] && (chans[y]->confna == x) &&
-			((chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONF ||
-			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANN ||
-			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFMON ||
-			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANNMON ||
-			(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_REALANDPSEUDO))
+				((chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONF ||
+				(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANN ||
+				(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFMON ||
+				(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_CONFANNMON ||
+				(chans[y]->confmode & DAHDI_CONF_MODE_MASK) == DAHDI_CONF_REALANDPSEUDO)) {
 			return;
+		}
 	}
+
 	/* If we get here, nobody is in the conference anymore.  Clear it out
 	   both forward and reverse */
 	confrev[confalias[x]] = 0;
@@ -745,21 +757,29 @@ static void dahdi_check_conf(int x)
 /* enqueue an event on a channel */
 static void __qevent(struct dahdi_chan *chan, int event)
 {
-
-	  /* if full, ignore */
+	/* if full, ignore */
 	if ((chan->eventoutidx == 0) && (chan->eventinidx == (DAHDI_MAX_EVENTSIZE - 1))) 
 		return;
-	  /* if full, ignore */
-	if (chan->eventinidx == (chan->eventoutidx - 1)) return;
-	  /* save the event */
+
+	/* if full, ignore */
+	if (chan->eventinidx == (chan->eventoutidx - 1)) 
+		return;
+
+	/* save the event */
 	chan->eventbuf[chan->eventinidx++] = event;
-	  /* wrap the index, if necessary */
-	if (chan->eventinidx >= DAHDI_MAX_EVENTSIZE) chan->eventinidx = 0;
-	  /* wake em all up */
-	if (chan->iomask & DAHDI_IOMUX_SIGEVENT) wake_up_interruptible(&chan->eventbufq);
+
+	/* wrap the index, if necessary */
+	if (chan->eventinidx >= DAHDI_MAX_EVENTSIZE) 	
+		chan->eventinidx = 0;
+
+	/* wake em all up */
+	if (chan->iomask & DAHDI_IOMUX_SIGEVENT) 
+		wake_up_interruptible(&chan->eventbufq);
+
 	wake_up_interruptible(&chan->readbufq);
 	wake_up_interruptible(&chan->writebufq);
 	wake_up_interruptible(&chan->sel);
+
 	return;
 }
 
@@ -780,32 +800,40 @@ void dahdi_qevent_lock(struct dahdi_chan *chan, int event)
 static int schluffen(wait_queue_head_t *q)
 {
 	DECLARE_WAITQUEUE(wait, current);
+
 	add_wait_queue(q, &wait);
 	current->state = TASK_INTERRUPTIBLE;
-	if (!signal_pending(current)) schedule();
+
+	if (!signal_pending(current)) 
+		schedule();
+
 	current->state = TASK_RUNNING;
 	remove_wait_queue(q, &wait);
-	if (signal_pending(current)) {
+
+	if (signal_pending(current))
 		return -ERESTARTSYS;
-	}
-	return(0);
+
+	return 0;
 }
 
 static inline void calc_fcs(struct dahdi_chan *ss, int inwritebuf)
 {
 	int x;
-	unsigned int fcs=PPP_INITFCS;
+	unsigned int fcs = PPP_INITFCS;
 	unsigned char *data = ss->writebuf[inwritebuf];
 	int len = ss->writen[inwritebuf];
+
 	/* Not enough space to do FCS calculation */
 	if (len < 2)
 		return;
-	for (x=0;x<len-2;x++)
+
+	for (x = 0; x < len - 2; x++)
 		fcs = PPP_FCS(fcs, data[x]);
+
 	fcs ^= 0xffff;
 	/* Send out the FCS */
-	data[len-2] = (fcs & 0xff);
-	data[len-1] = (fcs >> 8) & 0xff;
+	data[len - 2] = (fcs & 0xff);
+	data[len - 1] = (fcs >> 8) & 0xff;
 }
 
 static int dahdi_reallocbufs(struct dahdi_chan *ss, int j, int numbufs)
@@ -993,14 +1021,18 @@ static int __buf_push(struct confq *q, u_char *data, char *label)
 static void reset_conf(struct dahdi_chan *chan)
 {
 	int x;
+
 	/* Empty out buffers and reset to initialization */
-	for (x=0;x<DAHDI_CB_SIZE;x++)
+
+	for (x = 0; x < DAHDI_CB_SIZE; x++)
 		chan->confin.buf[x] = chan->confin.buffer + DAHDI_CHUNKSIZE * x;
+
 	chan->confin.inbuf = 0;
 	chan->confin.outbuf = -1;
 
-	for (x=0;x<DAHDI_CB_SIZE;x++)
+	for (x = 0; x < DAHDI_CB_SIZE; x++)
 		chan->confout.buf[x] = chan->confout.buffer + DAHDI_CHUNKSIZE * x;
+
 	chan->confout.inbuf = 0;
 	chan->confout.outbuf = -1;
 }
@@ -1008,17 +1040,20 @@ static void reset_conf(struct dahdi_chan *chan)
 
 static inline int hw_echocancel_off(struct dahdi_chan *chan)
 {
-	struct dahdi_echocanparams ecp;
-	
-	int ret = -ENODEV;
-	if (chan->span) {
-		if (chan->span->echocan) {
-			ret = chan->span->echocan(chan, 0);
-		} else if (chan->span->echocan_with_params) {
-			memset(&ecp, 0, sizeof(ecp));  /* Sets tap length to 0 */
-			ret = chan->span->echocan_with_params(chan, &ecp, NULL);
-		}
+	int ret;
+
+	if (!chan->span)
+		return -ENODEV;
+
+	if (chan->span->echocan) {
+		ret = chan->span->echocan(chan, 0);
+	} else if (chan->span->echocan_with_params) {
+		struct dahdi_echocanparams ecp = {
+			.tap_length = 0,
+		};
+		ret = chan->span->echocan_with_params(chan, &ecp, NULL);
 	}
+
 	return ret;
 }
 
