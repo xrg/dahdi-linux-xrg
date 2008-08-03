@@ -677,7 +677,7 @@ int (*rbsbits)(struct dahdi_chan *chan, int bits);
    generate ring, etc directly) then you can just specify a
    sethook function, and we'll call you with appropriate hook states
    to set.  Still set the DAHDI_FLAG_RBS in this case as well */
-int (*hooksig)(struct dahdi_chan *chan, dahdi_txsig_t hookstate);
+int (*hooksig)(struct dahdi_chan *chan, enum dahdi_txsig hookstate);
 
 /* Option 3: If you can't use sig bits, you can write a function
    which handles the individual hook states  */
