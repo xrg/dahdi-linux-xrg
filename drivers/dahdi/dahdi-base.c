@@ -604,39 +604,42 @@ static int dahdi_proc_read(char *page, char **start, off_t off, int count, int *
 		len += sprintf(page + len, "\tTiming slips: %d\n", spans[span]->timingslips);
 	len += sprintf(page + len, "\n");
 
-	for (x = 1; x < DAHDI_MAX_CHANNELS; x++) {
-		if (!chans[x])
-			continue;
+	for (x = 0; x < spans[span]->channels; x++) {
+		struct dahdi_chan *chan = spans[span]->chans[x];
 
-		if (chans[x]->span && (chans[x]->span->spanno == span)) {
-			if (chans[x]->name)
-				len += sprintf(page + len, "\t%4d %s ", x, chans[x]->name);
-			if (chans[x]->sig) {
-				if (chans[x]->sig == DAHDI_SIG_SLAVE)
-					len += sprintf(page + len, "%s ", sigstr(chans[x]->master->sig));
-				else {
-					len += sprintf(page + len, "%s ", sigstr(chans[x]->sig));
-					if (chans[x]->nextslave && chans[x]->master->channo == x)
-						len += sprintf(page + len, "Master ");
-				}
+		if (chan->name)
+			len += sprintf(page + len, "\t%4d %s ", x, chan->name);
+
+		if (chan->sig) {
+			if (chan->sig == DAHDI_SIG_SLAVE)
+				len += sprintf(page + len, "%s ", sigstr(chan->master->sig));
+			else {
+				len += sprintf(page + len, "%s ", sigstr(chan->sig));
+				if (chan->nextslave && chan->master->channo == x)
+					len += sprintf(page + len, "Master ");
 			}
-			if (test_bit(DAHDI_FLAGBIT_OPEN, &chans[x]->flags))
-				len += sprintf(page + len, "(In use) ");
-#ifdef	OPTIMIZE_CHANMUTE
-			if (chans[x]->chanmute)
-				len += sprintf(page + len, "(no pcm) ");
-#endif
-			len += fill_alarm_string(page + len, count - len, chans[x]->chan_alarms);
-
-			if (chans[x]->ec_factory)
-				len += sprintf(page + len, " (EC: %s) ", chans[x]->ec_factory->name);
-
-			len += sprintf(page + len, "\n");
 		}
+
+		if (test_bit(DAHDI_FLAGBIT_OPEN, &chan->flags))
+			len += sprintf(page + len, "(In use) ");
+
+#ifdef	OPTIMIZE_CHANMUTE
+		if (chan->chanmute)
+			len += sprintf(page + len, "(no pcm) ");
+#endif
+
+		len += fill_alarm_string(page + len, count - len, chan->chan_alarms);
+
+		if (chan->ec_factory)
+			len += sprintf(page + len, " (EC: %s) ", chan->ec_factory->name);
+
+		len += sprintf(page + len, "\n");
+
 		if (len <= off) { /* If everything printed so far is before beginning of request */
 			off -= len;
 			len = 0;
 		}
+
 		if (len > off + count) /* stop if we've already generated enough */
 			break;
 	}
