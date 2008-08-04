@@ -31,6 +31,15 @@ static bool __xframe_enqueue(struct xframe_queue *q, xframe_t *xframe)
 
 	if(q->count >= q->max_count) {
 		q->overflows++;
+		NOTICE("Overflow of %-15s: counts %3d, %3d, %3d worst %3d, overflows %3d worst_lag %02ld.%ld ms\n",
+				q->name,
+				q->steady_state_count,
+				q->count,
+				q->max_count,
+				q->worst_count,
+				q->overflows,
+				q->worst_lag_usec / 1000,
+				q->worst_lag_usec % 1000);
 		ret = 0;
 		goto out;
 	}

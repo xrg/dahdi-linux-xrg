@@ -132,6 +132,8 @@ struct FXS_priv_data {
 	xpp_line_t		update_offhook_state;
 	xpp_line_t		want_dtmf_events;	/* what dahdi want */
 	xpp_line_t		want_dtmf_mute;		/* what dahdi want */
+	xpp_line_t		prev_key_down;		/* DTMF down sets the bit */
+	struct timeval		prev_key_time[CHANNELS_PERXPD];
 	int			led_counter[NUM_LEDS][CHANNELS_PERXPD];
 	int			ohttimer[CHANNELS_PERXPD];
 #define OHT_TIMER		6000	/* How long after RING to retain OHT */
@@ -1033,7 +1035,7 @@ static void detect_vmwi(xpd_t *xpd)
 
 				LINE_NOTICE(xpd, i, "MSG WAITING Unexpected:");
 				for(j = 0; j < DAHDI_CHUNKSIZE; j++) {
-					printk( " %02X", writechunk[j]);
+					printk(" %02X", writechunk[j]);
 				}
 				printk("\n");
 			}
@@ -1115,6 +1117,11 @@ static void process_hookstate(xpd_t *xpd, xpp_line_t offhook, xpp_line_t change_
 			metering_gen(xpd, i, 0);	/* Stop metering... */
 #endif
 			MARK_BLINK(priv, i, LED_GREEN, 0);
+			/*
+			 * Reset our previous DTMF memories...
+			 */
+			BIT_CLR(priv->prev_key_down, i);
+			priv->prev_key_time[i].tv_sec = priv->prev_key_time[i].tv_usec = 0L;
 			if(IS_SET(offhook, i)) {
 				LINE_DBG(SIGNAL, xpd, i, "OFFHOOK\n");
 				MARK_ON(priv, i, LED_GREEN);
@@ -1124,6 +1131,11 @@ static void process_hookstate(xpd_t *xpd, xpp_line_t offhook, xpp_line_t change_
 				MARK_OFF(priv, i, LED_GREEN);
 				update_line_status(xpd, i, 0);
 			}
+			/*
+			 * Must switch to low power. In high power, an ONHOOK
+			 * won't be detected.
+			 */
+			do_chan_power(xbus, xpd, i, 0);
 		}
 	}
 	__pcm_recompute(xpd, 0);	/* in a spinlock */
@@ -1187,12 +1199,15 @@ static const char dtmf_digits[] = {
 /*
  * This function is called with spinlocked XPD
  */
-static void process_dtmf(xpd_t *xpd, xpp_line_t lines, byte val)
+static void process_dtmf(xpd_t *xpd, uint portnum, byte val)
 {
-	int			i;
 	byte			digit;
-	bool			is_down = val & 0x10;
+	bool			key_down = val & 0x10;
+	bool			want_mute;
+	bool			want_event;
 	struct FXS_priv_data	*priv;
+	struct timeval		now;
+	int			msec = 0;
 
 	if(!dtmf_detection)
 		return;
@@ -1201,42 +1216,46 @@ static void process_dtmf(xpd_t *xpd, xpp_line_t lines, byte val)
 	priv = xpd->priv;
 	val &= 0xF;
 	if(val <= 0) {
-		if(is_down)
+		if(key_down)
 			XPD_NOTICE(xpd, "Bad DTMF value %d. Ignored\n", val);
 		return;
 	}
 	val--;
 	digit = dtmf_digits[val];
-	for_each_line(xpd, i) {
-		if(IS_SET(lines, i)) {
-			int		event = (is_down) ? DAHDI_EVENT_DTMFDOWN : DAHDI_EVENT_DTMFUP;
-			bool		want_mute = IS_SET(priv->want_dtmf_mute, i);
-			bool		want_event = IS_SET(priv->want_dtmf_events, i);
+	want_mute = IS_SET(priv->want_dtmf_mute, portnum);
+	want_event = IS_SET(priv->want_dtmf_events, portnum);
+	if(!IS_SET(priv->prev_key_down, portnum) && !key_down) {
+		LINE_NOTICE(xpd, portnum, "DTMF: duplicate UP (%c)\n", digit);
+	}
+	if(key_down)
+		BIT_SET(priv->prev_key_down, portnum);
+	else
+		BIT_CLR(priv->prev_key_down, portnum);
+	do_gettimeofday(&now);
+	if(priv->prev_key_time[portnum].tv_sec != 0)
+		msec = usec_diff(&now, &priv->prev_key_time[portnum]) / 1000;
+	priv->prev_key_time[portnum] = now;
+	LINE_DBG(SIGNAL, xpd, portnum,
+			"[%lu.%06lu] DTMF digit %-4s '%c' (val=%d, want_mute=%s want_event=%s, delta=%d msec)\n",
+			now.tv_sec, now.tv_usec,
+			(key_down)?"DOWN":"UP", digit, val,
+			(want_mute) ? "yes" : "no",
+			(want_event) ? "yes" : "no",
+			msec);
+	/*
+	 * FIXME: we currently don't use the want_dtmf_mute until
+	 * we are sure about the logic in Asterisk native bridging.
+	 * Meanwhile, simply mute it on button press.
+	 */
+	if(key_down && want_mute)
+		__do_mute_dtmf(xpd, portnum, 1);
+	else
+		__do_mute_dtmf(xpd, portnum, 0);
+	__pcm_recompute(xpd, 0);	/* XPD is locked */
+	if(want_event)  {
+		int	event = (key_down) ? DAHDI_EVENT_DTMFDOWN : DAHDI_EVENT_DTMFUP;
 
-			if(want_event) {
-				LINE_DBG(SIGNAL, xpd, i,
-					"DTMF digit %s (val=%d) '%c' (want_mute=%s)\n",
-					(is_down)?"DOWN":"UP", val, digit,
-					(want_mute) ? "yes" : "no");
-			} else {
-				LINE_DBG(SIGNAL, xpd, i,
-					"Ignored DTMF digit %s '%c'\n",
-					(is_down)?"DOWN":"UP", digit);
-			}
-			/*
-			 * FIXME: we currently don't use the want_dtmf_mute until
-			 * we are sure about the logic in Asterisk native bridging.
-			 * Meanwhile, simply mute it on button press.
-			 */
-			if(is_down && want_mute)
-				__do_mute_dtmf(xpd, i, 1);
-			else
-				__do_mute_dtmf(xpd, i, 0);
-			__pcm_recompute(xpd, 0);	/* XPD is locked */
-			if(want_event) 
-				dahdi_qevent_lock(xpd->chans[i], event | digit);
-			break;
-		}
+		dahdi_qevent_lock(xpd->chans[portnum], event | digit);
 	}
 }
 
@@ -1257,9 +1276,8 @@ static int FXS_card_register_reply(xbus_t *xbus, xpd_t *xpd, reg_cmd_t *info)
 			regnum, REG_FIELD(info, data_low), REG_FIELD(info, data_high));
 	if(!indirect && regnum == REG_DTMF_DECODE) {
 		byte		val = REG_FIELD(info, data_low);
-		xpp_line_t	lines = BIT(info->portnum);
 
-		process_dtmf(xpd, lines, val);
+		process_dtmf(xpd, info->portnum, val);
 	}
 #ifdef	POLL_DIGITAL_INPUTS
 	/*

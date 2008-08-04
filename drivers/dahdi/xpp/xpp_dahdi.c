@@ -740,7 +740,11 @@ int xpp_close(struct dahdi_chan *chan)
 
 void report_bad_ioctl(const char *msg, xpd_t *xpd, int pos, unsigned int cmd)
 {
-	XPD_NOTICE(xpd, "%s: Bad ioctl\n", msg);
+	char	*extra_msg = "";
+
+	if(_IOC_TYPE(cmd) == 'J')
+		extra_msg = " (for old ZAPTEL)";
+	XPD_NOTICE(xpd, "%s: Bad ioctl%s\n", msg, extra_msg);
 	XPD_NOTICE(xpd, "ENOTTY: chan=%d cmd=0x%x\n", pos, cmd);
 	XPD_NOTICE(xpd, "        IOC_TYPE=0x%02X\n", _IOC_TYPE(cmd));
 	XPD_NOTICE(xpd, "        IOC_DIR=0x%02X\n", _IOC_DIR(cmd));
