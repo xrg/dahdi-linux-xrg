@@ -5284,23 +5284,26 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 {
 	int x;
 
-#ifdef CONFIG_PROC_FS
-	char tempfile[17];
-#endif
 	if (!span)
 		return -EINVAL;
+
 	if (span->flags & DAHDI_FLAG_REGISTERED) {
 		module_printk(KERN_ERR, "Span %s already appears to be registered\n", span->name);
 		return -EBUSY;
 	}
-	for (x=1;x<maxspans;x++)
+
+	for (x = 1; x < maxspans; x++) {
 		if (spans[x] == span) {
 			module_printk(KERN_ERR, "Span %s already in list\n", span->name);
 			return -EBUSY;
 		}
-	for (x=1;x<DAHDI_MAX_SPANS;x++)
+	}
+
+	for (x = 1; x < DAHDI_MAX_SPANS; x++) {
 		if (!spans[x])
 			break;
+	}
+
 	if (x < DAHDI_MAX_SPANS) {
 		spans[x] = span;
 		if (maxspans < x + 1)
@@ -5309,44 +5312,62 @@ int dahdi_register(struct dahdi_span *span, int prefmaster)
 		module_printk(KERN_ERR, "Too many DAHDI spans registered\n");
 		return -EBUSY;
 	}
+
 	span->flags |= DAHDI_FLAG_REGISTERED;
 	span->spanno = x;
+
 	spin_lock_init(&span->lock);
+
 	if (!span->deflaw) {
-		module_printk(KERN_NOTICE, "Span %s didn't specify default law.  Assuming mulaw, please fix driver!\n", span->name);
+		module_printk(KERN_NOTICE, "Span %s didn't specify default law.  "
+				"Assuming mulaw, please fix driver!\n", span->name);
 		span->deflaw = DAHDI_LAW_MULAW;
 	}
 
 	if (span->echocan && span->echocan_with_params) {
-		module_printk(KERN_NOTICE, "Span %s implements both echocan and echocan_with_params functions, preserving only echocan_with_params, please fix driver!\n", span->name);
+		module_printk(KERN_NOTICE, "Span %s implements both echocan "
+				"and echocan_with_params functions, preserving only "
+				"echocan_with_params, please fix driver!\n", span->name);
 		span->echocan = NULL;
 	}
 
-	for (x=0;x<span->channels;x++) {
+	for (x = 0; x < span->channels; x++) {
 		span->chans[x]->span = span;
 		dahdi_chan_reg(span->chans[x]);
 	}
 
 #ifdef CONFIG_PROC_FS
-			sprintf(tempfile, "dahdi/%d", span->spanno);
-			proc_entries[span->spanno] = create_proc_read_entry(tempfile, 0444, NULL , dahdi_proc_read, (int *)(long)span->spanno);
+	{
+		char tempfile[17];
+		snprintf(tempfile, sizeof(tempfile), "dahdi/%d", span->spanno);
+		proc_entries[span->spanno] = create_proc_read_entry(tempfile, 0444,
+				NULL, dahdi_proc_read, (int *) (long) span->spanno);
+	}
 #endif
 
 	for (x = 0; x < span->channels; x++) {
-		char chan_name[50];
 		if (span->chans[x]->channo < 250) {
-			sprintf(chan_name, "dahdi%d", span->chans[x]->channo);
-			CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, span->chans[x]->channo), NULL, chan_name);
+			char chan_name[32];
+			snprintf(chan_name, sizeof(chan_name), "dahdi%d", 
+					span->chans[x]->channo);
+			CLASS_DEV_CREATE(dahdi_class, MKDEV(DAHDI_MAJOR, 
+					span->chans[x]->channo), NULL, chan_name);
 		}
 	}
 
-	if (debug)
-		module_printk(KERN_NOTICE, "Registered Span %d ('%s') with %d channels\n", span->spanno, span->name, span->channels);
+	if (debug) {
+		module_printk(KERN_NOTICE, "Registered Span %d ('%s') with "
+				"%d channels\n", span->spanno, span->name, span->channels);
+	}
+
 	if (!master || prefmaster) {
 		master = span;
-		if (debug)
-			module_printk(KERN_NOTICE, "Span ('%s') is new master\n", span->name);
+		if (debug) {
+			module_printk(KERN_NOTICE, "Span ('%s') is new master\n", 
+					span->name);
+		}
 	}
+
 	return 0;
 }
 
@@ -7774,7 +7795,8 @@ int dahdi_unregister_chardev(struct dahdi_chardev *dev)
 	return 0;
 }
 
-static int __init dahdi_init(void) {
+static int __init dahdi_init(void)
+{
 	int res = 0;
 
 #ifdef CONFIG_PROC_FS
@@ -7803,7 +7825,8 @@ static int __init dahdi_init(void) {
 	return res;
 }
 
-static void __exit dahdi_cleanup(void) {
+static void __exit dahdi_cleanup(void)
+{
 	int x;
 
 	CLASS_DEV_DESTROY(dahdi_class, MKDEV(DAHDI_MAJOR, 253)); /* timer */
