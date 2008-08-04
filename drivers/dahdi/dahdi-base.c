@@ -608,14 +608,14 @@ static int dahdi_proc_read(char *page, char **start, off_t off, int count, int *
 		struct dahdi_chan *chan = spans[span]->chans[x];
 
 		if (chan->name)
-			len += sprintf(page + len, "\t%4d %s ", x, chan->name);
+			len += sprintf(page + len, "\t%4d %s ", chan->channo, chan->name);
 
 		if (chan->sig) {
 			if (chan->sig == DAHDI_SIG_SLAVE)
 				len += sprintf(page + len, "%s ", sigstr(chan->master->sig));
 			else {
 				len += sprintf(page + len, "%s ", sigstr(chan->sig));
-				if (chan->nextslave && chan->master->channo == x)
+				if (chan->nextslave && chan->master->channo == chan->channo)
 					len += sprintf(page + len, "Master ");
 			}
 		}
