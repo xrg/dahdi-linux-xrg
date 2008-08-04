@@ -1435,41 +1435,44 @@ static void dahdi_set_law(struct dahdi_chan *chan, int law)
 static int dahdi_chan_reg(struct dahdi_chan *chan)
 {
 	int x;
-	int res=0;
+	int res = 0;
 	unsigned long flags;
 
 	write_lock_irqsave(&chan_lock, flags);
-	for (x=1;x<DAHDI_MAX_CHANNELS;x++) {
-		if (!chans[x]) {
-			spin_lock_init(&chan->lock);
-			chans[x] = chan;
-			if (maxchans < x + 1)
-				maxchans = x + 1;
-			chan->channo = x;
-			if (!chan->master)
-				chan->master = chan;
-			if (!chan->readchunk)
-				chan->readchunk = chan->sreadchunk;
-			if (!chan->writechunk)
-				chan->writechunk = chan->swritechunk;
-			dahdi_set_law(chan, 0);
-			close_channel(chan);
-			/* set this AFTER running close_channel() so that
-				HDLC channels wont cause hangage */
-			chan->flags |= DAHDI_FLAG_REGISTERED;
-			res = 0;
-			break;
-		}
+	for (x = 1; x < DAHDI_MAX_CHANNELS; x++) {
+		if (chans[x])
+			continue;
+
+		spin_lock_init(&chan->lock);
+		chans[x] = chan;
+		if (maxchans < x + 1)
+			maxchans = x + 1;
+		chan->channo = x;
+		if (!chan->master)
+			chan->master = chan;
+		if (!chan->readchunk)
+			chan->readchunk = chan->sreadchunk;
+		if (!chan->writechunk)
+			chan->writechunk = chan->swritechunk;
+		dahdi_set_law(chan, 0);
+		close_channel(chan);
+		/* set this AFTER running close_channel() so that
+		   HDLC channels wont cause hangage */
+		chan->flags |= DAHDI_FLAG_REGISTERED;
+		res = 0;
+		break;
 	}
 	write_unlock_irqrestore(&chan_lock, flags);
-	if (x >= DAHDI_MAX_CHANNELS)
+
+	if (x == DAHDI_MAX_CHANNELS)
 		module_printk(KERN_ERR, "No more channels available\n");
+
 	return res;
 }
 
 char *dahdi_lboname(int x)
 {
-	if ((x < 0) || ( x > 7))
+	if ((x < 0) || (x > 7))
 		return "Unknown";
 	return dahdi_txlevelnames[x];
 }
