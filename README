@@ -535,13 +535,15 @@ that is included in the ppp/ subdirectory. To install it:
 
 License
 -------
-libpri is distributed under the terms of the GNU General Public License, 
-which permit its use and linking with other GPL'd software only.  
-The GNU GPL is included in the file LICENSE in this directory.
+This package is distributed under the terms of the GNU General Public License
+Version 2, except for some components which are distributed under the terms of
+the GNU Lesser General Public License Version 2.1. Both licenses are included
+in this directory, and each file is clearly marked as to which license applies.
 
-If you wish to use the DAHDI drivers in an application for which the GPL is
-not appropriate (e.g. a proprietary embedded system), licenses under more
-flexible terms can be readily obtained through Digium, Inc.at reasonable cost.
+If you wish to use the DAHDI drivers in an application for which the license
+terms are not appropriate (e.g. a proprietary embedded system), licenses under
+more flexible terms can be readily obtained through Digium, Inc. at reasonable
+cost.
 
 
 Reporting Bugs
