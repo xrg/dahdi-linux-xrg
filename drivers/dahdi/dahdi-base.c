@@ -1268,6 +1268,56 @@ static int dahdi_register_tone_zone(int num, struct dahdi_zone *zone)
 	return res;
 }
 
+static int start_tone_digit(struct dahdi_chan *chan, int tone)
+{
+	struct dahdi_tone *playtone = NULL;
+	int base, max;
+
+	if (!chan->curzone)
+		return -ENODATA;
+
+	switch (chan->digitmode) {
+	case DIGIT_MODE_DTMF:
+		/* Set dialing so that a dial operation doesn't interrupt this tone */
+		chan->dialing = 1;
+		base = DAHDI_TONE_DTMF_BASE;
+		max = DAHDI_TONE_DTMF_MAX;
+		break;
+	case DIGIT_MODE_MFR2_FWD:
+		base = DAHDI_TONE_MFR2_FWD_BASE;
+		max = DAHDI_TONE_MFR2_FWD_MAX;
+		break;
+	case DIGIT_MODE_MFR2_REV:
+		base = DAHDI_TONE_MFR2_REV_BASE;
+		max = DAHDI_TONE_MFR2_REV_MAX;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if ((tone < base) || (tone > max))
+		return -EINVAL;
+
+	switch (chan->digitmode) {
+	case DIGIT_MODE_DTMF:
+		playtone = &chan->curzone->dtmf_continuous[tone - base];
+		break;
+	case DIGIT_MODE_MFR2_FWD:
+		playtone = &chan->curzone->mfr2_fwd_continuous[tone - base];
+		break;
+	case DIGIT_MODE_MFR2_REV:
+		playtone = &chan->curzone->mfr2_rev_continuous[tone - base];
+		break;
+	}
+
+	if (!playtone || !playtone->tonesamples)
+		return -ENOSYS;
+
+	chan->curtone = playtone;
+
+	return 0;
+}
+
 static int start_tone(struct dahdi_chan *chan, int tone)
 {
 	int res = -EINVAL;
@@ -1299,67 +1349,10 @@ static int start_tone(struct dahdi_chan *chan, int tone)
 		} else { /* Indicate that zone is loaded but no such tone exists */
 			res = -ENOSYS;
 		}
-	} else if (chan->digitmode == DIGIT_MODE_DTMF) {
-		if ((tone >= DAHDI_TONE_DTMF_BASE) && (tone <= DAHDI_TONE_DTMF_MAX)) {
-			chan->dialing = 1;
-			res = 0;
-			tone -= DAHDI_TONE_DTMF_BASE;
-			if (chan->curzone) {
-				/* Have a tone zone */
-				if (chan->curzone->dtmf_continuous[tone].tonesamples) {
-					chan->curtone = &chan->curzone->dtmf_continuous[tone];
-					res = 0;
-				} else {
-					/* Indicate that zone is loaded but no such tone exists */
-					res = -ENOSYS;
-				}
-			} else {
-				/* Note that no tone zone exists at the moment */
-				res = -ENODATA;
-			}
-		} else {
-			res = -EINVAL;
-		}
-	} else if (chan->digitmode == DIGIT_MODE_MFR2_FWD) {
-		if ((tone >= DAHDI_TONE_MFR2_FWD_BASE) && (tone <= DAHDI_TONE_MFR2_FWD_MAX)) {
-			res = 0;
-			tone -= DAHDI_TONE_MFR2_FWD_BASE;
-			if (chan->curzone) {
-				/* Have a tone zone */
-				if (chan->curzone->mfr2_fwd_continuous[tone].tonesamples) {
-					chan->curtone = &chan->curzone->mfr2_fwd_continuous[tone];
-					res = 0;
-				} else {
-					/* Indicate that zone is loaded but no such tone exists */
-					res = -ENOSYS;
-				}
-			} else {
-				/* Note that no tone zone exists at the moment */
-				res = -ENODATA;
-			}
-		} else {
-			res = -EINVAL;
-		}
-	} else if (chan->digitmode == DIGIT_MODE_MFR2_REV) {
-		if ((tone >= DAHDI_TONE_MFR2_REV_BASE) && (tone <= DAHDI_TONE_MFR2_REV_MAX)) {
-			res = 0;
-			tone -= DAHDI_TONE_MFR2_REV_BASE;
-			if (chan->curzone) {
-				/* Have a tone zone */
-				if (chan->curzone->mfr2_rev_continuous[tone].tonesamples) {
-					chan->curtone = &chan->curzone->mfr2_rev_continuous[tone];
-					res = 0;
-				} else {
-					/* Indicate that zone is loaded but no such tone exists */
-					res = -ENOSYS;
-				}
-			} else {
-				/* Note that no tone zone exists at the moment */
-				res = -ENODATA;
-			}
-		} else {
-			res = -EINVAL;
-		}
+	} else if (chan->digitmode == DIGIT_MODE_DTMF ||
+			chan->digitmode == DIGIT_MODE_MFR2_FWD ||
+			chan->digitmode == DIGIT_MODE_MFR2_REV) {
+		res = start_tone_digit(chan, tone);
 	} else {
 		chan->dialing = 0;
 		res = -EINVAL;
@@ -1375,7 +1368,6 @@ static int set_tone_zone(struct dahdi_chan *chan, int zone)
 {
 	int res = 0;
 	struct dahdi_zone *z;
-	unsigned long flags;
 
 	/* Do not call with the channel locked. */
 
@@ -1388,7 +1380,10 @@ static int set_tone_zone(struct dahdi_chan *chan, int zone)
 	read_lock(&zone_lock);
 
 	if ((z = tone_zones[zone])) {
+		unsigned long flags;
+
 		spin_lock_irqsave(&chan->lock, flags);
+
 		if (chan->curzone)
 			atomic_dec(&chan->curzone->refcount);
 
@@ -1396,6 +1391,7 @@ static int set_tone_zone(struct dahdi_chan *chan, int zone)
 		chan->curzone = z;
 		chan->tonezone = zone;
 		memcpy(chan->ringcadence, z->ringcadence, sizeof(chan->ringcadence));
+
 		spin_unlock_irqrestore(&chan->lock, flags);
 	} else {
 		res = -ENODATA;
