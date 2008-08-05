@@ -60,13 +60,13 @@ Notes about the dahdi-linux package:
 Notes about the dahdi-tools package:
 
 * Many tool names have changed:
-      ztcfg	      ->	dahdi_cfg
-      ztmonitor	      ->	dahdi_monitor
-      ztscan	      ->	dahdi_scan
-      ztspeed	      ->	dahdi_speed
-      zttest	      ->	dahdi_test
-      zttool	      ->	dahdi_tool
-      zapconf         ->        dahdi_genconf (deprecate genzaptelconf)
+      ztcfg      ->  dahdi_cfg
+      ztmonitor  ->  dahdi_monitor
+      ztscan     ->  dahdi_scan
+      ztspeed    ->  dahdi_speed
+      zttest     ->  dahdi_test
+      zttool     ->  dahdi_tool
+      zapconf    ->  dahdi_genconf (deprecate genzaptelconf)
 
 * The system configuration file has moved from /etc/zaptel.conf to
   /etc/dahdi/system.conf.
