@@ -853,9 +853,10 @@ static int dahdi_reallocbufs(struct dahdi_chan *ss, int j, int numbufs)
 		numbufs = DAHDI_MAX_NUM_BUFS;
 
 	/* We need to allocate our buffers now */
-	if (j && !(newbuf = kcalloc(j * 2, numbufs, GFP_KERNEL)))
-		return -ENOMEM;
-	else
+	if (j) {
+		if(!(newbuf = kcalloc(j * 2, numbufs, GFP_KERNEL)))
+			return -ENOMEM;
+	} else
 		newbuf = NULL;
 
 	/* Now that we've allocated our new buffer, we can safely
