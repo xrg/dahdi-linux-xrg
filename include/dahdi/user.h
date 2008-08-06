@@ -482,7 +482,7 @@ struct dahdi_transcode_header {
 /*
  * Wait for Write to Finish
  */
-#define DAHDI_SYNC			_IOW(DAHDI_CODE, 4, int)
+#define DAHDI_SYNC			_IO(DAHDI_CODE, 4)
 
 /*
  * Get/set channel parameters
@@ -893,12 +893,12 @@ struct dahdi_sfconfig {
 /*
  * Queue Ping
  */
-#define DAHDI_TIMERPING 		_IOW(DAHDI_CODE, 52, int)
+#define DAHDI_TIMERPING 		_IO(DAHDI_CODE, 52)
 
 /*
  * Acknowledge ping
  */
-#define DAHDI_TIMERPONG 		_IOW(DAHDI_CODE, 53, int)
+#define DAHDI_TIMERPONG 		_IO(DAHDI_CODE, 53)
 
 /*
  * Get/set signalling freeze
