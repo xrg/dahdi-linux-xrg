@@ -7,11 +7,6 @@
  * 
  * Copyright (C) 2002, Digium, Inc.
  *
- * This program is free software and may be used and
- * distributed according to the terms of the GNU
- * General Public License, incorporated herein by
- * reference.
- *
  * Additional background on the techniques used in this code can be found in:
  *
  *  Messerschmitt, David; Hedberg, David; Cole, Christopher; Haoui, Amine; 
@@ -21,6 +16,19 @@
  *
  * A pdf of which is available by searching on the document title at http://www.ti.com/
  *
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #include <linux/kernel.h>
