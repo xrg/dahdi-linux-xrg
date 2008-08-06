@@ -3,9 +3,7 @@ DAHDI Telephony Interface Driver
 Asterisk Development Team <asteriskteam@digium.com>
 $Revision$, $Date$
 
-DAHDI stands for Digium Asterisk Hardware Device Interface. This
-package contains the userspace tools to configure the kernel modules
-included in the package dahdi-linux.
+DAHDI stands for Digium Asterisk Hardware Device Interface.
 
 Supported Hardware
 ------------------
