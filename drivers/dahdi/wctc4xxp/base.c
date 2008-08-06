@@ -1732,7 +1732,7 @@ wctc4xxp_write(struct file *file, const char __user *frame, size_t count, loff_t
 	if (unlikely(count > SFRAME_SIZE - sizeof(struct rtp_packet))) {
 		DTE_DEBUG(DTE_DEBUG_GENERAL, 
 		   "Cannot transcode packet of %Zu bytes. This exceeds the " \
-		   "maximum size of %d bytes.\n", count, 
+		   "maximum size of %Zu bytes.\n", count, 
 		   SFRAME_SIZE - sizeof(struct rtp_packet));
 		return -EINVAL;
 	}
