@@ -2620,30 +2620,29 @@ static void dahdi_free_pseudo(struct dahdi_chan *pseudo)
 static int dahdi_open(struct inode *inode, struct file *file)
 {
 	int unit = UNIT(file);
-	int ret = -ENXIO;
 	struct dahdi_chan *chan;
 	/* Minor 0: Special "control" descriptor */
 	if (!unit)
 		return dahdi_ctl_open(inode, file);
 	if (unit == 250) {
-		if (!dahdi_transcode_fops)
-			request_module("dahdi_transcode");
-		if (dahdi_transcode_fops && dahdi_transcode_fops->open) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-			if (dahdi_transcode_fops->owner) {
-				__MOD_INC_USE_COUNT (dahdi_transcode_fops->owner);
-#else
-			if (try_module_get(dahdi_transcode_fops->owner)) {
-#endif
-				ret = dahdi_transcode_fops->open(inode, file);
-				if (ret)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-					__MOD_DEC_USE_COUNT (dahdi_transcode_fops->owner);
-#else
-					module_put(dahdi_transcode_fops->owner);
-#endif
+		if (!dahdi_transcode_fops) {
+			if (request_module("dahdi_transcode")) {
+				return -ENXIO;
 			}
-			return ret;
+		}
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+		__MOD_INC_USE_COUNT (dahdi_transcode_fops->owner);
+#else
+		if (!try_module_get(dahdi_transcode_fops->owner)) {
+			return -ENXIO;
+		}
+#endif
+		if (dahdi_transcode_fops && dahdi_transcode_fops->open) {
+			return dahdi_transcode_fops->open(inode, file);
+		} else {
+			/* dahdi_transcode module should have exported a
+			 * file_operations table. */
+			 WARN_ON(1);
 		}
 		return -ENXIO;
 	}
@@ -3163,14 +3162,11 @@ static int dahdi_release(struct inode *inode, struct file *file)
 		return dahdi_timer_release(inode, file);
 	}
 	if (unit == 250) {
-		res = dahdi_transcode_fops->release(inode, file);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-		if (dahdi_transcode_fops->owner)
-			__MOD_DEC_USE_COUNT (dahdi_transcode_fops->owner);
-#else
-		module_put(dahdi_transcode_fops->owner);
-#endif
-		return res;
+		/* We should not be here because the dahdi_transcode.ko module
+		 * should have updated the file_operations for this file
+		 * handle when the file was opened. */
+		WARN_ON(1);
+		return -EFAULT;
 	}
 	if (unit == 254) {
 		chan = file->private_data;
@@ -5249,8 +5245,12 @@ static int dahdi_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	if (!unit)
 		return dahdi_ctl_ioctl(inode, file, cmd, data);
 
-	if (unit == 250)
-		return dahdi_transcode_fops->ioctl(inode, file, cmd, data);
+	if (unit == 250) {
+		/* dahdi_transcode should have updated the file_operations on
+		 * this file object on open, so we shouldn't be here. */
+		WARN_ON(1);
+		return -EFAULT;
+	}
 
 	if (unit == 253) {
 		timer = file->private_data;

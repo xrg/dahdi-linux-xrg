@@ -606,28 +606,75 @@ struct dahdi_transcoder_channel {
 	void *pvt;
 	struct dahdi_transcoder *parent;
 	wait_queue_head_t ready;
-	int errorstatus;
-	int offset;
-	unsigned int chan_built;
-	unsigned int built_fmts;
-	unsigned int flags;
-	unsigned int srcfmt;
-	unsigned int dstfmt;
-	struct dahdi_transcode_header *tch;
+	__u32 built_fmts;
+#define DAHDI_TC_FLAG_BUSY		1
+#define DAHDI_TC_FLAG_CHAN_BUILT	2
+#define DAHDI_TC_FLAG_NONBLOCK		3
+#define DAHDI_TC_FLAG_DATA_WAITING	4
+	unsigned long flags;
+	u32 dstfmt;
+	u32 srcfmt;
 };
 
-#define DAHDI_TC_FLAG_BUSY       (1 << 0)
-#define DAHDI_TC_FLAG_TRANSIENT  (1 << 1)
-
+static inline int 
+dahdi_tc_is_built(struct dahdi_transcoder_channel *dtc) {
+	return test_bit(DAHDI_TC_FLAG_CHAN_BUILT, &dtc->flags);
+}
+static inline void
+dahdi_tc_set_built(struct dahdi_transcoder_channel *dtc) {
+	set_bit(DAHDI_TC_FLAG_CHAN_BUILT, &dtc->flags);
+}
+static inline void 
+dahdi_tc_clear_built(struct dahdi_transcoder_channel *dtc) {
+	clear_bit(DAHDI_TC_FLAG_CHAN_BUILT, &dtc->flags);
+}
+static inline int 
+dahdi_tc_is_nonblock(struct dahdi_transcoder_channel *dtc) {
+	return test_bit(DAHDI_TC_FLAG_NONBLOCK, &dtc->flags);
+}
+static inline void 
+dahdi_tc_set_nonblock(struct dahdi_transcoder_channel *dtc) {
+	set_bit(DAHDI_TC_FLAG_NONBLOCK, &dtc->flags);
+}
+static inline void 
+dahdi_tc_clear_nonblock(struct dahdi_transcoder_channel *dtc) {
+	clear_bit(DAHDI_TC_FLAG_NONBLOCK, &dtc->flags);
+}
+static inline int 
+dahdi_tc_is_data_waiting(struct dahdi_transcoder_channel *dtc) {
+	return test_bit(DAHDI_TC_FLAG_DATA_WAITING, &dtc->flags);
+}
+static inline int 
+dahdi_tc_is_busy(struct dahdi_transcoder_channel *dtc) {
+	return test_bit(DAHDI_TC_FLAG_BUSY, &dtc->flags);
+}
+static inline void 
+dahdi_tc_set_busy(struct dahdi_transcoder_channel *dtc) {
+	set_bit(DAHDI_TC_FLAG_BUSY, &dtc->flags);
+}
+static inline void 
+dahdi_tc_clear_busy(struct dahdi_transcoder_channel *dtc) {
+	clear_bit(DAHDI_TC_FLAG_BUSY, &dtc->flags);
+}
+static inline void 
+dahdi_tc_set_data_waiting(struct dahdi_transcoder_channel *dtc) {
+	set_bit(DAHDI_TC_FLAG_DATA_WAITING, &dtc->flags);
+}
+static inline void 
+dahdi_tc_clear_data_waiting(struct dahdi_transcoder_channel *dtc) {
+	clear_bit(DAHDI_TC_FLAG_DATA_WAITING, &dtc->flags);
+}
 
 struct dahdi_transcoder {
-	struct dahdi_transcoder *next;
+	struct list_head node;
 	char name[80];
 	int numchannels;
 	unsigned int srcfmts;
 	unsigned int dstfmts;
-	int (*operation)(struct dahdi_transcoder_channel *channel, int op);
-	/*! Transcoder channels */
+	struct file_operations fops;
+	int (*allocate)(struct dahdi_transcoder_channel *channel);
+	int (*release)(struct dahdi_transcoder_channel *channel);
+	/* Transcoder channels */
 	struct dahdi_transcoder_channel channels[0];
 };
 

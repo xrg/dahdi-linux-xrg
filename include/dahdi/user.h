@@ -411,56 +411,16 @@ enum {
 
 /* Transcoder related definitions */
 
-#define DAHDI_TRANSCODE_MAGIC 0x74a9c0de
-
-/* Operations */
-#define DAHDI_TCOP_ALLOCATE	1			/* Allocate/reset DTE channel */
-#define DAHDI_TCOP_TRANSCODE	2			/* Begin transcoding a block */
-#define DAHDI_TCOP_GETINFO	3			/* Get information (use dahdi_transcode_info) */
-#define DAHDI_TCOP_RELEASE      4                       /* Release DTE channel */
-#define DAHDI_TCOP_TEST         5                       /* test DTE device */
-
-#define DAHDI_TCCONF_USETS	(1 << 0)		/* Use/update timestamp field */
-#define DAHDI_TCCONF_USESEQ	(1 << 1)		/* Use/update seqno field */
-
-#define DAHDI_TCSTAT_DSTRDY	(1 << 0)		/* Destination data is ready */
-#define DAHDI_TCSTAT_DSTBUSY	(1 << 1)		/* Destination data is outstanding */
-
-#define __DAHDI_TRANSCODE_BUFSIZ	16384
-#define DAHDI_TRANSCODE_HDRLEN		256
-#define DAHDI_TRANSCODE_BUFSIZ		((__DAHDI_TRANSCODE_BUFSIZ) - (DAHDI_TRANSCODE_HDRLEN))
-#define DAHDI_TRANSCODE_DSTOFFSET	(((DAHDI_TRANSCODE_BUFSIZ) / 2) + DAHDI_TRANSCODE_HDRLEN)
-#define DAHDI_TRANSCODE_SRCOFFSET	(((DAHDI_TRANSCODE_BUFSIZ) / 2) + DAHDI_TRANSCODE_HDRLEN)
-
-struct dahdi_transcode_info {
-	unsigned int op;
-	unsigned int tcnum;
-	char name[80];
-	int numchannels;
-	unsigned int srcfmts;
-	unsigned int dstfmts;
+struct dahdi_transcoder_formats {
+	__u32	srcfmt;
+	__u32	dstfmt;
 };
-
-struct dahdi_transcode_header {
-	unsigned int srcfmt;		/* See formats.h -- use TCOP_RESET when you change */
-	unsigned int srcoffset; 	/* In bytes -- written by user */
-	unsigned int srclen;		/* In bytes -- written by user */
-	unsigned int srctimestamp;	/* In samples -- written by user (only used if DAHDI_TCCONF_USETS is set) */
-	unsigned int srcseqno;		/* In units -- written by user (only used if DAHDI_TCCONF_USESEQ is set) */
-
-	unsigned int dstfmt;		/* See formats.h -- use TCOP_RESET when you change */
-	unsigned int dstoffset;  	/* In bytes -- written by user */
-	unsigned int dsttimestamp;	/* In samples -- read by user */
-	unsigned int dstseqno;		/* In units -- read by user (only used if DAHDI_TCCONF_USESEQ is set) */
-	unsigned int dstlen;  		/* In bytes -- read by user */
-	unsigned int dstsamples;	/* In timestamp units -- read by user */
-
-	unsigned int magic;		/* Magic value -- DAHDI_TRANSCODE_MAGIC, read by user */
-	unsigned int config;		/* Read/write by user */
-	unsigned int status;		/* Read/write by user */
-	unsigned char userhdr[DAHDI_TRANSCODE_HDRLEN - (sizeof(unsigned int) * 14)];	/* Storage for user parameters */
-	unsigned char srcdata[DAHDI_TRANSCODE_BUFSIZ / 2];	/* Storage of source data */
-	unsigned char dstdata[DAHDI_TRANSCODE_BUFSIZ / 2];	/* Storage of destination data */
+struct dahdi_transcoder_info {
+	__u32 tcnum;
+	char name[80];
+	__u32 numchannels;
+	__u32 dstfmts;
+	__u32 srcfmts;
 };
 
 #define DAHDI_MAX_ECHOCANPARAMS 8
@@ -994,7 +954,15 @@ struct dahdi_hwgain {
 /*
  * Transcoder operations
  */
+
+/* DAHDI_TRANSCODE_OP is an older interface that is deprecated and no longer
+ * supported.
+ */
 #define DAHDI_TRANSCODE_OP		_IOWR(DAHDI_CODE, 93, int)
+
+#define DAHDI_TC_CODE			'T'
+#define DAHDI_TC_ALLOCATE		_IOW(DAHDI_TC_CODE, 1, struct dahdi_transcoder_formats)
+#define DAHDI_TC_GETINFO		_IOWR(DAHDI_TC_CODE, 2, struct dahdi_transcoder_info)
 
 /*
  * VoiceMail Waiting Indication (WMWI) -- implemented by low-level driver.
