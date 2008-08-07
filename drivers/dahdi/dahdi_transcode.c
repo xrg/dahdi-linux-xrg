@@ -231,7 +231,7 @@ __find_free_channel(struct list_head *list, const struct dahdi_transcoder_format
 			}
 		}
 	}
-	return (void*)((match) ? -EBUSY : -ENODEV);
+	return (void*)((long)((match) ? -EBUSY : -ENODEV));
 }
 
 static long dahdi_tc_allocate(struct file *file, unsigned long data)
