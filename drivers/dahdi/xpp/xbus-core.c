@@ -1219,7 +1219,7 @@ xbus_t *xbus_new(struct xbus_ops *ops, ushort max_send_size, void *priv)
 		goto nobus;
 	}
 #endif
-	xframe_queue_init(&xbus->command_queue, 10, 100, "command_queue", xbus);
+	xframe_queue_init(&xbus->command_queue, 10, 300, "command_queue", xbus);
 	xframe_queue_init(&xbus->receive_queue, 10, 50, "receive_queue", xbus);
 	xframe_queue_init(&xbus->send_pool, 10, 200, "send_pool", xbus);
 	xframe_queue_init(&xbus->receive_pool, 10, 50, "receive_pool", xbus);
