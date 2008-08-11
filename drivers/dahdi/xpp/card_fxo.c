@@ -460,6 +460,8 @@ static int FXO_card_init(xbus_t *xbus, xpd_t *xpd)
 		priv->polarity[i] = POL_UNKNOWN;	/* will be updated on next battery sample */
 		priv->battery[i] = BATTERY_UNKNOWN;	/* will be updated on next battery sample */
 		priv->power[i] = POWER_UNKNOWN;	/* will be updated on next battery sample */
+		if(caller_id_style == CID_STYLE_PASS_ALWAYS)
+			BIT_SET(xpd->cid_on, i);
 	}
 	XPD_DBG(GENERAL, xpd, "done\n");
 	for_each_line(xpd, i) {
