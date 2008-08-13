@@ -257,7 +257,7 @@ static void handle_fxo_leds(xpd_t *xpd)
 
 static void update_dahdi_ring(xpd_t *xpd, int pos, bool on)
 {
-	dahdi_rxsig_t	rxsig;
+	enum dahdi_rxsig	rxsig;
 
 	BUG_ON(!xpd);
 	if(on) {
@@ -541,7 +541,7 @@ static int FXO_card_dahdi_postregistration(xpd_t *xpd, bool on)
 	return 0;
 }
 
-static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
+static int FXO_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, enum dahdi_txsig txsig)
 {
 	struct FXO_priv_data	*priv;
 	int			ret = 0;

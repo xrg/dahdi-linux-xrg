@@ -16,13 +16,13 @@ Important notes about upgrading:
       dahdi-linux: kernel modules
       dahdi-tools: userspace tools
 
-  In addition, there is a dahdi-complete package that contains both
+  In addition, there is a dahdi-linux-complete package that contains both
   dahdi-linux and dahdi-tools for simplified installation.
 
   Note: The dahdi-linux and dahdi-tools packages have *separate*
   version numbers; they will not be released 'in sync', and it is
   perfectly acceptable to use (for example) dahdi-tools 2.0.6 with
-  dahdi-linux 2.0.11. The dahdi-complete package version number will
+  dahdi-linux 2.0.11. The dahdi-linux-complete package version number will
   always include *both* of these version numbers so that you will know
   what is included in it.
 
@@ -60,13 +60,13 @@ Notes about the dahdi-linux package:
 Notes about the dahdi-tools package:
 
 * Many tool names have changed:
-      ztcfg	      ->	dahdi_cfg
-      ztmonitor	      ->	dahdi_monitor
-      ztscan	      ->	dahdi_scan
-      ztspeed	      ->	dahdi_speed
-      zttest	      ->	dahdi_test
-      zttool	      ->	dahdi_tool
-      zapconf         ->        dahdi_genconf (deprecate genzaptelconf)
+      ztcfg      ->  dahdi_cfg
+      ztmonitor  ->  dahdi_monitor
+      ztscan     ->  dahdi_scan
+      ztspeed    ->  dahdi_speed
+      zttest     ->  dahdi_test
+      zttool     ->  dahdi_tool
+      zapconf    ->  dahdi_genconf (deprecates genzaptelconf)
 
 * The system configuration file has moved from /etc/zaptel.conf to
   /etc/dahdi/system.conf.
@@ -80,6 +80,6 @@ Notes about the dahdi-tools package:
   For PRI modules, the 'pri_protocol' setting, determines how
   to configure it (E1/T1).
 
-* In Astribank PRI modules, the LED behaviour represent which ports
+* In Astribank PRI modules, the LED behaviour represents which ports
   are *CLOCK MASTER* (red color) and which are *CLOCK SLAVE* (green color).
   Usually (but not always), this corresponds to the NT/TE settings in Asterisk.

@@ -9,27 +9,26 @@
  * Copyright (C) 2007-2008 Digium, Inc.
  *
  * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
- *
+
  * VoiceBus is a registered trademark of Digium.
  *
  * \todo   Make the client drivers back out gracefully when presented with a
  * signal.
  * \todo   Modify clients to sleep with timeout when waiting for interrupt.
  * \todo   Check on a 64-bit CPU / Kernel
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #include <linux/version.h>
@@ -681,14 +680,15 @@ show_buffer(struct voicebus *vb, void *vbb)
 	int x;
 	unsigned char *c;
 	c = vbb;
-	printk("Packet %d\n", count);
+	printk(KERN_DEBUG "Packet %d\n", count);
+	printk(KERN_DEBUG "");
 	for (x = 1; x <= vb->framesize; ++x) {
 		printk("%02x ", c[x]);
 		if (x % 16 == 0) {
 			printk("\n");
 		}
 	}
-	printk("\n\n");
+	printk(KERN_DEBUG "\n\n");
 }
 #endif
 

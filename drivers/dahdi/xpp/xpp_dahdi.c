@@ -540,7 +540,7 @@ void update_xpd_status(xpd_t *xpd, int alarm_flag)
 
 void update_line_status(xpd_t *xpd, int pos, bool to_offhook)
 {
-	dahdi_rxsig_t	rxsig;
+	enum dahdi_rxsig	rxsig;
 
 	BUG_ON(!xpd);
 	if(to_offhook) {
@@ -740,7 +740,11 @@ int xpp_close(struct dahdi_chan *chan)
 
 void report_bad_ioctl(const char *msg, xpd_t *xpd, int pos, unsigned int cmd)
 {
-	XPD_NOTICE(xpd, "%s: Bad ioctl\n", msg);
+	char	*extra_msg = "";
+
+	if(_IOC_TYPE(cmd) == 'J')
+		extra_msg = " (for old ZAPTEL)";
+	XPD_NOTICE(xpd, "%s: Bad ioctl%s\n", msg, extra_msg);
 	XPD_NOTICE(xpd, "ENOTTY: chan=%d cmd=0x%x\n", pos, cmd);
 	XPD_NOTICE(xpd, "        IOC_TYPE=0x%02X\n", _IOC_TYPE(cmd));
 	XPD_NOTICE(xpd, "        IOC_DIR=0x%02X\n", _IOC_DIR(cmd));
@@ -770,7 +774,7 @@ int xpp_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long arg)
 	return 0;
 }
 
-static int xpp_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
+static int xpp_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 {
 	xpd_t	*xpd = chan->pvt;
 	xbus_t	*xbus;
@@ -803,23 +807,23 @@ int xpp_maint(struct dahdi_span *span, int cmd)
 	DBG(GENERAL, "span->mainttimer=%d\n", span->mainttimer);
 	switch(cmd) {
 		case DAHDI_MAINT_NONE:
-			printk("XXX Turn off local and remote loops XXX\n");
+			INFO("XXX Turn off local and remote loops XXX\n");
 			break;
 		case DAHDI_MAINT_LOCALLOOP:
-			printk("XXX Turn on local loopback XXX\n");
+			INFO("XXX Turn on local loopback XXX\n");
 			break;
 		case DAHDI_MAINT_REMOTELOOP:
-			printk("XXX Turn on remote loopback XXX\n");
+			INFO("XXX Turn on remote loopback XXX\n");
 			break;
 		case DAHDI_MAINT_LOOPUP:
-			printk("XXX Send loopup code XXX\n");
+			INFO("XXX Send loopup code XXX\n");
 			// CALL_XMETHOD(LOOPBACK_AX, xpd->xbus, xpd, loopback_data, ARRAY_SIZE(loopback_data));
 			break;
 		case DAHDI_MAINT_LOOPDOWN:
-			printk("XXX Send loopdown code XXX\n");
+			INFO("XXX Send loopdown code XXX\n");
 			break;
 		case DAHDI_MAINT_LOOPSTOP:
-			printk("XXX Stop sending loop codes XXX\n");
+			INFO("XXX Stop sending loop codes XXX\n");
 			break;
 		default:
 			ERR("XPP: Unknown maint command: %d\n", cmd);

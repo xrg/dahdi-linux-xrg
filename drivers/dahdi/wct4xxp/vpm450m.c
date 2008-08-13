@@ -6,6 +6,19 @@
  * All Rights Reserved
  */
 
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
+ */
+
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/string.h>
@@ -57,7 +70,7 @@ UINT32 Oct6100UserCreateSerializeObject(tPOCT6100_CREATE_SERIALIZE_OBJECT f_pCre
 UINT32 Oct6100UserDestroySerializeObject(tPOCT6100_DESTROY_SERIALIZE_OBJECT f_pDestroy)
 {
 #ifdef OCTASIC_DEBUG
-	printk("I should never be called! (destroy serialize object)\n");
+	printk(KERN_DEBUG "I should never be called! (destroy serialize object)\n");
 #endif
 	return cOCT6100_ERR_OK;
 }
@@ -218,7 +231,7 @@ static void vpm450m_setecmode(struct vpm450m *vpm450m, int channel, int mode)
 		return;
 	modify = kmalloc(sizeof(tOCT6100_CHANNEL_MODIFY), GFP_ATOMIC);
 	if (!modify) {
-		printk("wct4xxp: Unable to allocate memory for setec!\n");
+		printk(KERN_NOTICE "wct4xxp: Unable to allocate memory for setec!\n");
 		return;
 	}
 	Oct6100ChannelModifyDef(modify);
@@ -226,10 +239,10 @@ static void vpm450m_setecmode(struct vpm450m *vpm450m, int channel, int mode)
 	modify->ulChannelHndl = vpm450m->aulEchoChanHndl[channel];
 	ulResult = Oct6100ChannelModify(vpm450m->pApiInstance, modify);
 	if (ulResult != GENERIC_OK) {
-		printk("Failed to apply echo can changes on channel %d!\n", channel);
+		printk(KERN_NOTICE "Failed to apply echo can changes on channel %d!\n", channel);
 	} else {
 #ifdef OCTASIC_DEBUG
-		printk("Echo can on channel %d set to %d\n", channel, mode);
+		printk(KERN_DEBUG "Echo can on channel %d set to %d\n", channel, mode);
 #endif
 		vpm450m->ecmode[channel] = mode;
 	}
@@ -243,7 +256,7 @@ void vpm450m_setdtmf(struct vpm450m *vpm450m, int channel, int detect, int mute)
 
 	modify = kmalloc(sizeof(tOCT6100_CHANNEL_MODIFY), GFP_KERNEL);
 	if (!modify) {
-		printk("wct4xxp: Unable to allocate memory for setdtmf!\n");
+		printk(KERN_NOTICE "wct4xxp: Unable to allocate memory for setdtmf!\n");
 		return;
 	}
 	Oct6100ChannelModifyDef(modify);
@@ -271,9 +284,9 @@ void vpm450m_setdtmf(struct vpm450m *vpm450m, int channel, int detect, int mute)
 
 	ulResult = Oct6100ChannelModify(vpm450m->pApiInstance, modify);
 	if (ulResult != GENERIC_OK) {
-		printk("Failed to apply dtmf mute changes on channel %d!\n", channel);
+		printk(KERN_NOTICE "Failed to apply dtmf mute changes on channel %d!\n", channel);
 	}
-/*	printk("VPM450m: Setting DTMF on channel %d: %s / %s\n", channel, (detect ? "DETECT" : "NO DETECT"), (mute ? "MUTE" : "NO MUTE")); */
+/*	printk(KERN_DEBUG "VPM450m: Setting DTMF on channel %d: %s / %s\n", channel, (detect ? "DETECT" : "NO DETECT"), (mute ? "MUTE" : "NO MUTE")); */
 	kfree(modify);
 }
 
@@ -291,7 +304,7 @@ void vpm450m_setec(struct vpm450m *vpm450m, int channel, int eclen)
 		} else
 			vpm450m_setecmode(vpm450m, channel, cOCT6100_ECHO_OP_MODE_DIGITAL);
 	}
-/*	printk("VPM450m: Setting EC on channel %d to %d\n", channel, eclen); */
+/*	printk(KERN_DEBUG "VPM450m: Setting EC on channel %d to %d\n", channel, eclen); */
 }
 
 int vpm450m_checkirq(struct vpm450m *vpm450m)
@@ -372,7 +385,7 @@ int vpm450m_getdtmf(struct vpm450m *vpm450m, int *channel, int *tone, int *start
 				break;
 			default:
 #ifdef OCTASIC_DEBUG
-				printk("Unknown tone value %08x\n", tonefound.ulToneDetected);
+				printk(KERN_DEBUG "Unknown tone value %08x\n", tonefound.ulToneDetected);
 #endif
 				*tone = 'u';
 				break;
@@ -399,7 +412,7 @@ unsigned int get_vpm450m_capacity(void *wc)
 
 	ulResult = Oct6100ApiGetCapacityPins(&CapacityPins);
 	if (ulResult != cOCT6100_ERR_OK) {
-		printk("Failed to get chip capacity, code %08x!\n", ulResult);
+		printk(KERN_DEBUG "Failed to get chip capacity, code %08x!\n", ulResult);
 		return 0;
 	}
 
@@ -442,7 +455,7 @@ struct vpm450m *init_vpm450m(void *wc, int *isalaw, int numspans, const struct f
 		vpm450m->ecmode[x] = -1;
 
 	vpm450m->numchans = numspans * 32;
-	printk("VPM450: echo cancellation for %d channels\n", vpm450m->numchans);
+	printk(KERN_INFO "VPM450: echo cancellation for %d channels\n", vpm450m->numchans);
 		
 	Oct6100ChipOpenDef(ChipOpen);
 
@@ -469,7 +482,7 @@ struct vpm450m *init_vpm450m(void *wc, int *isalaw, int numspans, const struct f
 
 	ulResult = Oct6100GetInstanceSize(ChipOpen, &InstanceSize);
 	if (ulResult != cOCT6100_ERR_OK) {
-		printk("Failed to get instance size, code %08x!\n", ulResult);
+		printk(KERN_NOTICE "Failed to get instance size, code %08x!\n", ulResult);
 		kfree(vpm450m);
 		kfree(ChipOpen);
 		kfree(ChannelOpen);
@@ -479,7 +492,7 @@ struct vpm450m *init_vpm450m(void *wc, int *isalaw, int numspans, const struct f
 	
 	vpm450m->pApiInstance = vmalloc(InstanceSize.ulApiInstanceSize);
 	if (!vpm450m->pApiInstance) {
-		printk("Out of memory (can't allocate %d bytes)!\n", InstanceSize.ulApiInstanceSize);
+		printk(KERN_NOTICE "Out of memory (can't allocate %d bytes)!\n", InstanceSize.ulApiInstanceSize);
 		kfree(vpm450m);
 		kfree(ChipOpen);
 		kfree(ChannelOpen);
@@ -496,7 +509,7 @@ struct vpm450m *init_vpm450m(void *wc, int *isalaw, int numspans, const struct f
 #endif
 	ulResult = Oct6100ChipOpen(vpm450m->pApiInstance, ChipOpen);
 	if (ulResult != cOCT6100_ERR_OK) {
-		printk("Failed to open chip, code %08x!\n", ulResult);
+		printk(KERN_NOTICE "Failed to open chip, code %08x!\n", ulResult);
 #ifdef CONFIG_4KSTACKS
 		local_irq_restore(flags);
 #endif
@@ -541,7 +554,7 @@ struct vpm450m *init_vpm450m(void *wc, int *isalaw, int numspans, const struct f
 			
 			ulResult = Oct6100ChannelOpen(vpm450m->pApiInstance, ChannelOpen);
 			if (ulResult != GENERIC_OK) {
-				printk("Failed to open channel %d!\n", x);
+				printk(KERN_NOTICE "Failed to open channel %d!\n", x);
 			}
 			for (y=0;y<sizeof(tones) / sizeof(tones[0]); y++) {
 				tOCT6100_TONE_DETECTION_ENABLE enable;
@@ -549,7 +562,7 @@ struct vpm450m *init_vpm450m(void *wc, int *isalaw, int numspans, const struct f
 				enable.ulChannelHndl = vpm450m->aulEchoChanHndl[x];
 				enable.ulToneNumber = tones[y];
 				if (Oct6100ToneDetectionEnable(vpm450m->pApiInstance, &enable) != GENERIC_OK) 
-					printk("Failed to enable tone detection on channel %d for tone %d!\n", x, y);
+					printk(KERN_NOTICE "Failed to enable tone detection on channel %d for tone %d!\n", x, y);
 			}
 		}
 	}
@@ -570,7 +583,7 @@ void release_vpm450m(struct vpm450m *vpm450m)
 	Oct6100ChipCloseDef(&ChipClose);
 	ulResult = Oct6100ChipClose(vpm450m->pApiInstance, &ChipClose);
 	if (ulResult != cOCT6100_ERR_OK) {
-		printk("Failed to close chip, code %08x!\n", ulResult);
+		printk(KERN_NOTICE "Failed to close chip, code %08x!\n", ulResult);
 	}
 	vfree(vpm450m->pApiInstance);
 	kfree(vpm450m);

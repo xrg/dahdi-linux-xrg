@@ -1,0 +1,12 @@
+2008-08-08 Kevin P. Fleming <kpfleming@digium.com>
+
+	* dahdi-linux version 2.0.0-rc2 released.
+
+2008-08-07 20:21 +0000 [r4742]  Shaun Ruffell <sruffell@digium.com>:
+
+	* drivers/dahdi/dahdi_transcode.c: Make sure types are same size on
+	  64-bit machines.
+
+2008-08-06 Kevin P. Fleming <kpfleming@digium.com>
+
+	* dahdi-linux version 2.0.0-rc1 released.

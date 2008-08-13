@@ -12,20 +12,19 @@
  *
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
  *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #include <linux/delay.h>
@@ -35,7 +34,6 @@
 #include <linux/list.h> 
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "voicebus.h"
 
@@ -89,7 +87,7 @@ inline void vpm150m_cmd_dequeue(struct t1 *wc, volatile unsigned char *writechun
 	}
 	if (curcmd) {
 #if 0
-		printk("Found command txident = %d, desc = 0x%x, addr = 0x%x, data = 0x%x\n", curcmd->txident, curcmd->desc, curcmd->addr, curcmd->data);
+		printk(KERN_DEBUG "Found command txident = %d, desc = 0x%x, addr = 0x%x, data = 0x%x\n", curcmd->txident, curcmd->desc, curcmd->addr, curcmd->data);
 #endif
 		if (curcmd->flags & __VPM150M_RWPAGE) {
 			/* Set CTRL access to page*/
@@ -783,6 +781,7 @@ void t1_vpm150m_init(struct t1 *wc) {
 		set_bit(VPM150M_HPIRESET, &vpm150m->control);
 		msleep(2000);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -791,10 +790,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -802,10 +803,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 			msg[i] = 0xbeef;
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -813,10 +816,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 			msg[i] = 0x1111;
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -824,10 +829,12 @@ void t1_vpm150m_init(struct t1 *wc) {
 			msg[i] = 0x2222;
 		gpakWriteDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
 		gpakReadDspMemory(vpm150m->dspid, 0x1000, TEST_SIZE, msg);
+		debug_printk(1, "");
 		for (i = 0; i< TEST_SIZE; i++)
 			printk("%x ", msg[i]);
 		printk("\n");
@@ -836,7 +843,7 @@ void t1_vpm150m_init(struct t1 *wc) {
 #if defined(HOTPLUG_FIRMWARE)
 		if ((request_firmware(&firmware, vpmadt032_firmware, &pdev->dev) != 0) ||
 		    !firmware) {
-			printk("VPMADT032: firmware %s not available from userspace\n", vpmadt032_firmware);
+			printk(KERN_NOTICE "VPMADT032: firmware %s not available from userspace\n", vpmadt032_firmware);
 			goto failed_exit;
 		}
 #else

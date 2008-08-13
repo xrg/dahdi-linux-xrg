@@ -80,7 +80,7 @@ ifeq (no,$(HAS_KSRC))
 endif
 	$(KMAKE) modules DAHDI_BUILD_ALL=m
 
-include/dahdi/version.h:
+include/dahdi/version.h: FORCE
 	@DAHDIVERSION="${DAHDIVERSION}" build_tools/make_version_h > $@.tmp
 	@if cmp -s $@.tmp $@ ; then :; else \
 		mv $@.tmp $@ ; \
@@ -120,8 +120,11 @@ uninstall-firmware:
 install-include:
 	install -D -m 644 include/dahdi/kernel.h $(DESTDIR)/usr/include/dahdi/kernel.h
 	install -D -m 644 include/dahdi/user.h $(DESTDIR)/usr/include/dahdi/user.h
+	install -D -m 644 include/dahdi/fasthdlc.h $(DESTDIR)/usr/include/dahdi/fasthdlc.h
 # Include any driver-specific header files here
 	install -D -m 644 include/dahdi/wctdm_user.h $(DESTDIR)/usr/include/dahdi/wctdm_user.h
+	-@rm -f $(DESTDIR)/usr/include/zaptel/*.h
+	-@rmdir $(DESTDIR)/usr/include/zaptel
 
 uninstall-include:
 	rm -f $(DESTDIR)/usr/include/dahdi/kernel.h
@@ -222,4 +225,6 @@ firmware-download:
 test:
 	./test-script $(DESTDIR)/lib/modules/$(KVERS) dahdi
 
-.PHONY: distclean dist-clean clean version.h all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules firmware-download
+.PHONY: distclean dist-clean clean all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules firmware-download
+
+FORCE:

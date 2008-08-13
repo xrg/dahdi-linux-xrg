@@ -748,7 +748,7 @@ static int BRI_card_dahdi_postregistration(xpd_t *xpd, bool on)
 	return(0);
 }
 
-static int BRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
+static int BRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, enum dahdi_txsig txsig)
 {
 	LINE_DBG(SIGNAL, xpd, pos, "%s\n", txsig2str(txsig));
 	return 0;

@@ -5,18 +5,28 @@
  * implementation of standard HDLC protocol.
  *
  * This table based HDLC technology is PATENT PENDING, but will always be
- * remain freely distributable under the terms of the GPL version 2.0. 
+ * remain freely distributable under the terms of the GPL version 2. 
  *
  * For non-GPL licensing, please contact Mark Spencer at 
  * the below e-mail address.
  *
  * Copyright (C) 2001-2008, Digium, Inc.
  *
- * Written by Mark Spencer <markster@linux-support.net>
+ * Written by Mark Spencer <markster@digium.com>
  * 
- * Distributed under the terms of the GNU General Public License
- * Version 2.0.
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
  *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #ifndef _FASTHDLC_H
