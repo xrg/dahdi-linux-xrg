@@ -220,6 +220,7 @@ struct wctdm {
 		struct fxo {
 			int wasringing;
 			int lastrdtx;
+			int lastrdtx_count;
 			int ringdebounce;
 			int offhook;
 			int battdebounce;
@@ -228,6 +229,10 @@ struct wctdm {
 			int lastpol;
 			int polarity;
 			int polaritydebounce;
+			int neonmwi_state;
+			int neonmwi_last_voltage;
+			unsigned int neonmwi_debounce;
+			unsigned int neonmwi_offcounter;
 		} fxo;
 		struct fxs {
 			int oldrxhook;
