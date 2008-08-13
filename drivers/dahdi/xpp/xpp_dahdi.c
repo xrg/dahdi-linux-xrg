@@ -625,7 +625,7 @@ static int proc_xpd_blink_read(char *page, char **start, off_t off, int count, i
 	BUG_ON(!xpd);
 	spin_lock_irqsave(&xpd->lock, flags);
 
-	len += sprintf(page + len, "%d\n", xpd->blink_mode);
+	len += sprintf(page + len, "0x%lX\n", xpd->blink_mode);
 	spin_unlock_irqrestore(&xpd->lock, flags);
 	if (len <= off+count)
 		*eof = 1;
@@ -643,7 +643,7 @@ static int proc_xpd_blink_write(struct file *file, const char __user *buffer, un
 	xpd_t		*xpd = data;
 	char		buf[MAX_PROC_WRITE];
 	char		*endp;
-	unsigned	blink;
+	unsigned long	blink;
 
 
 	BUG_ON(!xpd);
@@ -657,7 +657,7 @@ static int proc_xpd_blink_write(struct file *file, const char __user *buffer, un
 	blink = simple_strtoul(buf, &endp, 0);
 	if(*endp != '\0' || blink > 0xFFFF)
 		return -EINVAL;
-	XPD_DBG(GENERAL, xpd, "BLINK channels: 0x%X\n", blink);
+	XPD_DBG(GENERAL, xpd, "BLINK channels: 0x%lX\n", blink);
 	xpd->blink_mode = blink;
 	return count;
 }

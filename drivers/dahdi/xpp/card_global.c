@@ -410,6 +410,7 @@ static void global_packet_dump(const char *msg, xpacket_t *pack);
 	}
 	XFRAME_NEW_CMD(xframe, pack, xbus, GLOBAL, AB_REQUEST, 0);
 	RPACKET_FIELD(pack, GLOBAL, AB_REQUEST, rev) = XPP_PROTOCOL_VERSION;
+	RPACKET_FIELD(pack, GLOBAL, AB_REQUEST, reserved) = 0;
 	XBUS_DBG(DEVICES, xbus, "Protocol Version %d\n", XPP_PROTOCOL_VERSION);
 	ret = send_cmd_frame(xbus, xframe);
 	return ret;
