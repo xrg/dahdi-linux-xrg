@@ -35,14 +35,8 @@
 #include <linux/mm.h>
 #include <linux/page-flags.h>
 #include <asm/io.h>
-#ifdef CONFIG_DEVFS_FS
-#include <linux/devfs_fs_kernel.h>
-#endif
-#ifdef STANDALONE_ZAPATA
-#include "dahdi/kernel.h"
-#else
+
 #include <dahdi/kernel.h>
-#endif
 
 static int debug;
 LIST_HEAD(trans);
