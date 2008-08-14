@@ -831,13 +831,14 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 	struct FXO_priv_data	*priv;
 	enum polarity_state	pol;
 	int			msec;
+	signed char		volts = (signed char)data_low;
 
 	priv = xpd->priv;
 	BUG_ON(!priv);
-	priv->battery_voltage[portno] = data_low;
+	priv->battery_voltage[portno] = volts;
 	if(xpd->ringing[portno])
 		goto ignore_reading;	/* ring voltage create false alarms */
-	if(abs((signed char)data_low) < BAT_THRESHOLD) {
+	if(abs(volts) < BAT_THRESHOLD) {
 		/*
 		 * Check for battery voltage fluctuations
 		 */
@@ -847,7 +848,7 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 			milliseconds = priv->nobattery_debounce[portno]++ *
 				poll_battery_interval;
 			if(milliseconds > BAT_DEBOUNCE) {
-				LINE_DBG(SIGNAL, xpd, portno, "BATTERY OFF voltage=%d\n", data_low);
+				LINE_DBG(SIGNAL, xpd, portno, "BATTERY OFF voltage=%d\n", volts);
 				priv->battery[portno] = BATTERY_OFF;
 				if(SPAN_REGISTERED(xpd))
 					dahdi_report_battery(xpd, portno);
@@ -863,7 +864,7 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 	} else {
 		priv->nobattery_debounce[portno] = 0;
 		if(priv->battery[portno] != BATTERY_ON) {
-			LINE_DBG(SIGNAL, xpd, portno, "BATTERY ON voltage=%d\n", data_low);
+			LINE_DBG(SIGNAL, xpd, portno, "BATTERY ON voltage=%d\n", volts);
 			priv->battery[portno] = BATTERY_ON;
 			if(SPAN_REGISTERED(xpd))
 				dahdi_report_battery(xpd, portno);
@@ -885,9 +886,9 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 	/*
 	 * Handle reverse polarity
 	 */
-	if(data_low == 0)
+	if(volts == 0)
 		pol = POL_UNKNOWN;
-	else if(IS_SET(data_low, 7))
+	else if(volts < 0)
 		pol = POL_NEGATIVE;
 	else
 		pol = POL_POSITIVE;
