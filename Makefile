@@ -92,7 +92,7 @@ prereq: include/dahdi/version.h
 stackcheck: checkstack modules
 	./checkstack kernel/*.ko kernel/*/*.ko
 
-install: all install-modules install-devices install-include install-firmware
+install: all install-modules install-devices install-include install-firmware install-xpp-firm
 	@echo "###################################################"
 	@echo "###"
 	@echo "### DAHDI installed successfully."
@@ -108,6 +108,9 @@ install-modconf:
 	@if [ -d /etc/modutils ]; then \
 		/sbin/update-modules ; \
 	fi
+
+install-xpp-firm:
+	$(MAKE) -C drivers/dahdi/xpp/firmwares install
 
 install-firmware:
 ifeq ($(HOTPLUG_FIRMWARE),yes)
@@ -225,6 +228,6 @@ firmware-download:
 test:
 	./test-script $(DESTDIR)/lib/modules/$(KVERS) dahdi
 
-.PHONY: distclean dist-clean clean all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules firmware-download
+.PHONY: distclean dist-clean clean all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules firmware-download install-xpp-firm
 
 FORCE:
