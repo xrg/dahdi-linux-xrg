@@ -7,20 +7,19 @@
  *
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
  *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #include <linux/kernel.h>
@@ -36,7 +35,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 /*
  * Tasklets provide better system interactive response at the cost of the
@@ -158,9 +156,9 @@ static void checkmaster(void)
 		master->master = 1;
 	spin_unlock_irqrestore(&dlock, flags);
 	if (master)
-		printk("TDMoX: New master: %s\n", master->span.name);
+		printk(KERN_INFO "TDMoX: New master: %s\n", master->span.name);
 	else
-		printk("TDMoX: No master.\n");
+		printk(KERN_INFO "TDMoX: No master.\n");
 }
 
 static void ztd_sendmessage(struct dahdi_dynamic *z)
@@ -292,7 +290,7 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 		spin_unlock_irqrestore(&dlock, flags);
 		newerr = ERR_LEN;
 		if (newerr != ztd->err) {
-			printk("Span %s: Insufficient samples for header (only %d)\n", span->name, msglen);
+			printk(KERN_NOTICE "Span %s: Insufficient samples for header (only %d)\n", span->name, msglen);
 		}
 		ztd->err = newerr;
 		return;
@@ -303,7 +301,7 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 		spin_unlock_irqrestore(&dlock, flags);
 		newerr = ERR_NSAMP | msg[0];
 		if (newerr != 	ztd->err) {
-			printk("Span %s: Expected %d samples, but receiving %d\n", span->name, DAHDI_CHUNKSIZE, msg[0]);
+			printk(KERN_NOTICE "Span %s: Expected %d samples, but receiving %d\n", span->name, DAHDI_CHUNKSIZE, msg[0]);
 		}
 		ztd->err = newerr;
 		return;
@@ -321,7 +319,7 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 		spin_unlock_irqrestore(&dlock, flags);
 		newerr = ERR_NCHAN | nchans;
 		if (newerr != ztd->err) {
-			printk("Span %s: Expected %d channels, but receiving %d\n", span->name, span->channels, nchans);
+			printk(KERN_NOTICE "Span %s: Expected %d channels, but receiving %d\n", span->name, span->channels, nchans);
 		}
 		ztd->err = newerr;
 		return;
@@ -346,7 +344,7 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 		spin_unlock_irqrestore(&dlock, flags);
 		newerr = ERR_LEN | xlen;
 		if (newerr != ztd->err) {
-			printk("Span %s: Expected message size %d, but was %d instead\n", span->name, xlen, msglen);
+			printk(KERN_NOTICE "Span %s: Expected message size %d, but was %d instead\n", span->name, xlen, msglen);
 		}
 		ztd->err = newerr;
 		return;
@@ -403,7 +401,7 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 
 	/* note if we had a missing packet */
 	if (rxpos != rxcnt)
-		printk("Span %s: Expected seq no %d, but received %d instead\n", span->name, rxcnt, rxpos);
+		printk(KERN_NOTICE "Span %s: Expected seq no %d, but received %d instead\n", span->name, rxcnt, rxpos);
 
 	/* If this is our master span, then run everything */
 	if (master)
@@ -434,7 +432,7 @@ static void dynamic_destroy(struct dahdi_dynamic *z)
 	checkmaster();
 }
 
-static struct dahdi_dynamic *find_dynamic(DAHDI_DYNAMIC_SPAN *zds)
+static struct dahdi_dynamic *find_dynamic(struct dahdi_dynamic_span *zds)
 {
 	struct dahdi_dynamic *z;
 	z = dspans;
@@ -460,7 +458,7 @@ static struct dahdi_dynamic_driver *find_driver(char *name)
 	return ztd;
 }
 
-static int destroy_dynamic(DAHDI_DYNAMIC_SPAN *zds)
+static int destroy_dynamic(struct dahdi_dynamic_span *zds)
 {
 	unsigned long flags;
 	struct dahdi_dynamic *z, *cur, *prev=NULL;
@@ -473,7 +471,7 @@ static int destroy_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 	/* Don't destroy span until it is in use */
 	if (z->usecount) {
 		spin_unlock_irqrestore(&dlock, flags);
-		printk("Attempt to destroy dynamic span while it is in use\n");
+		printk(KERN_NOTICE "Attempt to destroy dynamic span while it is in use\n");
 		return -EBUSY;
 	}
 	/* Unlink it */
@@ -513,7 +511,7 @@ static int ztd_open(struct dahdi_chan *chan)
 		z->usecount++;
 	}
 	if(!try_module_get(THIS_MODULE))
-		printk("TDMoX: Unable to increment module use count\n");
+		printk(KERN_NOTICE "TDMoX: Unable to increment module use count\n");
 	return 0;
 }
 
@@ -534,7 +532,7 @@ static int ztd_close(struct dahdi_chan *chan)
 	return 0;
 }
 
-static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
+static int create_dynamic(struct dahdi_dynamic_span *zds)
 {
 	struct dahdi_dynamic *z;
 	struct dahdi_dynamic_driver *ztd;
@@ -543,11 +541,11 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 	int bufsize;
 
 	if (zds->numchans < 1) {
-		printk("Can't be less than 1 channel (%d)!\n", zds->numchans);
+		printk(KERN_NOTICE "Can't be less than 1 channel (%d)!\n", zds->numchans);
 		return -EINVAL;
 	}
 	if (zds->numchans >= DAHDI_DYNAMIC_MAX_CHANS) {
-		printk("Can't create dynamic span with greater than %d channels.  See ztdynamic.c and increase DAHDI_DYNAMIC_MAX_CHANS\n", zds->numchans);
+		printk(KERN_NOTICE "Can't create dynamic span with greater than %d channels.  See ztdynamic.c and increase DAHDI_DYNAMIC_MAX_CHANS\n", zds->numchans);
 		return -EINVAL;
 	}
 
@@ -637,7 +635,7 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 	/* Another race -- should let the module get unloaded while we
 	   have it here */
 	if (!ztd) {
-		printk("No such driver '%s' for dynamic span\n", zds->driver);
+		printk(KERN_NOTICE "No such driver '%s' for dynamic span\n", zds->driver);
 		dynamic_destroy(z);
 		return -EINVAL;
 	}
@@ -645,7 +643,7 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 	/* Create the stuff */
 	z->pvt = ztd->create(&z->span, z->addr);
 	if (!z->pvt) {
-		printk("Driver '%s' (%s) rejected address '%s'\n", ztd->name, ztd->desc, z->addr);
+		printk(KERN_NOTICE "Driver '%s' (%s) rejected address '%s'\n", ztd->name, ztd->desc, z->addr);
 		/* Creation failed */
 		return -EINVAL;
 	}
@@ -655,7 +653,7 @@ static int create_dynamic(DAHDI_DYNAMIC_SPAN *zds)
 
 	/* Whee!  We're created.  Now register the span */
 	if (dahdi_register(&z->span, 0)) {
-		printk("Unable to register span '%s'\n", z->span.name);
+		printk(KERN_NOTICE "Unable to register span '%s'\n", z->span.name);
 		dynamic_destroy(z);
 		return -EINVAL;
 	}
@@ -687,7 +685,7 @@ static void ztd_tasklet(unsigned long data)
 
 static int ztdynamic_ioctl(unsigned int cmd, unsigned long data)
 {
-	DAHDI_DYNAMIC_SPAN zds;
+	struct dahdi_dynamic_span zds;
 	int res;
 	switch(cmd) {
 	case 0:
@@ -698,23 +696,23 @@ static int ztdynamic_ioctl(unsigned int cmd, unsigned long data)
 			ztdynamic_run();
 		return 0;
 	case DAHDI_DYNAMIC_CREATE:
-		if (copy_from_user(&zds, (DAHDI_DYNAMIC_SPAN *)data, sizeof(zds)))
+		if (copy_from_user(&zds, (struct dahdi_dynamic_span *)data, sizeof(zds)))
 			return -EFAULT;
 		if (debug)
-			printk("Dynamic Create\n");
+			printk(KERN_DEBUG "Dynamic Create\n");
 		res = create_dynamic(&zds);
 		if (res < 0)
 			return res;
 		zds.spanno = res;
 		/* Let them know the new span number */
-		if (copy_to_user((DAHDI_DYNAMIC_SPAN *)data, &zds, sizeof(zds)))
+		if (copy_to_user((struct dahdi_dynamic_span *)data, &zds, sizeof(zds)))
 			return -EFAULT;
 		return 0;
 	case DAHDI_DYNAMIC_DESTROY:
-		if (copy_from_user(&zds, (DAHDI_DYNAMIC_SPAN *)data, sizeof(zds)))
+		if (copy_from_user(&zds, (struct dahdi_dynamic_span *)data, sizeof(zds)))
 			return -EFAULT;
 		if (debug)
-			printk("Dynamic Destroy\n");
+			printk(KERN_DEBUG "Dynamic Destroy\n");
 		return destroy_dynamic(&zds);
 	}
 
@@ -823,7 +821,7 @@ int ztdynamic_init(void)
 #ifdef ENABLE_TASKLETS
 	tasklet_init(&ztd_tlet, ztd_tasklet, 0);
 #endif
-	printk("DAHDI Dynamic Span support LOADED\n");
+	printk(KERN_INFO "DAHDI Dynamic Span support LOADED\n");
 	return 0;
 }
 
@@ -837,7 +835,7 @@ void ztdynamic_cleanup(void)
 #endif
 	dahdi_set_dynamic_ioctl(NULL);
 	del_timer(&alarmcheck);
-	printk("DAHDI Dynamic Span support unloaded\n");
+	printk(KERN_INFO "DAHDI Dynamic Span support unloaded\n");
 }
 
 module_param(debug, int, 0600);

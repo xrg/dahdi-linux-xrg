@@ -8,21 +8,19 @@
  * Copyright (C) 2001 Jim Dixon / Zapata Telephony.
  * Copyright (C) 2001-2008, Digium, Inc.
  *
- * All rights reserved.
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #include <linux/kernel.h>
@@ -35,7 +33,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 #define NEED_PCI_IDS
 #include "tor2-hw.h"
 #include "tor2fw.h"
@@ -201,7 +198,7 @@ static int tor2_spanconfig(struct dahdi_span *span, struct dahdi_lineconfig *lc)
 	struct tor2_span *p = span->pvt;
 
 	if (debug)
-		printk("Tor2: Configuring span %d\n", span->spanno);
+		printk(KERN_INFO "Tor2: Configuring span %d\n", span->spanno);
 
 	span->syncsrc = p->tor->syncsrc;
 	
@@ -234,9 +231,9 @@ static int tor2_chanconfig(struct dahdi_chan *chan, int sigtype)
 	alreadyrunning = chan->span->flags & DAHDI_FLAG_RUNNING;
 	if (debug) {
 		if (alreadyrunning)
-			printk("Tor2: Reconfigured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
+			printk(KERN_INFO "Tor2: Reconfigured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
 		else
-			printk("Tor2: Configured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
+			printk(KERN_INFO "Tor2: Configured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
 	}		
 	/* nothing more to do if an E1 */
 	if (p->tor->cardtype == TYPE_E1) return 0;
@@ -313,7 +310,7 @@ static int __devinit tor2_launch(struct tor2 *tor)
 {
 	if (tor->spans[0].flags & DAHDI_FLAG_REGISTERED)
 		return 0;
-	printk("Tor2: Launching card: %d\n", tor->order);
+	printk(KERN_INFO "Tor2: Launching card: %d\n", tor->order);
 	if (dahdi_register(&tor->spans[0], 0)) {
 		printk(KERN_ERR "Unable to register span %s\n", tor->spans[0].name);
 		return -1;
@@ -425,14 +422,14 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 		goto err_out_release_plx_region;
 	}
 	pci_set_drvdata(pdev, tor);
-	printk("Detected %s at 0x%lx/0x%lx irq %d\n", tor->type, 
+	printk(KERN_INFO "Detected %s at 0x%lx/0x%lx irq %d\n", tor->type, 
 		tor->xilinx32_region, tor->xilinx8_region,tor->irq);
 
 	for (x = 0; x < MAX_TOR_CARDS; x++) {
 		if (!cards[x]) break;
 	}
 	if (x >= MAX_TOR_CARDS) {
-		printk("No cards[] slot available!!\n");
+		printk(KERN_DEBUG "No cards[] slot available!!\n");
 		goto err_out_release_all;
 	}
 	tor->num = x;
@@ -453,21 +450,21 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 	while (le32_to_cpu(*gpdata_io) & (GPIO_INIT | GPIO_DONE) && (jiffies <= endjif));
 
 	if (endjif < jiffies) {
-		printk("Timeout waiting for INIT and DONE to go low\n");
+		printk(KERN_DEBUG "Timeout waiting for INIT and DONE to go low\n");
 		goto err_out_release_all;
 	}
-	if (debug) printk("fwload: Init and done gone to low\n");
+	if (debug) printk(KERN_DEBUG "fwload: Init and done gone to low\n");
 	gpdata |= GPIO_PROGRAM;
 	*gpdata_io = cpu_to_le32(gpdata);  /* de-activate the PROGRAM signal */
 	/* wait for INIT to go high (clearing done */
 	endjif = jiffies + 10;
 	while (!(le32_to_cpu(*gpdata_io) & GPIO_INIT) && (jiffies <= endjif));
 	if (endjif < jiffies) {
-		printk("Timeout waiting for INIT to go high\n");
+		printk(KERN_DEBUG "Timeout waiting for INIT to go high\n");
 		goto err_out_release_all;
 	}
 
-	if (debug) printk("fwload: Init went high (clearing done)\nNow loading...\n");
+	if (debug) printk(KERN_DEBUG "fwload: Init went high (clearing done)\nNow loading...\n");
 	/* assert WRITE signal */
 	gpdata &= ~GPIO_WRITE;
 	*gpdata_io = cpu_to_le32(gpdata);
@@ -480,29 +477,29 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 		  /* if INIT drops, we're screwed, exit */
 		if (!(le32_to_cpu(*gpdata_io) & GPIO_INIT)) break;
 	   }
-	if (debug) printk("fwload: Transferred %d bytes into chip\n",x);
+	if (debug) printk(KERN_DEBUG "fwload: Transferred %d bytes into chip\n",x);
 	/* Wait for FIFO to clear */
 	endjif = jiffies + 2;
 	while (jiffies < endjif); /* wait */
 	  /* de-assert write signal */
 	gpdata |= GPIO_WRITE;
 	*gpdata_io = cpu_to_le32(gpdata);
-	if (debug) printk("fwload: Loading done!\n");	
+	if (debug) printk(KERN_DEBUG "fwload: Loading done!\n");	
 
 	/* Wait for FIFO to clear */
 	endjif = jiffies + 2;
 	while (jiffies < endjif); /* wait */
 	if (!(le32_to_cpu(*gpdata_io) & GPIO_INIT))
 	   {
-		printk("Drove Init low!! CRC Error!!!\n");
+		printk(KERN_NOTICE "Drove Init low!! CRC Error!!!\n");
 		goto err_out_release_all;
 	   }
 	if (!(le32_to_cpu(*gpdata_io) & GPIO_DONE))
 	   {
-		printk("Did not get DONE signal. Short file maybe??\n");
+		printk(KERN_DEBUG "Did not get DONE signal. Short file maybe??\n");
 		goto err_out_release_all;
 	   }
-	printk("Xilinx Chip successfully loaded, configured and started!!\n");
+	printk(KERN_INFO "Xilinx Chip successfully loaded, configured and started!!\n");
 
 	tor->mem8[SYNCREG] = 0;
 	tor->mem8[CTLREG] = 0;
@@ -538,11 +535,11 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 	}
 
 	if (t1in(tor,1,0xf) & 0x80) {
-		printk("Tormenta 2 Quad E1/PRA Card\n");
+		printk(KERN_INFO "Tormenta 2 Quad E1/PRA Card\n");
 		tor->cardtype = TYPE_E1;
 		tor->datxlt = datxlt_e1;
 	} else {
-		printk("Tormenta 2 Quad T1/PRI Card\n");
+		printk(KERN_INFO "Tormenta 2 Quad T1/PRI Card\n");
 		tor->cardtype = TYPE_T1;
 		tor->datxlt = datxlt_t1;
 	}
@@ -559,7 +556,7 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 	init_spans(tor); 
 
 	tor->order = tor->mem8[SWREG];
-	printk("Detected Card number: %d\n", tor->order);
+	printk(KERN_INFO "Detected Card number: %d\n", tor->order);
 
 	/* Launch cards as appropriate */
 	x = 0;
@@ -641,13 +638,13 @@ static struct pci_driver tor2_driver = {
 static int __init tor2_init(void) {
 	int res;
 	res = dahdi_pci_module(&tor2_driver);
-	printk("Registered Tormenta2 PCI\n");
+	printk(KERN_INFO "Registered Tormenta2 PCI\n");
 	return res;
 }
 
 static void __exit tor2_cleanup(void) {
 	pci_unregister_driver(&tor2_driver);
-	printk("Unregistered Tormenta2\n");
+	printk(KERN_INFO "Unregistered Tormenta2\n");
 }
 
 static void set_clear(struct tor2 *tor)
@@ -662,7 +659,7 @@ static void set_clear(struct tor2 *tor)
 
 			if ((i % 8)==7) {
 #if 0
-				printk("Putting %d in register %02x on span %d\n",
+				printk(KERN_DEBUG "Putting %d in register %02x on span %d\n",
 				       val, 0x39 + j, 1 + s);
 #endif
 				t1out(tor,1 + s, 0x39 + j, val);
@@ -681,7 +678,7 @@ static int tor2_rbsbits(struct dahdi_chan *chan, int bits)
 	struct tor2_chan *p = chan->pvt;
 	unsigned long flags;
 #if 0
-	printk("Setting bits to %d on channel %s\n", bits, chan->name);
+	printk(KERN_DEBUG "Setting bits to %d on channel %s\n", bits, chan->name);
 #endif	
 	if (p->tor->cardtype == TYPE_E1) { /* do it E1 way */
 		if (chan->chanpos == 16) return 0;
@@ -753,7 +750,7 @@ static int tor2_shutdown(struct dahdi_span *span)
 
 	tspan = p->span + 1;
 	if (tspan < 0) {
-		printk("Tor2: Span '%d' isn't us?\n", span->spanno);
+		printk(KERN_DEBUG "Tor2: Span '%d' isn't us?\n", span->spanno);
 		return -1;
 	}
 
@@ -779,7 +776,7 @@ static int tor2_shutdown(struct dahdi_span *span)
 		/* No longer in use, disable interrupts */
 		p->tor->mem8[CTLREG] = 0;
 	if (debug)
-		printk("Span %d (%s) shutdown\n", span->spanno, span->name);
+		printk(KERN_DEBUG"Span %d (%s) shutdown\n", span->spanno, span->name);
 	return 0;
 }
 
@@ -798,7 +795,7 @@ static int tor2_startup(struct dahdi_span *span)
 
 	tspan = p->span + 1;
 	if (tspan < 0) {
-		printk("Tor2: Span '%d' isn't us?\n", span->spanno);
+		printk(KERN_DEBUG "Tor2: Span '%d' isn't us?\n", span->spanno);
 		return -1;
 	}
 
@@ -896,9 +893,9 @@ static int tor2_startup(struct dahdi_span *span)
 
 		if (debug) {
 			if (alreadyrunning) 
-				printk("Tor2: Reconfigured span %d (%s/%s%s) 120 Ohms\n", span->spanno, coding, framing, crcing);
+				printk(KERN_INFO "Tor2: Reconfigured span %d (%s/%s%s) 120 Ohms\n", span->spanno, coding, framing, crcing);
 			else
-				printk("Tor2: Startup span %d (%s/%s%s) 120 Ohms\n", span->spanno, coding, framing, crcing);
+				printk(KERN_INFO "Tor2: Startup span %d (%s/%s%s) 120 Ohms\n", span->spanno, coding, framing, crcing);
 		}
 	} else { /* is a T1 card */
 
@@ -983,15 +980,15 @@ static int tor2_startup(struct dahdi_span *span)
 
 		if (debug) {
 			if (alreadyrunning) 
-				printk("Tor2: Reconfigured span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, dahdi_lboname(span->txlevel));
+				printk(KERN_INFO "Tor2: Reconfigured span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, dahdi_lboname(span->txlevel));
 			else
-				printk("Tor2: Startup span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, dahdi_lboname(span->txlevel));
+				printk(KERN_INFO "Tor2: Startup span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, dahdi_lboname(span->txlevel));
 		}
 	}
-	if (p->tor->syncs[0] == span->spanno) printk("SPAN %d: Primary Sync Source\n",span->spanno);
-	if (p->tor->syncs[1] == span->spanno) printk("SPAN %d: Secondary Sync Source\n",span->spanno);
-	if (p->tor->syncs[2] == span->spanno) printk("SPAN %d: Tertiary Sync Source\n",span->spanno);
-	if (p->tor->syncs[3] == span->spanno) printk("SPAN %d: Quaternary Sync Source\n",span->spanno);
+	if (p->tor->syncs[0] == span->spanno) printk(KERN_INFO "SPAN %d: Primary Sync Source\n",span->spanno);
+	if (p->tor->syncs[1] == span->spanno) printk(KERN_INFO "SPAN %d: Secondary Sync Source\n",span->spanno);
+	if (p->tor->syncs[2] == span->spanno) printk(KERN_INFO "SPAN %d: Tertiary Sync Source\n",span->spanno);
+	if (p->tor->syncs[3] == span->spanno) printk(KERN_INFO "SPAN %d: Quaternary Sync Source\n",span->spanno);
 	return 0;
 }
 
@@ -1018,7 +1015,7 @@ static int tor2_maint(struct dahdi_span *span, int cmd)
 		    case DAHDI_MAINT_LOOPSTOP:
 			return -ENOSYS;
 		    default:
-			printk("Tor2: Unknown maint command: %d\n", cmd);
+			printk(KERN_NOTICE "Tor2: Unknown maint command: %d\n", cmd);
 			break;
 		}
 		return 0;
@@ -1050,7 +1047,7 @@ static int tor2_maint(struct dahdi_span *span, int cmd)
 	t1out(p->tor,tspan,0x30,0);	/* stop sending loopup code */
 	break;
     default:
-	printk("Tor2: Unknown maint command: %d\n", cmd);
+	printk(KERN_NOTICE "Tor2: Unknown maint command: %d\n", cmd);
 	break;
    }
     return 0;
@@ -1150,7 +1147,7 @@ found:
 			syncnum = newsyncnum;
 			syncsrc = newsyncsrc;
 			syncspan = newsyncspan;
-			if (debug) printk("New syncnum: %d, syncsrc: %d, syncspan: %d\n", syncnum, syncsrc, syncspan);
+			if (debug) printk(KERN_DEBUG "New syncnum: %d, syncsrc: %d, syncspan: %d\n", syncnum, syncsrc, syncspan);
 		}
 	}
 #endif	
@@ -1166,7 +1163,7 @@ found:
 			/* actually set the sync register */
 			tor->mem8[SYNCREG] = syncspan;
 #endif			
-			if (debug) printk("Card %d, using sync span %d, master\n", tor->num, syncspan);
+			if (debug) printk(KERN_DEBUG "Card %d, using sync span %d, master\n", tor->num, syncspan);
 			tor->master = MASTER;	
 		} else {
 #if 1
@@ -1174,7 +1171,7 @@ found:
 			tor->mem8[SYNCREG] = SYNCEXTERN;
 #endif			
 			tor->master = 0;
-			if (debug) printk("Card %d, using Timing Bus, NOT master\n", tor->num);	
+			if (debug) printk(KERN_DEBUG "Card %d, using Timing Bus, NOT master\n", tor->num);	
 		}
 	}
 	spin_unlock_irqrestore(&synclock, flags);
@@ -1205,7 +1202,7 @@ DAHDI_IRQ_HANDLER(tor2_intr)
 
 #if	0
 	if (!tor->passno)
-		printk("Interrupt handler\n");
+		printk(KERN_DEBUG "Interrupt handler\n");
 #endif
 
 	/* do the transmit output */

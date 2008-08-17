@@ -8,20 +8,19 @@
  *
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #include <linux/kernel.h>
@@ -35,7 +34,6 @@
 #include <linux/moduleparam.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 /* Uncomment to enable tasklet handling in the FXO driver.  Not recommended
    in general, but may improve interactive performance */
@@ -305,7 +303,7 @@ static inline void wcfxo_transmitprep(struct wcfxo *wc, unsigned char ints)
 			wc->ignoreread = 4;
 			break;
 		default:
-			printk("wcfxo: Huh?  No read or write??\n");
+			printk(KERN_DEBUG "wcfxo: Huh?  No read or write??\n");
 			cmd = 0;
 		}
 		/* Setup the write chunk */
@@ -357,7 +355,7 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 					wc->regoffset = wc->regoffset % (sizeof(wecareregs) / sizeof(wecareregs[0]));
 				}
 				if (debug)
-					printk("New regoffset: %d\n", wc->regoffset);
+					printk(KERN_DEBUG "New regoffset: %d\n", wc->regoffset);
 			}
 			/* Receive into the proper register */
 			wc->readregs[realreg] = realval;
@@ -388,14 +386,14 @@ static inline void wcfxo_receiveprep(struct wcfxo *wc, unsigned char ints)
 		if (!wc->ring && (wc->pegcount > PEGCOUNT)) {
 			/* It's ringing */
 			if (debug)
-				printk("RING!\n");
+				printk(KERN_DEBUG "RING!\n");
 			dahdi_hooksig(wc->chan, DAHDI_RXSIG_RING);
 			wc->ring = 1;
 		}
 		if (wc->ring && !wc->pegcount) {
 			/* No more ring */
 			if (debug)
-				printk("NO RING!\n");
+				printk(KERN_DEBUG "NO RING!\n");
 			dahdi_hooksig(wc->chan, DAHDI_RXSIG_OFFHOOK);
 			wc->ring = 0;
 		}
@@ -465,14 +463,14 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 	}
 
 	if (ints & 0x10) {
-		printk("FXO PCI Master abort\n");
+		printk(KERN_INFO "FXO PCI Master abort\n");
 		/* Stop DMA andlet the watchdog start it again */
 		wcfxo_stop_dma(wc);
 		return IRQ_RETVAL(1);
 	}
 
 	if (ints & 0x20) {
-		printk("PCI Target abort\n");
+		printk(KERN_INFO "PCI Target abort\n");
 		return IRQ_RETVAL(1);
 	}
 	if (1 /* !(wc->report % 0xf) */) {
@@ -482,17 +480,17 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 			wc->nobatttimer++;
 #if 0
 			if (wc->battery)
-				printk("Battery loss: %d (%d debounce)\n", b, wc->battdebounce);
+				printk(KERN_DEBUG "Battery loss: %d (%d debounce)\n", b, wc->battdebounce);
 #endif
 			if (wc->battery && !wc->battdebounce) {
 				if (debug)
-					printk("NO BATTERY!\n");
+					printk(KERN_DEBUG "NO BATTERY!\n");
 				wc->battery =  0;
 #ifdef	JAPAN
 				if ((!wc->ohdebounce) && wc->offhook) {
 					dahdi_hooksig(&wc->chan, DAHDI_RXSIG_ONHOOK);
 					if (debug)
-						printk("Signalled On Hook\n");
+						printk(KERN_DEBUG "Signalled On Hook\n");
 #ifdef	ZERO_BATT_RING
 					wc->onhook++;
 #endif
@@ -514,13 +512,13 @@ DAHDI_IRQ_HANDLER(wcfxo_interrupt)
 		} else if (b == 0xf) {
 			if (!wc->battery && !wc->battdebounce) {
 				if (debug)
-					printk("BATTERY!\n");
+					printk(KERN_DEBUG "BATTERY!\n");
 #ifdef	ZERO_BATT_RING
 				if (wc->onhook) {
 					wc->onhook = 0;
 					dahdi_hooksig(&wc->chan, DAHDI_RXSIG_OFFHOOK);
 					if (debug)
-						printk("Signalled Off Hook\n");
+						printk(KERN_DEBUG "Signalled Off Hook\n");
 				}
 #else
 				dahdi_hooksig(wc->chan, DAHDI_RXSIG_OFFHOOK);
@@ -562,7 +560,7 @@ static int wcfxo_setreg(struct wcfxo *wc, unsigned char reg, unsigned char value
 		wc->wregcount++;
 		return 0;
 	}
-	printk("wcfxo: Out of space to write register %02x with %02x\n", reg, value);
+	printk(KERN_NOTICE "wcfxo: Out of space to write register %02x with %02x\n", reg, value);
 	return -1;
 }
 
@@ -577,7 +575,7 @@ static int wcfxo_open(struct dahdi_chan *chan)
 
 static int wcfxo_watchdog(struct dahdi_span *span, int event)
 {
-	printk("FXO: Restarting DMA\n");
+	printk(KERN_INFO "FXO: Restarting DMA\n");
 	wcfxo_restart_dma(span->pvt);
 	return 0;
 }
@@ -592,7 +590,7 @@ static int wcfxo_close(struct dahdi_chan *chan)
 	return 0;
 }
 
-static int wcfxo_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
+static int wcfxo_hooksig(struct dahdi_chan *chan, enum dahdi_txsig txsig)
 {
 	struct wcfxo *wc = chan->pvt;
 	int reg=0;
@@ -628,10 +626,10 @@ static int wcfxo_hooksig(struct dahdi_chan *chan, dahdi_txsig_t txsig)
 #endif
 		break;
 	default:
-		printk("wcfxo: Can't set tx state to %d\n", txsig);
+		printk(KERN_NOTICE "wcfxo: Can't set tx state to %d\n", txsig);
 	}
 	if (debug)
-		printk("Setting hook state to %d (%02x)\n", txsig, reg);
+		printk(KERN_DEBUG "Setting hook state to %d (%02x)\n", txsig, reg);
 	return 0;
 }
 
@@ -664,7 +662,7 @@ static int wcfxo_initialize(struct wcfxo *wc)
 	wc->span.pvt = wc;
 	wc->chan->pvt = wc;
 	if (dahdi_register(&wc->span, 0)) {
-		printk("Unable to register span with DAHDI\n");
+		printk(KERN_NOTICE "Unable to register span with DAHDI\n");
 		return -1;
 	}
 	return 0;
@@ -788,7 +786,7 @@ static void wcfxo_set_daa_mode(struct wcfxo *wc)
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(1 + (DAHDI_CHUNKSIZE * HZ) / 800);
 
-	printk("wcfxo: DAA mode is '%s'\n", fxo_modes[opermode].name);
+	printk(KERN_INFO "wcfxo: DAA mode is '%s'\n", fxo_modes[opermode].name);
 }
 
 static int wcfxo_init_daa(struct wcfxo *wc)
@@ -836,11 +834,11 @@ static int wcfxo_init_daa(struct wcfxo *wc)
 	reg15 = 0x0;
 	/* Go ahead and attenuate transmit signal by 6 db */
 	if (quiet) {
-		printk("wcfxo: Attenuating transmit signal for quiet operation\n");
+		printk(KERN_INFO "wcfxo: Attenuating transmit signal for quiet operation\n");
 		reg15 |= (quiet & 0x3) << 4;
 	}
 	if (boost) {
-		printk("wcfxo: Boosting receive signal\n");
+		printk(KERN_INFO "wcfxo: Boosting receive signal\n");
 		reg15 |= (boost & 0x3);
 	}
 	wcfxo_setreg(wc, WC_DAA_TXRX_GCTL, reg15);
@@ -868,9 +866,9 @@ static int wcfxo_init_daa(struct wcfxo *wc)
 	{ int x;
 	int y;
 	for (y=0;y<100;y++) {
-		printk(" reg dump ====== %d ======\n", y);
+		printk(KERN_DEBUG " reg dump ====== %d ======\n", y);
 		for (x=0;x<sizeof(wecareregs) / sizeof(wecareregs[0]);x++) {
-			printk("daa: Reg %d: %02x\n", wecareregs[x], wc->readregs[wecareregs[x]]);
+			printk(KERN_DEBUG "daa: Reg %d: %02x\n", wecareregs[x], wc->readregs[wecareregs[x]]);
 		}
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(100);
@@ -903,8 +901,8 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	}
 
 	ifaces[x] = wc;
-	wc->chan = &wc->_chan;
 	memset(wc, 0, sizeof(struct wcfxo));
+	wc->chan = &wc->_chan;
 	wc->ioaddr = pci_resource_start(pdev, 0);
 	wc->dev = pdev;
 	wc->pos = x;
@@ -918,7 +916,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	   32 bits.  Allocate an extra set just for control too */
 	wc->writechunk = (int *)pci_alloc_consistent(pdev, DAHDI_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, &wc->writedma);
 	if (!wc->writechunk) {
-		printk("wcfxo: Unable to allocate DMA-able memory\n");
+		printk(KERN_NOTICE "wcfxo: Unable to allocate DMA-able memory\n");
 		if (wc->freeregion)
 			release_region(wc->ioaddr, 0xff);
 		return -ENOMEM;
@@ -928,7 +926,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	wc->readdma = wc->writedma + DAHDI_MAX_CHUNKSIZE * 16;		/* in bytes */
 
 	if (wcfxo_initialize(wc)) {
-		printk("wcfxo: Unable to intialize modem\n");
+		printk(KERN_NOTICE "wcfxo: Unable to intialize modem\n");
 		if (wc->freeregion)
 			release_region(wc->ioaddr, 0xff);
 		kfree(wc);
@@ -942,7 +940,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 	pci_set_drvdata(pdev, wc);
 
 	if (request_irq(pdev->irq, wcfxo_interrupt, DAHDI_IRQ_SHARED, "wcfxo", wc)) {
-		printk("wcfxo: Unable to request IRQ %d\n", pdev->irq);
+		printk(KERN_NOTICE "wcfxo: Unable to request IRQ %d\n", pdev->irq);
 		if (wc->freeregion)
 			release_region(wc->ioaddr, 0xff);
 		kfree(wc);
@@ -960,7 +958,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 
 	/* Initialize DAA (after it's started) */
 	if (wcfxo_init_daa(wc)) {
-		printk("Failed to initailize DAA, giving up...\n");
+		printk(KERN_NOTICE "Failed to initailize DAA, giving up...\n");
 		wcfxo_stop_dma(wc);
 		wcfxo_disable_interrupts(wc);
 		dahdi_unregister(&wc->span);
@@ -975,7 +973,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 		return -EIO;
 	}
 	wcfxo_set_daa_mode(wc);
-	printk("Found a Wildcard FXO: %s\n", wc->variety);
+	printk(KERN_INFO "Found a Wildcard FXO: %s\n", wc->variety);
 
 	return 0;
 }
@@ -986,7 +984,7 @@ static void wcfxo_release(struct wcfxo *wc)
 	if (wc->freeregion)
 		release_region(wc->ioaddr, 0xff);
 	kfree(wc);
-	printk("Freed a Wildcard\n");
+	printk(KERN_INFO "Freed a Wildcard\n");
 }
 
 static void __devexit wcfxo_remove_one(struct pci_dev *pdev)
@@ -1039,9 +1037,9 @@ static int __init wcfxo_init(void)
 	int res;
 	int x;
 	if ((opermode >= sizeof(fxo_modes) / sizeof(fxo_modes[0])) || (opermode < 0)) {
-		printk("Invalid/unknown operating mode specified.  Please choose one of:\n");
+		printk(KERN_NOTICE "Invalid/unknown operating mode specified.  Please choose one of:\n");
 		for (x=0;x<sizeof(fxo_modes) / sizeof(fxo_modes[0]); x++)
-			printk("%d: %s\n", x, fxo_modes[x].name);
+			printk(KERN_INFO "%d: %s\n", x, fxo_modes[x].name);
 		return -ENODEV;
 	}
 	res = dahdi_pci_module(&wcfxo_driver);

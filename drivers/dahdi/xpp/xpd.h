@@ -171,7 +171,7 @@ struct xpd {
 	atomic_t	open_counter;	/* Number of open channels */
 
 	int		flags;
-	bool		blink_mode;	/* for visual identification */
+	unsigned long	blink_mode;	/* bitmask of blinking ports */
 #define	DEFAULT_LED_PERIOD	(1000/8)	/* in tick */
 
 #ifdef CONFIG_PROC_FS

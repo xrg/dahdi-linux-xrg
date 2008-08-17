@@ -677,7 +677,7 @@ int (*rbsbits)(struct dahdi_chan *chan, int bits);
    generate ring, etc directly) then you can just specify a
    sethook function, and we'll call you with appropriate hook states
    to set.  Still set the DAHDI_FLAG_RBS in this case as well */
-int (*hooksig)(struct dahdi_chan *chan, dahdi_txsig_t hookstate);
+int (*hooksig)(struct dahdi_chan *chan, enum dahdi_txsig hookstate);
 
 /* Option 3: If you can't use sig bits, you can write a function
    which handles the individual hook states  */
@@ -780,12 +780,13 @@ void generic_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t lines, xpack
 		if(IS_SET(lines, i)) {
 			if(SPAN_REGISTERED(xpd)) {
 #ifdef	DEBUG_PCMTX
-				if(pcmtx >= 0 && pcmtx_chan == i)
+				int	channo = xpd->span.chans[i]->channo;
+
+				if(pcmtx >= 0 && pcmtx_chan == channo)
 					memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 				else
 #endif
 					memcpy((u_char *)pcm, chans[i]->writechunk, DAHDI_CHUNKSIZE);
-				// fill_beep((u_char *)pcm, xpd->addr.subunit, 2);
 			} else
 				memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
 			pcm += DAHDI_CHUNKSIZE;
@@ -799,34 +800,42 @@ void generic_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 {
 	byte		*pcm;
 	xpp_line_t	pcm_mask;
+	xpp_line_t	pcm_mute;
 	unsigned long	flags;
 	int		i;
 
 	pcm = RPACKET_FIELD(pack, GLOBAL, PCM_READ, pcm);
 	pcm_mask = RPACKET_FIELD(pack, GLOBAL, PCM_READ, lines);
 	spin_lock_irqsave(&xpd->lock, flags);
+	/*
+	 * Calculate the channels we want to mute
+	 */
+	pcm_mute = ~xpd->wanted_pcm_mask;
+	pcm_mute |= xpd->mute_dtmf | xpd->silence_pcm;
 	if(!SPAN_REGISTERED(xpd))
 		goto out;
 	for (i = 0; i < xpd->channels; i++) {
 		volatile u_char	*r = xpd->span.chans[i]->readchunk;
+		bool		got_data = IS_SET(pcm_mask, i);
 
-		if(!IS_SET(xpd->wanted_pcm_mask, i)) {
+		if(got_data && !IS_SET(pcm_mute, i)) {
+			/* We have and want real data */
+			// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
+			memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);
+		} else if(IS_SET(xpd->wanted_pcm_mask | xpd->silence_pcm, i)) {
+			/* Inject SILENCE */
+			memset((u_char *)r, 0x7F, DAHDI_CHUNKSIZE);
 			if(IS_SET(xpd->silence_pcm, i)) {
-				memset((u_char *)r, 0x7F, DAHDI_CHUNKSIZE);	// SILENCE
+				/*
+				 * This will clear the EC buffers until next tick
+				 * So we don't have noise residues from the past.
+				 */
 				memset(xpd->ec_chunk2[i], 0x7F, DAHDI_CHUNKSIZE);
 				memset(xpd->ec_chunk1[i], 0x7F, DAHDI_CHUNKSIZE);
 			}
-			continue;
 		}
-		pcm_mask &= ~xpd->mute_dtmf;
-		if(IS_SET(pcm_mask, i)) {
-			// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
-			// fill_beep((u_char *)r, 1, 1);	// DEBUG: BEEP
-			memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);
+		if(got_data)
 			pcm += DAHDI_CHUNKSIZE;
-		} else {
-			memset((u_char *)r, 0x7F, DAHDI_CHUNKSIZE);	// SILENCE
-		}
 	}
 out:
 	XPD_COUNTER(xpd, PCM_READ)++;
@@ -1126,7 +1135,7 @@ static int proc_sync_write(struct file *file, const char __user *buffer, unsigne
 	if(copy_from_user(buf, buffer, count))
 		return -EFAULT;
 	buf[count] = '\0';
-	if(strncmp("DAHDI", buf, 6) == 0) {
+	if(strncmp("DAHDI", buf, 5) == 0) {
 		DBG(SYNC, "DAHDI\n");
 		force_dahdi_sync=1;
 		update_sync_master(NULL);

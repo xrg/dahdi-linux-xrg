@@ -7,21 +7,6 @@
  *
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
- *
- *
  * Note : a DAHDI timing source must exist prior to loading this driver
  *
  * Address syntax : 
@@ -47,6 +32,19 @@
  * 
  */
 
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
+ */
+
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/module.h>
@@ -58,7 +56,6 @@
 #include <linux/notifier.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #ifdef DEFINE_SPINLOCK
 static DEFINE_SPINLOCK(zlock);
@@ -153,7 +150,7 @@ static int digit2int(char d)
 	}
 	spin_unlock_irqrestore(&zlock, flags);
 	if (cur == z) {
-		printk("TDMoL: Removed interface for %s, key %d id %d\n", z->span->name, z->key, z->id);
+		printk(KERN_INFO "TDMoL: Removed interface for %s, key %d id %d\n", z->span->name, z->key, z->id);
 		module_put(THIS_MODULE);
 		kfree(z);
 	}
@@ -195,12 +192,12 @@ static int digit2int(char d)
 		for (l = zdevs; l; l = l->next)
 			if (l->key == z->key) {
 				if (l->id == z->id) {
-					printk ("TDMoL: Duplicate id (%d) for key %d\n", z->id, z->key);
+					printk(KERN_DEBUG "TDMoL: Duplicate id (%d) for key %d\n", z->id, z->key);
 					goto CLEAR_AND_DEL_FROM_PEERS;
 				}
 				if (monitor == -1) {
 					if (l->peer) {
-						printk ("TDMoL: Span with key %d and id %d already has a R/W peer\n", z->key, z->id);
+						printk(KERN_DEBUG "TDMoL: Span with key %d and id %d already has a R/W peer\n", z->key, z->id);
 						goto CLEAR_AND_DEL_FROM_PEERS;
 					} else {
 						l->peer = z;
@@ -209,7 +206,7 @@ static int digit2int(char d)
 				}
 				if (monitor == l->id) {
 					if (l->monitor_rx_peer) {
-						printk ("TDMoL: Span with key %d and id %d already has a monitoring peer\n", z->key, z->id);
+						printk(KERN_DEBUG "TDMoL: Span with key %d and id %d already has a monitoring peer\n", z->key, z->id);
 						goto CLEAR_AND_DEL_FROM_PEERS;
 					} else {
 						l->monitor_rx_peer = z;
@@ -220,9 +217,9 @@ static int digit2int(char d)
 		zdevs = z;
 		spin_unlock_irqrestore(&zlock, flags);
 		if(!try_module_get(THIS_MODULE))
-			printk("TDMoL: Unable to increment module use count\n");
+			printk(KERN_DEBUG "TDMoL: Unable to increment module use count\n");
 
-		printk("TDMoL: Added new interface for %s, key %d id %d\n", span->name, z->key, z->id);
+		printk(KERN_INFO "TDMoL: Added new interface for %s, key %d id %d\n", span->name, z->key, z->id);
 	}
 	return z;
 
@@ -237,7 +234,7 @@ CLEAR_AND_DEL_FROM_PEERS:
 	return NULL;
 	
 INVALID_ADDRESS:
-	printk ("TDMoL: Invalid address %s\n", address);
+	printk (KERN_NOTICE "TDMoL: Invalid address %s\n", address);
 	return NULL;
 }
 

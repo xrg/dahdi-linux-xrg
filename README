@@ -1,0 +1,387 @@
+DAHDI Telephony Interface Driver
+=================================
+Asterisk Development Team <asteriskteam@digium.com>
+$Revision$, $Date$
+
+DAHDI stands for Digium Asterisk Hardware Device Interface.
+
+Supported Hardware
+------------------
+Digital Cards
+~~~~~~~~~~~~~
+- wct4xxp:
+  * Digium TE205P/TE207P/TE210P/TE212P: PCI dual-port T1/E1/J1
+  * Digium TE405P/TE407P/TE410P/TE412P: PCI quad-port T1/E1/J1
+  * Digium TE220: PCI-Express dual-port T1/E1/J1
+  * Digium TE420: PCI-Express quad-port T1/E1/J1
+- wcte12xp:
+  * Digium TE120P: PCI single-port T1/E1/J1
+  * Digium TE121: PCI-Express single-port T1/E1/J1
+  * Digium TE122: PCI single-port T1/E1/J1
+- wcte11xp:
+  * Digium TE110P: PCI single-port T1/E1/J1
+- wct1xxp: 
+  * Digium T100P: PCI single-port T1
+  * Digium E100P: PCI single-port E1
+- tor2: Tormenta quad-span T1/E1 card from the Zapata Telephony project
+
+Analog Cards
+~~~~~~~~~~~~
+- wctdm24xxp: 
+  * Digium TDM2400P/AEX2400: up to 24 analog ports
+  * Digium TDM800P/AEX800: up to 8 analog ports
+  * Digium TDM410P: up to 4 analog ports
+- wctdm:
+  * Digium TDM400P: up to 4 analog ports
+- xpp: Xorcom Astribank: a USB connected unit of up to 32 ports
+  (including the digital BRI and E1/T1 modules)
+- wcfxo: X100P, similar and clones. A simple single-port FXO card
+
+Other Drivers
+~~~~~~~~~~~~~
+- pciradio: Zapata Telephony PCI Quad Radio Interface
+- wctc4xxp: Digium hardware transcoder cards (also need dahdi_transcode)
+- dahdi_dynamic_eth: TDM over Ethernet (TDMoE) driver. Requires dahdi_dynamic
+- dahdi_dynamic_loc: Mirror a local span. Requires dahdi_dynamic
+- dahdi_dummy: A dummy driver that only provides a DAHDI timing source.
+
+Build System
+~~~~~~~~~~~~~~
+gcc and friends. Generally you will need to install the package gcc.
+There may be cases where you will need a specific version of gcc to build
+kernel modules.
+
+Installation
+~~~~~~~~~~~~
+Note: If using `sudo` to build/install, you may need to add /sbin to your PATH.
+----------------------------------
+# make
+# make install
+
+Building to a Subtree
+~~~~~~~~~~~~~~~~~~~~~
+The following may be useful when testing the package or when preparing a
+package for a binary distribution (such as an rpm package) installing
+onto a subtree rather than on th real system. 
+
+  make install DESTDIR=targetdir
+
+This can be useful for any partial install target of the above (e.g:
+install-modules or install-programs).
+
+the targetdir must be an absolute path, at least if you install the
+modules. To install to a relative path you can use something like:
+
+  make install-modules DESTDIR=$PWD/target
+
+The 'install' target might fail if run as a user to a DESTDIR when
+attempting to generate device files. In that case, try:
+
+  make install DESTDIR=$PWD/target DYNFS=
+
+Configuration
+~~~~~~~~~~~~~
+Configuration for DAHDI resides under /etc/dahdi . 
+
+/etc/dahdi/system.conf
+~~~~~~~~~~~~~~~~~~~~~~
+The main method to configure DAHDI devices is using the utility
+*dahdi_cfg*. dahdi_cfg reads data from the configuration file 
+/etc/dahdi/system.conf , figures out what configuration to send to 
+channels, and send it to the kernel.
+
+A sample annotated system.conf is included in this directory and
+installed by default. Edit it to suit your configuration. Alternatively 
+use the script dahdi_genconf to generate one that should work with your 
+system.
+
+/etc/dahdi/init.conf
+~~~~~~~~~~~~~~~~~~~~
+The configuration file of the dahdi init.d script is
+/etc/dahdi/init.conf . That file is used to override defaults that are 
+set at the beginning of the init.d script.
+
+Module Parameters
+~~~~~~~~~~~~~~~~~
+The kernel modules can be configured through module parameters. Module
+parameters can optionally be set at load time. They are normally set (if
+needed) by a line in a file under /etc/modprobe.d/ or in the file
+/etc/modprobe.conf.
+
+Example line:
+
+  options dahdi debug=1
+
+The module parameters can normally be modified at runtime through sysfs:
+
+  pungenday:~# cat /sys/module/dahdi/parameters/debug 
+  0
+  pungenday:~# echo 1 >/sys/module/dahdi/parameters/debug
+  pungenday:~# cat /sys/module/dahdi/parameters/debug 
+  1
+
+Viewing and setting parameters that way is possible as of kernel 2.6 .
+In kernels older than 2.6.10, the sysfs "files" for the parameters
+reside directly under /sys/module/'module_name' .
+
+Useful module parameters:
+
+debug (most modules)::
+  Sets debug mode / debug level. With most modules 'debug' can be either
+  disabled (0, the default value) or enabled (any other value). 
+  +
+  +
+  wctdm and wcte1xp print several extra debugging messages if the value
+  of debug is more than 1.
+  +
+  +
+  Some modules have "debugging flags" bits - the value of debug is a
+  bitmask and several messages are printed if some bits are set:
+  - dahdi_dummy:
+    * 1: DEBUG_GENERAL - general error messages.
+    * 2: DEBUG_TICKS - Show that the module is alive :-)
+  - wctdm24xxp:
+    * 1: DEBUG_CARD
+    * 2: DEBUG_ECHOCAN
+  - wct4xxp:
+    * 1: DEBUG_MAIN
+    * 2: DEBUG_DTMF
+    * 4: DEBUG_REGS
+    * 8: DEBUG_TSI
+    * 16: DEBUG_ECHOCAN
+    * 32: DEBUG_RBS
+    * 64: DEBUG_FRAMER
+  - xpp: See also README.Astribank:
+    * 1: GENERAL - General debug comments.
+    * 2: PCM - PCM-related messages. Tend to flood logs.
+    * 4: LEDS - Anything related to the LEDs status control. The driver
+      produces a lot of messages when the option is enabled.
+    * 8: SYNC - Synchronization related messages.
+    * 16: SIGNAL - DAHDI signalling related messages.
+    * 32: PROC - Messages related to the procfs interface.
+    * 64: REGS - Reading and writing to chip registers. Tends to flood
+          logs.
+    * 128: DEVICES - Device instantiation, destruction and such.
+    * 256 - COMMANDS - Protocol commands. Tends to flood logs.
+
+deftaps (dahdi)::
+  The default size for the echo canceller. The number is in "taps", that
+  is "samples", 1/8 ms. The default is 64 - for a tail size of 8 ms.
+  +
+  +
+  Asterisk's chan_dahdi tends to pass its own value anyway, with a
+  different default size. So normally setting this doesn't change
+  anything.
+
+To get a list of parameters supported by a module, use 
+
+  modinfo module_name
+
+Or, for a module you have just built:
+
+  modinfo ./module_name.ko
+
+For the xpp modules this will also include the description and default
+value of the module. You can find a list of useful xpp module parameters
+in README.Astribank .
+
+Internals
+---------
+DAHDI Device Files
+~~~~~~~~~~~~~~~~~~~
+Userspace programs will usually interact with DAHDI through device
+files under the /dev/dahdi directory (pedantically: characted device files 
+with major number 196) . Those device files can be generated statically
+or dynamically through the udev system.
+
+* /dev/dahdi/ctl (196:0) - a general device file for various information and
+  control operations on the DAHDI channels.
+* /dev/dahdi/NNN (196:NNN) - for NNN in the range 1-249. A device file for
+  DAHDI channel NNN. It can be used to read data from the channel
+  and write data to the channel.
+* /dev/dahdi/transcode (196:250) - Used to connect to a DAHDI transcoding
+  device.
+* /dev/dahdi/timer (196:253) - Allows setting timers. Used anywhere?
+* /dev/dahdi/channel (196:254) - Can be used to open an arbitrary DAHDI
+  channel. This is an alternative to /dev/dahdi/NNN that is not limited to
+  249 channels.
+* /dev/dahdi/pseudo (196:255) - A timing-only device. Every time you open
+  it, a new DAHDI channel is created. That DAHDI channel is "pseudo" -
+  DAHDI recieves no data in it, and only sends garbage data with the
+  same timing as the DAHDI timing master device.
+
+DAHDI Timing
+~~~~~~~~~~~~~
+A PBX system should generally have a single clock. If you are connected to a
+telephony provider via a digital interface (e.g: E1, T1) you should also
+typically use the provider's clock (as you get through the interface). Hence
+one important job of Asterisk is to provide timing to the PBX. 
+
+DAHDI "ticks" once per millisecond (1000 times per second). On each tick every
+active DAHDI channel reads and 8 bytes of data. Asterisk also uses this for
+timing, through a DAHDI pseudo channel it opens.
+
+However, not all PBX systems are connected to a telephony provider via a T1 or
+similar connection. With an analog connection you are not synced to the other
+party. And some systems don't have DAHDI hardware at all.  Even a digital card
+may be used for other uses or is simply not connected to a provider. DAHDI
+cards are also capable of providing timing from a clock on card. Cheap x100P
+clone cards are sometimes used for that pupose.
+
+If all the above fail, you can use the module dahdi_dummy to provide timing
+alone without needing any DAHDI hardware. It will work with most systems and
+kernels.
+
+You can check the DAHDI timing source with dahdi_test, which is a small
+utility that is included with DAHDI. It runs in cycles. In each such cycle it
+tries to read 8192 bytes, and sees how long it takes. If DAHDI is not loaded
+or you don't have the device files, it will fail immediately. If you lack a
+timing device it will hang forever in the first cycle. Otherwise it will just
+give you in each cycle the percent of how close it was. Also try running it
+with the option -v for a verbose output.
+
+To check the clock source that is built into dahdi_dummy, you can either look
+at title of its span in /proc/dahdi file for a "source:" in the description.
+Or even run:
+
+  strings dahdi.ko | grep source:
+
+Spans and Channels
+~~~~~~~~~~~~~~~~~~
+DAHDI provides telephony *channels* to the userspace applications. 
+Those channels are channels are incorperated into logical units called
+*spans*.
+
+With digital telephony adapters (e.g: E1 or T1), a span normally 
+represents a single port. With analog telephony a span typically
+represents a PCI adapter or a similar logical unit.
+
+Both channels and spans are identified by enumerating numbers (beginning
+with 1). The number of the channel is the lowest unused one when it is
+generated, and ditto for spans.
+
+PROCFS Interface: /proc/dahdi
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A simple way to get the current list of spans and channels each span contains
+is the files under /proc/dahdi . /proc/dahdi is generated by DAHDI as it
+loads. As each span registers to DAHDI, a file under /proc/dahdi is created
+for it. The name of that file is the number of that span.
+
+Each file has a 1-line title for the span followed by an empty line and
+then a line for each channel of the span. 
+
+The title line shows the number of the span, its name and title, and 
+(potentially) the alarms in which it is.
+
+The title shows the span number and name, followed by any allarms the
+span may have: For example, here is the first span in my system (with no
+alarms):
+
+  Span 1: XBUS-00/XPD-00 "Xorcom XPD #0/0: FXS"
+
+The channel line for each channel shows its channel number, name and the
+actual signalling assigned to it through dahdi_cfg. Before being configured by
+dahdi_cfg: This is DAHDI channel 2, whose name is 'XPP_FXS/0/0/1'.
+
+           2 XPP_FXS/0/0/1
+
+After being configured by dahdi_cfg: the signalling 'FXOLS' was added. FXS
+channels have FXO signalling and vice versa:
+
+           2 XPP_FXS/0/0/1 FXOLS
+
+If the channel is in use (typically opened by Asterisk) then you will
+see an extra '(In use)':
+
+           2 XPP_FXS/0/0/1 FXOLS (In use)
+
+ABI Compatibility
+~~~~~~~~~~~~~~~~~
+Like any other kernel code, DAHDI strives to maintain a stable interface to
+userspace programs. The API of DAHDI to userspace programs, dahdi/user.h, has
+remained backword-compatible for a long time and is expected to remain so in
+the future. With the ABI (the bits themselves) things are slightly trickier.
+
+DAHDI's interface to userspace is mostly ioctl(3) calls. Ioctl calls
+are identified by a number that stems from various things, one of which
+is the size of the data structure passed between the kernel and
+userspace. 
+
+Many of the DAHDI ioctl-s use some sepcific structs to pass information
+between kernel and userspace. In some cases the need arose to pass a few
+more data members in each call. Simply adding a new member to the struct
+would have meant a new number for the ioctl, as its number depends on
+the size of the data passed.
+
+Thus we would add a new ioctl with the same base number and with the
+original struct.
+
+So suppose we had the following ioctl:
+----------------------------------
+struct zt_example {
+	int sample;
+}
+
+#define ZT_EXAMPLE     _IOWR (ZT_CODE, 62, struct zt_example)
+----------------------------------
+
+And we want to add the field 'int onemore', we won't just add it to the
+struct. We will do something that is more complex:
+------------------------------------
+/* The original, unchanged: */
+struct zt_example_v1 {
+	int sample;
+}
+
+/* The new struct: */
+struct zt_example {
+	int sample;
+	int onemore;
+}
+
+#define ZT_EXAMPLE_V1  _IOWR (ZT_CODE, 62, struct zt_example_v1)
+#define ZT_EXAMPLE     _IOWR (ZT_CODE, 62, struct zt_example)
+------------------------------------
+We actually have here two different ioctls: the old ZT_EXAMPLE would be
+0xC0044A3E . ZT_EXAMPLE_V1 would have the same value. But the new value
+of ZT_EXAMPLE would be 0xC0084A3E .
+
+Programs built with the original dahdi/user.h (before the change) use the
+original ioctl, whether or not the kernel code is actually of the newer
+version. Thus in most cases there are no compatibility issues.
+
+When can we have compatibility issues? If we have code built with the new
+dahdi/user.h, but the loaded kernel code (modules) are of the older version.
+Thus the userspace program will try to use the newer ZT_EXAMPLE (0xC0084A3E).
+But the kernel code has no handler for that ioctl. The result: the error 25,
+ENOTTY, which means "Inappropriate ioctl for device".
+
+As a by-product of that method, for each interface change a new #define is
+added. That definition is for the old version and thus it might appear
+slightly confusing in the code, but it is useful for writing code that works
+with all versions of DAHDI. 
+
+License
+-------
+This package is distributed under the terms of the GNU General Public License
+Version 2, except for some components which are distributed under the terms of
+the GNU Lesser General Public License Version 2.1. Both licenses are included
+in this directory, and each file is clearly marked as to which license applies.
+
+If you wish to use the DAHDI drivers in an application for which the license
+terms are not appropriate (e.g. a proprietary embedded system), licenses under
+more flexible terms can be readily obtained through Digium, Inc. at reasonable
+cost.
+
+Reporting Bugs
+--------------
+Please report bug and patches to the Asterisk bug tracker at
+http://bugs.digium.com in the "DAHDI" category.
+
+Links
+-----
+- http://asterisk.org/[] - The Asterisk PBX
+- http://voip-info.org/[]
+- http://voip-info.org/wiki/view/Asterisk+Zaptel+Installation[]
+- http://docs.tzafrir.org.il/dahdi/README.html[Up-to-date HTML version
+  of this file]

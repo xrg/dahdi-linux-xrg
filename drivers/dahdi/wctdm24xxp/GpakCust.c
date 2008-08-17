@@ -16,23 +16,21 @@
  *   06/15/05 - Initial release.
  *
  * This program has been released under the terms of the GPL version 2 by
- * permission of Adaptive Digital Technologies, Inc.  The standard
- * GPL disclaimer is given inline below for your convenience.
+ * permission of Adaptive Digital Technologies, Inc.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
  *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
  */
 
 #include <linux/version.h>
@@ -40,7 +38,6 @@
 #include <asm/semaphore.h>
 
 #include <dahdi/kernel.h>
-#include <dahdi/user.h>
 
 #include "wctdm24xxp.h"
 #include "GpakCust.h"
@@ -252,7 +249,7 @@ unsigned short wctdm_vpm150m_getreg(struct wctdm *wc, unsigned int len, unsigned
 	unsigned short res;
 	wctdm_vpm150m_setpage(wc, addr >> 16);
 	if ((addr >> 16) != ((addr + len) >> 16))
-		printk("getreg: You found it!\n");
+		printk(KERN_INFO "getreg: You found it!\n");
 	res = wctdm_vpm150m_getreg_full(wc, 0, len, addr & 0xffff, data);
  	return res;
 }
@@ -262,7 +259,7 @@ int wctdm_vpm150m_setreg(struct wctdm *wc, unsigned int len, unsigned int addr, 
 	int res;
 	wctdm_vpm150m_setpage(wc, addr >> 16);
 	if ((addr >> 16) != ((addr + len) >> 16))
-		printk("getreg: You found it!\n");
+		printk(KERN_INFO "getreg: You found it!\n");
 	res = wctdm_vpm150m_setreg_full(wc, 0, len, addr & 0xffff, data);
 	return res;
 }
@@ -346,7 +343,7 @@ void gpakWriteDspMemory(
 	int i;
 	int transcount;
 
-	//printk("Writing %d words to memory\n", NumWords);
+	//printk(KERN_DEBUG "Writing %d words to memory\n", NumWords);
 	if (wc && wc->vpm150m) {
 		for (i = 0; i < NumWords;) {
 			if ((NumWords - i) > VPM150M_MAX_DATA)
@@ -360,7 +357,7 @@ void gpakWriteDspMemory(
 #if 0
 		for (i = 0; i < NumWords; i++) {
 			if (wctdm_vpm150m_getreg(wc, DspAddress + i) != pWordValues[i]) {
-				printk("Error in write.  Address %x is not %x\n", DspAddress + i, pWordValues[i]);
+				printk(KERN_NOTICE "Error in write.  Address %x is not %x\n", DspAddress + i, pWordValues[i]);
 			}
 		}
 #endif

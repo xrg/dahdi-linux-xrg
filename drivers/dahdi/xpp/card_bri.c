@@ -748,7 +748,7 @@ static int BRI_card_dahdi_postregistration(xpd_t *xpd, bool on)
 	return(0);
 }
 
-static int BRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, dahdi_txsig_t txsig)
+static int BRI_card_hooksig(xbus_t *xbus, xpd_t *xpd, int pos, enum dahdi_txsig txsig)
 {
 	LINE_DBG(SIGNAL, xpd, pos, "%s\n", txsig2str(txsig));
 	return 0;
@@ -1090,12 +1090,13 @@ static void BRI_card_pcm_fromspan(xbus_t *xbus, xpd_t *xpd, xpp_line_t wanted_li
 			if(IS_SET(wanted_lines, i)) {
 				if(SPAN_REGISTERED(tmp_xpd)) {
 #ifdef	DEBUG_PCMTX
-					if(pcmtx >= 0 && pcmtx_chan == i)
+					int	channo = tmp_xpd->span.chans[i]->channo;
+
+					if(pcmtx >= 0 && pcmtx_chan == channo)
 						memset((u_char *)pcm, pcmtx, DAHDI_CHUNKSIZE);
 					else
 #endif
 						memcpy((u_char *)pcm, chans[i]->writechunk, DAHDI_CHUNKSIZE);
-					// fill_beep((u_char *)pcm, tmp_xpd->addr.subunit, 2);
 				} else
 					memset((u_char *)pcm, 0x7F, DAHDI_CHUNKSIZE);
 				pcm += DAHDI_CHUNKSIZE;
@@ -1141,7 +1142,6 @@ static void BRI_card_pcm_tospan(xbus_t *xbus, xpd_t *xpd, xpacket_t *pack)
 			if(IS_SET(tmp_mask, i)) {
 				r = tmp_xpd->span.chans[i]->readchunk;
 				// memset((u_char *)r, 0x5A, DAHDI_CHUNKSIZE);	// DEBUG
-				// fill_beep((u_char *)r, 1, 1);	// DEBUG: BEEP
 				memcpy((u_char *)r, pcm, DAHDI_CHUNKSIZE);
 				pcm += DAHDI_CHUNKSIZE;
 			}
