@@ -40,10 +40,10 @@ KINCLUDES:=$(KSRC)/include
 # Thus we will have many CONFIG_* variables from there.
 KCONFIG:=$(KSRC)/.config
 ifneq (,$(wildcard $(KCONFIG)))
-  HAS_KSRC=yes
+  HAS_KSRC:=yes
   include $(KCONFIG)
 else
-  HAS_KSRC=no
+  HAS_KSRC:=no
 endif
 
 # Set HOTPLUG_FIRMWARE=no to override automatic building with hotplug support
@@ -53,15 +53,17 @@ ifeq (yes,$(HAS_KSRC))
   HOTPLUG_FIRMWARE:=$(shell if grep -q '^CONFIG_FW_LOADER=[ym]' $(KCONFIG); then echo "yes"; else echo "no"; fi)
 endif
 
-MODULE_ALIASES=wcfxs wctdm8xxp wct2xxp
+MODULE_ALIASES:=wcfxs wctdm8xxp wct2xxp
+
+DAHDI_BUILD_ALL:=m
 
 KMAKE=$(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 
 ifneq (,$(wildcard $(DESTDIR)/etc/udev/rules.d))
-  DYNFS=yes
+  DYNFS:=yes
 endif
 
-ROOT_PREFIX=
+ROOT_PREFIX:=
 
 ifneq ($(wildcard .version),)
   DAHDIVERSION:=$(shell cat .version)
@@ -78,7 +80,7 @@ ifeq (no,$(HAS_KSRC))
 	echo "You do not appear to have the sources for the $(KVERS) kernel installed."
 	exit 1
 endif
-	$(KMAKE) modules DAHDI_BUILD_ALL=m
+	$(KMAKE) modules DAHDI_BUILD_ALL=$(DAHDI_BUILD_ALL)
 
 include/dahdi/version.h: FORCE
 	@DAHDIVERSION="${DAHDIVERSION}" build_tools/make_version_h > $@.tmp
