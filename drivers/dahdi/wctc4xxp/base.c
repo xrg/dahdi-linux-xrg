@@ -1759,7 +1759,6 @@ wctc4xxp_write(struct file *file, const char __user *frame, size_t count, loff_t
 		return -EFAULT;
 	}
 	cpvt->seqno += 1;
-	cpvt->timestamp += count;
 
 	DTE_DEBUG(DTE_DEBUG_RTP_TX, 
 	    "Sending packet of %Zu byte on channel (%p).\n", count, dtc);
