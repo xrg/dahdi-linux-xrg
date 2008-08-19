@@ -441,7 +441,6 @@ struct wcdte {
 	char board_name[40];
 	const char *variety;
 	int pos;
-	int cards;
 	struct list_head node;
 	spinlock_t reglock;
 	wait_queue_head_t waitq;
@@ -1744,6 +1743,10 @@ wctc4xxp_write(struct file *file, const char __user *frame, size_t count, loff_t
 			   "%d bytes.\n", count, G723_5K_BYTES);
 			return -EINVAL;
 		}
+		cpvt->timestamp = G723_SAMPLES;
+	} else {
+		/* Same for ulaw and alaw */
+		cpvt->timestamp = G729_SAMPLES; 
 	}
 
 	if (!(cmd = wctc4xxp_create_rtp_cmd(wc, dtc, count))) {
@@ -2854,7 +2857,7 @@ wctc4xxp_watchdog(unsigned long data)
 }
 
 /**
- * 	Insert an struct wcdte on the global list in sorted order
+ * Insert an struct wcdte on the global list in sorted order
  *
  */
 static int __devinit
@@ -2867,12 +2870,16 @@ wctc4xxp_add_to_device_list(struct wcdte *wc)
 	list_for_each_entry(cur, &wctc4xxp_list, node) {
 		if (cur->pos != pos) {
 			/* Add the new entry before the one here */
-			list_add_tail(&wc->node, &wctc4xxp_list);
+			list_add_tail(&wc->node, &cur->node);
 			break;
 		}
 		else {
 			++pos;
 		}
+	}
+	/* If we didn't already add the new entry to the list, add it now */
+	if (list_empty(&wc->node)) {
+		list_add_tail(&wc->node, &wctc4xxp_list);
 	}
 	spin_unlock(&wctc4xxp_list_lock);
 	return pos;
@@ -3237,13 +3244,6 @@ static struct pci_driver wctc4xxp_driver = {
 int __init wctc4xxp_init(void)
 {
 	int res;
-#	ifndef CONFIG_WCDTE_NETWORK_IF
-	if (debug & (DTE_DEBUG_NETWORK_IF|DTE_DEBUG_NETWORK_EARLY)) {
-		printk(KERN_WARNING "%s: The Network interface was not compiled into the driver.\n", THIS_MODULE->name);
-		debug &= ~(DTE_DEBUG_NETWORK_IF|DTE_DEBUG_NETWORK_EARLY);
-	}
-#	endif
-
 #	if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,23)
 	cmd_cache = kmem_cache_create(THIS_MODULE->name, sizeof(struct tcb), 0, 
 	                              SLAB_HWCACHE_ALIGN, NULL, NULL);

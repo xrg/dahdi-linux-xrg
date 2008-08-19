@@ -59,10 +59,10 @@ struct dahdi_transcoder *dahdi_transcoder_alloc(int numchans)
 
 	memset(tc, 0, size);
 	strcpy(tc->name, "<unspecified>");
+	INIT_LIST_HEAD(&tc->node);
 	tc->numchannels = numchans;
-	for (x=0;x<tc->numchannels;x++) {
+	for (x=0; x < tc->numchannels; x++) {
 		init_waitqueue_head(&tc->channels[x].ready);
-		INIT_LIST_HEAD(&tc->node);
 		tc->channels[x].parent = tc;
 	}
 
@@ -93,6 +93,8 @@ static int is_on_list(struct list_head *entry, struct list_head *head)
 /* Register a transcoder */
 int dahdi_transcoder_register(struct dahdi_transcoder *tc)
 {
+	static int count = 0;
+	tc->pos = count++;
 	spin_lock(&translock);
 	BUG_ON(is_on_list(&tc->node, &trans));
 	list_add_tail(&tc->node, &trans);
@@ -287,7 +289,6 @@ static long dahdi_tc_allocate(struct file *file, unsigned long data)
 static long dahdi_tc_getinfo(unsigned long data)
 {
 	struct dahdi_transcoder_info info;
-	unsigned int x;
 	struct dahdi_transcoder *cur;
 	struct dahdi_transcoder *tc = NULL;
 	
@@ -295,10 +296,9 @@ static long dahdi_tc_getinfo(unsigned long data)
 		return -EFAULT;
 	}
 
-	x = 0;
 	spin_lock(&translock);
 	list_for_each_entry(cur, &trans, node) {
-		if (x++ == info.tcnum) {
+		if (cur->pos == info.tcnum) {
 			tc = cur;
 			break;
 		} 

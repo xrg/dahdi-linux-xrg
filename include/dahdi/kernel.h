@@ -667,6 +667,7 @@ dahdi_tc_clear_data_waiting(struct dahdi_transcoder_channel *dtc) {
 
 struct dahdi_transcoder {
 	struct list_head node;
+	int pos;
 	char name[80];
 	int numchannels;
 	unsigned int srcfmts;
