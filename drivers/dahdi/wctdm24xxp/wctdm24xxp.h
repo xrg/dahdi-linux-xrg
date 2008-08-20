@@ -29,7 +29,12 @@
 #include <dahdi/kernel.h>
 
 #include "../voicebus.h"
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
 #include <asm/semaphore.h>
+#endif
 
 #define NUM_FXO_REGS 60
 

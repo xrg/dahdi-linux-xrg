@@ -45,7 +45,11 @@ Tx Gain - W/Pre-Emphasis: -23.99 to 0.00 db
 #include <linux/workqueue.h>
 #include <linux/delay.h>
 #include <linux/moduleparam.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
 #include <asm/semaphore.h>
+#endif
 
 #include <dahdi/kernel.h>
 #include <dahdi/wctdm_user.h>

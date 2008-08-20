@@ -152,7 +152,10 @@ EXPORT_SYMBOL(dahdi_set_hpec_ioctl);
 static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS];
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
+#define CLASS_DEV_CREATE(class, devt, device, name) \
+	device_create(class, device, devt, NULL, "%s", name)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
 #define CLASS_DEV_CREATE(class, devt, device, name) \
 	device_create(class, device, devt, name)
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
