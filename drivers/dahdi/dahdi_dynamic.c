@@ -621,11 +621,17 @@ static int create_dynamic(struct dahdi_dynamic_span *zds)
 	spin_lock_irqsave(&dlock, flags);
 	ztd = find_driver(zds->driver);
 	if (!ztd) {
-		/* Try loading the right module */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,70)
 		char fn[80];
+#endif
+
 		spin_unlock_irqrestore(&dlock, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,70)
+		request_module("dahdi_dynamic_%s", zds->driver);
+#else
 		sprintf(fn, "dahdi_dynamic_%s", zds->driver);
 		request_module(fn);
+#endif
 		spin_lock_irqsave(&dlock, flags);
 		ztd = find_driver(zds->driver);
 	}
