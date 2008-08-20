@@ -1677,13 +1677,13 @@ wctc4xxp_read(struct file *file, char __user *frame, size_t count, loff_t *ppos)
 		cpvt->last_dte_seqno = be16_to_cpu(packet->rtphdr.seqno);
 	} else {
 		rtp_eseq = ++cpvt->last_dte_seqno;
-		if ( packet->rtphdr.seqno != rtp_eseq )
+		if ( be16_to_cpu(packet->rtphdr.seqno) != rtp_eseq )
 			DTE_DEBUG(DTE_DEBUG_GENERAL,
 			 "Bad seqno from DTE! [%04X][%d][%d][%d]\n", 
 			 be16_to_cpu(packet->rtphdr.seqno), 
 			 (be16_to_cpu(packet->udphdr.dest) - 0x5000),
 			 be16_to_cpu(packet->rtphdr.seqno), 
-			 cpvt->last_dte_seqno);
+			 rtp_eseq);
 
 		cpvt->last_dte_seqno = be16_to_cpu(packet->rtphdr.seqno);
 	}
@@ -1736,11 +1736,11 @@ wctc4xxp_write(struct file *file, const char __user *frame, size_t count, loff_t
 	}
 
 	if (DAHDI_FORMAT_G723_1 == dtc->srcfmt) {
-		if (G723_5K_BYTES != count) {
+		if ((G723_5K_BYTES != count) && (G723_6K_BYTES != count)) {
 			DTE_DEBUG(DTE_DEBUG_GENERAL, 
 			   "Trying to transcode packet into G723 format " \
 			   "that is %Zu bytes instead of the expected " \
-			   "%d bytes.\n", count, G723_5K_BYTES);
+			   "%d/%d bytes.\n", count, G723_5K_BYTES, G723_6K_BYTES);
 			return -EINVAL;
 		}
 		cpvt->timestamp = G723_SAMPLES;
