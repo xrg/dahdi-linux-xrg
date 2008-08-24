@@ -32,11 +32,17 @@
 #ifndef _FASTHDLC_H
 #define _FASTHDLC_H
 
+enum fasthdlc_mode {
+	FASTHDLC_MODE_64 = 0,
+	FASTHDLC_MODE_56,
+};
+
 struct fasthdlc_state {
 	int state;		/* What state we are in */
 	unsigned int data;	/* Our current data queue */
 	int bits;		/* Number of bits in our data queue */
 	int ones;		/* Number of ones */
+	enum fasthdlc_mode mode;
 };
 
 #ifdef FAST_HDLC_NEED_TABLES
@@ -343,9 +349,10 @@ static inline void fasthdlc_precalc(void)
 }
 
 
-static inline void fasthdlc_init(struct fasthdlc_state *h)
+static inline void fasthdlc_init(struct fasthdlc_state *h, enum fasthdlc_mode mode)
 {
 	/* Initializes all states appropriately */
+	h->mode = mode;
 	h->state = 0;
 	h->bits = 0;
 	h->data = 0;
@@ -386,13 +393,36 @@ static inline int fasthdlc_tx_frame(struct fasthdlc_state *h)
 	return fasthdlc_tx_frame_nocheck(h);
 }
 
+static inline int fasthdlc_tx_need_data(struct fasthdlc_state *h)
+{
+	if (h->mode == FASTHDLC_MODE_56) {
+		if (h->bits < 7)
+			return 1;
+	} else {
+		if (h->bits < 8)
+			return 1;
+	}
+
+	return 0;
+}
+
 static inline int fasthdlc_tx_run_nocheck(struct fasthdlc_state *h)
 {
 	unsigned char b;
-	b = h->data >> 24;
-	h->bits -= 8;
-	h->data <<= 8;
-	return b;
+	if (h->mode == FASTHDLC_MODE_56) {
+		b = h->data >> 25;
+		h->bits -= 7;
+		h->data <<= 7;
+
+		return b << 1;
+	} else {
+		b = h->data >> 24;
+		h->bits -= 8;
+		h->data <<= 8;
+
+		return b;
+	}
+
 }
 
 static inline int fasthdlc_tx_run(struct fasthdlc_state *h)
@@ -404,9 +434,14 @@ static inline int fasthdlc_tx_run(struct fasthdlc_state *h)
 
 static inline int fasthdlc_rx_load_nocheck(struct fasthdlc_state *h, unsigned char b)
 {
-	/* Put the new byte in the data stream */
-	h->data |= b << (24-h->bits);
-	h->bits += 8;
+	if (h->mode == FASTHDLC_MODE_56) {
+		h->data |= (b >> 1) << (25-h->bits);
+		h->bits += 7;
+	} else {
+		/* Put the new byte in the data stream */
+		h->data |= b << (24-h->bits);
+		h->bits += 8;
+	}
 	return 0;
 }
 

@@ -976,6 +976,9 @@ struct dahdi_hwgain {
 #define DAHDI_STARTUP			_IOW(DAHDI_CODE, 99, int)
 #define DAHDI_SHUTDOWN			_IOW(DAHDI_CODE, 100, int)
 
+
+#define DAHDI_HDLC_RATE			_IOW(DAHDI_CODE, 101, int)
+
 struct torisa_debug {
 	unsigned int txerrors;
 	unsigned int irqcount;
