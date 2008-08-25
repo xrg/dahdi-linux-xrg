@@ -3264,7 +3264,6 @@ int __init wctc4xxp_init(void)
 
 void __exit wctc4xxp_cleanup(void)
 {
-	WARN_ON(!list_empty(&wctc4xxp_list));
 	pci_unregister_driver(&wctc4xxp_driver);
 	kmem_cache_destroy(cmd_cache);
 }
