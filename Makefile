@@ -134,6 +134,7 @@ install-include:
 uninstall-include:
 	rm -f $(DESTDIR)/usr/include/dahdi/kernel.h
 	rm -f $(DESTDIR)/usr/include/dahdi/user.h
+	rm -f $(DESTDIR)/usr/include/dahdi/fasthdlc.h
 # Include any driver-specific header files here
 	rm -f $(DESTDIR)/usr/include/dahdi/wctdm_user.h
 	-rmdir $(DESTDIR)/usr/include/dahdi
