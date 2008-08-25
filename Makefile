@@ -17,6 +17,8 @@ else
 UNAME_M:=$(DEB_HOST_GNU_TYPE)
 endif
 
+DAHDI_MODULES_EXTRA:=$(MODULES_EXTRA:%=%.o) $(SUBDIRS_EXTRA:%=%/)
+
 # If you want to build for a kernel other than the current kernel, set KVERS
 ifndef KVERS
 KVERS:=$(shell uname -r)
@@ -57,7 +59,7 @@ MODULE_ALIASES:=wcfxs wctdm8xxp wct2xxp
 
 DAHDI_BUILD_ALL:=m
 
-KMAKE=$(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
+KMAKE=$(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include DAHDI_MODULES_EXTRA="$(DAHDI_MODULES_EXTRA)" HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 
 ifneq (,$(wildcard $(DESTDIR)/etc/udev/rules.d))
   DYNFS:=yes
