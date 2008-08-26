@@ -218,7 +218,9 @@ update:
 	fi
 
 clean:
+ifneq (no,$(HAS_KSRC))
 	$(KMAKE) clean
+endif
 	$(MAKE) -C drivers/dahdi/firmware clean
 
 distclean: dist-clean
