@@ -3816,8 +3816,8 @@ static void __exit t4_cleanup(void)
 }
 
 
-MODULE_AUTHOR("Mark Spencer");
-MODULE_DESCRIPTION("Unified TE4XXP-TE2XXP PCI Driver");
+MODULE_AUTHOR("Digium Incorporated <support@digium.com>");
+MODULE_DESCRIPTION("Wildcard Dual-/Quad-port Digital Card Driver");
 MODULE_ALIAS("wct2xxp");
 MODULE_LICENSE("GPL v2");
 

@@ -2498,7 +2498,7 @@ module_param(fxorxgain, int, 0600);
 module_param(fxstxgain, int, 0600);
 module_param(fxsrxgain, int, 0600);
 
-MODULE_DESCRIPTION("Wildcard TDM400P DAHDI Driver");
+MODULE_DESCRIPTION("Wildcard TDM400P Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 MODULE_ALIAS("wcfxs");
 MODULE_LICENSE("GPL v2");

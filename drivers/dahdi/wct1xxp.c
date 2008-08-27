@@ -1422,7 +1422,7 @@ static void __exit t1xxp_cleanup(void)
 
 module_param(debug, int, 0600);
 
-MODULE_DESCRIPTION("Wildcard T100P/E100P DAHDI Driver");
+MODULE_DESCRIPTION("Wildcard T100P/E100P Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 MODULE_LICENSE("GPL v2");
 

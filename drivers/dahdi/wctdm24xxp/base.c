@@ -4123,9 +4123,13 @@ module_param(vpmnlpthresh, int, 0600);
 module_param(vpmnlpmaxsupp, int, 0600);
 #endif
 
-MODULE_DESCRIPTION("Wildcard TDM2400P/TDM800P DAHDI Driver");
-MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
+MODULE_DESCRIPTION("Wildcard VoiceBus Analog Card Driver");
+MODULE_AUTHOR("Digium Incorporated <support@digium.com>");
 MODULE_ALIAS("wctdm8xxp");
+MODULE_ALIAS("wctdm4xxp");
+MODULE_ALIAS("wcaex24xx");
+MODULE_ALIAS("wcaex8xx");
+MODULE_ALIAS("wcaex8xx");
 MODULE_LICENSE("GPL v2");
 
 module_init(wctdm_init);

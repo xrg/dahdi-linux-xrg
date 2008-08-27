@@ -1741,6 +1741,8 @@ module_param(vpmdtmfsupport, int, S_IRUGO | S_IWUSR);
 module_param(vpmtsisupport, int, S_IRUGO | S_IWUSR);
 #endif
 
+MODULE_DESCRIPTION("Wildcard VoiceBus Digital Card Driver");
+MODULE_AUTHOR("Digium Incorporated <support@digium.com>");
 MODULE_LICENSE("GPL v2");
 
 module_init(te12xp_init);
