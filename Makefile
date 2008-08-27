@@ -57,6 +57,8 @@ endif
 
 MODULE_ALIASES:=wcfxs wctdm8xxp wct2xxp
 
+INST_HEADERS:=kernel.h user.h fasthdlc.h wctdm_user.h
+
 DAHDI_BUILD_ALL:=m
 
 KMAKE=$(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include DAHDI_MODULES_EXTRA="$(DAHDI_MODULES_EXTRA)" HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
@@ -130,20 +132,16 @@ uninstall-firmware:
 	$(MAKE) -C drivers/dahdi/firmware hotplug-uninstall DESTDIR=$(DESTDIR)
 
 install-include:
-	install -D -m 644 include/dahdi/kernel.h $(DESTDIR)/usr/include/dahdi/kernel.h
-	install -D -m 644 include/dahdi/user.h $(DESTDIR)/usr/include/dahdi/user.h
-	install -D -m 644 include/dahdi/fasthdlc.h $(DESTDIR)/usr/include/dahdi/fasthdlc.h
-# Include any driver-specific header files here
-	install -D -m 644 include/dahdi/wctdm_user.h $(DESTDIR)/usr/include/dahdi/wctdm_user.h
+	for hdr in $(INST_HEADERS); do \
+		install -D -m 644 include/dahdi/$$hdr $(DESTDIR)/usr/include/dahdi/$$hdr; \
+	done
 	-@rm -f $(DESTDIR)/usr/include/zaptel/*.h
 	-@rmdir $(DESTDIR)/usr/include/zaptel
 
 uninstall-include:
-	rm -f $(DESTDIR)/usr/include/dahdi/kernel.h
-	rm -f $(DESTDIR)/usr/include/dahdi/user.h
-	rm -f $(DESTDIR)/usr/include/dahdi/fasthdlc.h
-# Include any driver-specific header files here
-	rm -f $(DESTDIR)/usr/include/dahdi/wctdm_user.h
+	for hdr in $(INST_HEADERS); do \
+		rm -f $(DESTDIR)/usr/include/dahdi/$$hdr; \
+	done
 	-rmdir $(DESTDIR)/usr/include/dahdi
 
 install-devices:
