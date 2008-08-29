@@ -3477,7 +3477,7 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		if ((i < 0) || (i > DAHDI_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
 		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 
-		if (!(rxgain = kzalloc(512, GFP_KERNEL)))
+		if (!(rxgain = kmalloc(512, GFP_KERNEL)))
 			return -ENOMEM;
 
 		stack.gain.chan = i; /* put the span # in here */
