@@ -3442,7 +3442,7 @@ static int __devinit t4_launch(struct t4 *wc)
 	printk(KERN_INFO "TE%dXXP: Launching card: %d\n", wc->numspans, wc->order);
 
 	/* Setup serial parameters and system interface */
-	for (x=0;x<wc->numspans;x++)
+	for (x=0;x<4;x++)
 		t4_serial_setup(wc, x);
 
 	if (dahdi_register(&wc->tspans[0]->span, 0)) {
@@ -3604,7 +3604,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 #endif			
 
 	/* Allocate pieces we need here */
-	for (x = 0; x < wc->numspans; x++) {
+	for (x = 0; x < 4; x++) {
 		if (!(wc->tspans[x] = kmalloc(sizeof(*wc->tspans[x]), GFP_KERNEL))) {
 			free_wc(wc);
 			return -ENOMEM;
