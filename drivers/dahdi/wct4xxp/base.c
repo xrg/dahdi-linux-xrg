@@ -184,7 +184,7 @@ static int lastdtmfthreshold = VPM_DEFAULT_DTMFTHRESHOLD;
    utilization / max number of calls / etc. */
 static int noburst = 1;
 /* For 56kbps links, set this module parameter to 0x7f */
-static int hardhdlcmode = 0xff;
+static int hardhdlcmode = 0x7f;
 
 #ifdef FANCY_ALARM
 static int altab[] = {
