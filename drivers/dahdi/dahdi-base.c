@@ -175,7 +175,7 @@ static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS];
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
 #define CLASS_DEV_DESTROY(class, devt) \
 	class_device_destroy(class, devt)
-#elif LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,9) \
+#elif LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,9)
 #define CLASS_DEV_DESTROY(class, devt) \
 	class_simple_device_remove(devt)
 #else
