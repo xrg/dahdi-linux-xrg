@@ -170,6 +170,7 @@ ifndef DYNFS
 else # DYNFS
 	install -d $(DESTDIR)/etc/udev/rules.d
 	build_tools/genudevrules > $(DESTDIR)/etc/udev/rules.d/dahdi.rules
+	install -m 644 drivers/dahdi/xpp/xpp.rules $(DESTDIR)/etc/udev/rules.d/
 endif
 
 uninstall-devices:
