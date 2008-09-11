@@ -1697,7 +1697,7 @@ static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 		dev->trans_start = jiffies;
 		stats->tx_packets++;
 		stats->tx_bytes += ss->writen[oldbuf];
-		print_debug_writebuf(ss, skb, outbug);
+		print_debug_writebuf(ss, skb, outbuf);
 		retval = 0;
 		/* Free the SKB */
 		dev_kfree_skb_any(skb);
@@ -1793,7 +1793,7 @@ static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 			   some space for us */
 			ss->outwritebuf = oldbuf;
 		}
-		print_debug_writebuf(ss, skb, outbug);
+		print_debug_writebuf(ss, skb, outbuf);
 		retval = 1;
 	}
 	spin_unlock_irqrestore(&ss->lock, flags);
