@@ -3500,7 +3500,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 		while (test_bit(VPM150M_HPIRESET, &vpm150m->control))
 			schluffen(&wc->regq);
 
-		printk(KERN_INFO "VPMADT032 Loading firwmare... ");
+		printk(KERN_INFO "VPMADT032 Loading firmware... ");
 		downloadstatus = gpakDownloadDsp(vpm150m->dspid, &fw);
 
 		if (firmware != &embedded_firmware)
