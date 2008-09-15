@@ -747,7 +747,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 	unsigned char res;
 #endif	
 	signed char b;
-	int poopy = 0;
+	int errors = 0;
 	struct fxo *fxo = &wc->mod[card].fxo;
 
 	/* Try to track issues that plague slot one FXO's */
@@ -755,8 +755,8 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 	if ((b & 0x2) || !(b & 0x8)) {
 		/* Not good -- don't look at anything else */
 		if (debug)
-			printk(KERN_DEBUG "Poopy (%02x) on card %d!\n", b, card + 1); 
-		poopy++;
+			printk(KERN_DEBUG "Error (%02x) on card %d!\n", b, card + 1); 
+		errors++;
 	}
 	b &= 0x9b;
 	if (fxo->offhook) {
@@ -766,7 +766,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		if (b != 0x8)
 			wctdm_setreg(wc, card, 5, 0x8);
 	}
-	if (poopy)
+	if (errors)
 		return;
 	if (!fxo->offhook) {
 		if (fwringdetect) {

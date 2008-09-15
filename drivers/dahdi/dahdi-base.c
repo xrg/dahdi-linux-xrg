@@ -6259,7 +6259,7 @@ static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, enum dahdi_rxsig rxsig)
 		}
 		break;
 	   case DAHDI_SIG_FXSKS:  /* FXS Kewlstart */
-		  /* ignore a bit poopy if loop not closed and stable */
+		  /* ignore a bit error if loop not closed and stable */
 		if (chan->txstate != DAHDI_TXSTATE_OFFHOOK) break;
 #ifdef	FXSFLASH
 		if (rxsig == DAHDI_RXSIG_ONHOOK) {
