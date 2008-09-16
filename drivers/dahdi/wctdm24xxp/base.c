@@ -3500,7 +3500,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 		while (test_bit(VPM150M_HPIRESET, &vpm150m->control))
 			schluffen(&wc->regq);
 
-		printk(KERN_INFO "VPMADT032 Loading firwmare... ");
+		printk(KERN_INFO "VPMADT032 Loading firmware... ");
 		downloadstatus = gpakDownloadDsp(vpm150m->dspid, &fw);
 
 		if (firmware != &embedded_firmware)
@@ -4123,9 +4123,13 @@ module_param(vpmnlpthresh, int, 0600);
 module_param(vpmnlpmaxsupp, int, 0600);
 #endif
 
-MODULE_DESCRIPTION("Wildcard TDM2400P/TDM800P DAHDI Driver");
-MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
+MODULE_DESCRIPTION("Wildcard VoiceBus Analog Card Driver");
+MODULE_AUTHOR("Digium Incorporated <support@digium.com>");
 MODULE_ALIAS("wctdm8xxp");
+MODULE_ALIAS("wctdm4xxp");
+MODULE_ALIAS("wcaex24xx");
+MODULE_ALIAS("wcaex8xx");
+MODULE_ALIAS("wcaex8xx");
 MODULE_LICENSE("GPL v2");
 
 module_init(wctdm_init);

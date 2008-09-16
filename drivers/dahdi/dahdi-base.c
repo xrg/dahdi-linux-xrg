@@ -175,6 +175,9 @@ static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS];
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
 #define CLASS_DEV_DESTROY(class, devt) \
 	class_device_destroy(class, devt)
+#elif LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,9)
+#define CLASS_DEV_DESTROY(class, devt) \
+	class_simple_device_remove(devt)
 #else
 #define CLASS_DEV_DESTROY(class, devt) \
 	class_simple_device_remove(class, devt)
@@ -1694,7 +1697,7 @@ static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 		dev->trans_start = jiffies;
 		stats->tx_packets++;
 		stats->tx_bytes += ss->writen[oldbuf];
-		print_debug_writebuf(ss, skb, outbug);
+		print_debug_writebuf(ss, skb, outbuf);
 		retval = 0;
 		/* Free the SKB */
 		dev_kfree_skb_any(skb);
@@ -1790,7 +1793,7 @@ static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 			   some space for us */
 			ss->outwritebuf = oldbuf;
 		}
-		print_debug_writebuf(ss, skb, outbug);
+		print_debug_writebuf(ss, skb, outbuf);
 		retval = 1;
 	}
 	spin_unlock_irqrestore(&ss->lock, flags);
@@ -3477,7 +3480,7 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		if ((i < 0) || (i > DAHDI_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
 		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 
-		if (!(rxgain = kzalloc(512, GFP_KERNEL)))
+		if (!(rxgain = kmalloc(512, GFP_KERNEL)))
 			return -ENOMEM;
 
 		stack.gain.chan = i; /* put the span # in here */
@@ -6256,7 +6259,7 @@ static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, enum dahdi_rxsig rxsig)
 		}
 		break;
 	   case DAHDI_SIG_FXSKS:  /* FXS Kewlstart */
-		  /* ignore a bit poopy if loop not closed and stable */
+		  /* ignore a bit error if loop not closed and stable */
 		if (chan->txstate != DAHDI_TXSTATE_OFFHOOK) break;
 #ifdef	FXSFLASH
 		if (rxsig == DAHDI_RXSIG_ONHOOK) {

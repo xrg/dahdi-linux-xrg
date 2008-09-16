@@ -414,7 +414,7 @@ static inline int fasthdlc_tx_run_nocheck(struct fasthdlc_state *h)
 		h->bits -= 7;
 		h->data <<= 7;
 
-		return b << 1;
+		return ((b & 0x7f) << 1) | 1;
 	} else {
 		b = h->data >> 24;
 		h->bits -= 8;

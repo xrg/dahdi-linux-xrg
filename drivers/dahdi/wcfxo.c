@@ -1059,7 +1059,7 @@ module_param(boost, int, 0444);
 module_param(monitor, int, 0444);
 module_param(opermode, int, 0444);
 
-MODULE_DESCRIPTION("Wildcard X100P DAHDI Driver");
+MODULE_DESCRIPTION("Wildcard X100P Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 MODULE_LICENSE("GPL v2");
 

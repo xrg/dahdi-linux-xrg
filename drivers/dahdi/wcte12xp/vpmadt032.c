@@ -863,7 +863,7 @@ void t1_vpm150m_init(struct t1 *wc) {
 		while (test_bit(VPM150M_HPIRESET, &vpm150m->control))
 			schluffen(&wc->regq);
 
-		module_printk("VPMADT032 Loading firwmare... ");
+		module_printk("VPMADT032 Loading firmware... ");
 		downloadstatus = gpakDownloadDsp(vpm150m->dspid, &fw);
 
 		if (firmware != &embedded_firmware)
