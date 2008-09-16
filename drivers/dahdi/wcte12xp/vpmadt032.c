@@ -28,7 +28,12 @@
  */
 
 #include <linux/delay.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
 #include <asm/semaphore.h>
+#endif
 #include <linux/pci.h> 
 #include <linux/firmware.h> 
 #include <linux/list.h> 

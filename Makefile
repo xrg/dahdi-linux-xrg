@@ -17,6 +17,8 @@ else
 UNAME_M:=$(DEB_HOST_GNU_TYPE)
 endif
 
+DAHDI_MODULES_EXTRA:=$(MODULES_EXTRA:%=%.o) $(SUBDIRS_EXTRA:%=%/)
+
 # If you want to build for a kernel other than the current kernel, set KVERS
 ifndef KVERS
 KVERS:=$(shell uname -r)
@@ -40,10 +42,10 @@ KINCLUDES:=$(KSRC)/include
 # Thus we will have many CONFIG_* variables from there.
 KCONFIG:=$(KSRC)/.config
 ifneq (,$(wildcard $(KCONFIG)))
-  HAS_KSRC=yes
+  HAS_KSRC:=yes
   include $(KCONFIG)
 else
-  HAS_KSRC=no
+  HAS_KSRC:=no
 endif
 
 # Set HOTPLUG_FIRMWARE=no to override automatic building with hotplug support
@@ -53,15 +55,22 @@ ifeq (yes,$(HAS_KSRC))
   HOTPLUG_FIRMWARE:=$(shell if grep -q '^CONFIG_FW_LOADER=[ym]' $(KCONFIG); then echo "yes"; else echo "no"; fi)
 endif
 
-MODULE_ALIASES=wcfxs wctdm8xxp wct2xxp
+MODULE_ALIASES:=wcfxs wctdm8xxp wct2xxp
 
-KMAKE=$(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
+DAHDI_BUILD_ALL:=m
+
+KMAKE=$(MAKE) -C $(KSRC) ARCH=$(ARCH) SUBDIRS=$(PWD)/drivers/dahdi DAHDI_INCLUDE=$(PWD)/include DAHDI_MODULES_EXTRA="$(DAHDI_MODULES_EXTRA)" HOTPLUG_FIRMWARE=$(HOTPLUG_FIRMWARE)
 
 ifneq (,$(wildcard $(DESTDIR)/etc/udev/rules.d))
-  DYNFS=yes
+  DYNFS:=yes
 endif
 
-ROOT_PREFIX=
+ROOT_PREFIX:=
+
+ASCIIDOC:=asciidoc
+ASCIIDOC_CMD:=$(ASCIIDOC) -n -a toc -a toclevels=4
+
+GENERATED_DOCS:=README.html README.Astribank.html
 
 ifneq ($(wildcard .version),)
   DAHDIVERSION:=$(shell cat .version)
@@ -78,7 +87,7 @@ ifeq (no,$(HAS_KSRC))
 	echo "You do not appear to have the sources for the $(KVERS) kernel installed."
 	exit 1
 endif
-	$(KMAKE) modules DAHDI_BUILD_ALL=m
+	$(KMAKE) modules DAHDI_BUILD_ALL=$(DAHDI_BUILD_ALL)
 
 include/dahdi/version.h: FORCE
 	@DAHDIVERSION="${DAHDIVERSION}" build_tools/make_version_h > $@.tmp
@@ -92,7 +101,7 @@ prereq: include/dahdi/version.h
 stackcheck: checkstack modules
 	./checkstack kernel/*.ko kernel/*/*.ko
 
-install: all install-modules install-devices install-include install-firmware
+install: all install-modules install-devices install-include install-firmware install-xpp-firm
 	@echo "###################################################"
 	@echo "###"
 	@echo "### DAHDI installed successfully."
@@ -108,6 +117,9 @@ install-modconf:
 	@if [ -d /etc/modutils ]; then \
 		/sbin/update-modules ; \
 	fi
+
+install-xpp-firm:
+	$(MAKE) -C drivers/dahdi/xpp/firmwares install
 
 install-firmware:
 ifeq ($(HOTPLUG_FIRMWARE),yes)
@@ -129,6 +141,7 @@ install-include:
 uninstall-include:
 	rm -f $(DESTDIR)/usr/include/dahdi/kernel.h
 	rm -f $(DESTDIR)/usr/include/dahdi/user.h
+	rm -f $(DESTDIR)/usr/include/dahdi/fasthdlc.h
 # Include any driver-specific header files here
 	rm -f $(DESTDIR)/usr/include/dahdi/wctdm_user.h
 	-rmdir $(DESTDIR)/usr/include/dahdi
@@ -210,7 +223,10 @@ update:
 	fi
 
 clean:
+ifneq (no,$(HAS_KSRC))
 	$(KMAKE) clean
+endif
+	@rm -f $(GENERATED_DOCS)
 	$(MAKE) -C drivers/dahdi/firmware clean
 
 distclean: dist-clean
@@ -225,6 +241,14 @@ firmware-download:
 test:
 	./test-script $(DESTDIR)/lib/modules/$(KVERS) dahdi
 
-.PHONY: distclean dist-clean clean all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules firmware-download
+docs: $(GENERATED_DOCS)
+
+README.html: README
+	$(ASCIIDOC_CMD) -o $@ $<
+
+README.Astribank.html: drivers/dahdi/xpp/README.Astribank
+	$(ASCIIDOC_CMD) -o $@ $<
+
+.PHONY: distclean dist-clean clean all install devices modules stackcheck install-udev update install-modules install-include uninstall-modules firmware-download install-xpp-firm
 
 FORCE:

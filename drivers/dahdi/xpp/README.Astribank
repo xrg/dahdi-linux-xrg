@@ -1129,7 +1129,7 @@ reading from this file returns immediately:
 
 
 /proc/xpp/XBUS-nn/XPD-mm/dahdi_registration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 is a read/write file. Reading from it gives 0 if the span is
 unregistered, or the span number if it is registered.
 
@@ -1248,7 +1248,7 @@ There are a bunch of other status files under /proc/xpp/.
 
 
 /sys Interface
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 When an Astribank device loads it generates a device node in the bus 
 'astribanks' in sysfs. You can see a directory for each device under 
 /sys/bus/astribanks/devices/ and under it there are several attributes

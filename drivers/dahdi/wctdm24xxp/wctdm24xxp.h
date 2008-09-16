@@ -29,7 +29,12 @@
 #include <dahdi/kernel.h>
 
 #include "../voicebus.h"
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
 #include <asm/semaphore.h>
+#endif
 
 #define NUM_FXO_REGS 60
 
@@ -220,6 +225,7 @@ struct wctdm {
 		struct fxo {
 			int wasringing;
 			int lastrdtx;
+			int lastrdtx_count;
 			int ringdebounce;
 			int offhook;
 			int battdebounce;
@@ -228,6 +234,10 @@ struct wctdm {
 			int lastpol;
 			int polarity;
 			int polaritydebounce;
+			int neonmwi_state;
+			int neonmwi_last_voltage;
+			unsigned int neonmwi_debounce;
+			unsigned int neonmwi_offcounter;
 		} fxo;
 		struct fxs {
 			int oldrxhook;
