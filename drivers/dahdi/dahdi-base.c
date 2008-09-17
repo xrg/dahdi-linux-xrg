@@ -191,6 +191,13 @@ static struct class_simple *dahdi_class = NULL;
 #define class_destroy class_simple_destroy
 #endif
 
+/*
+ * See issue http://bugs.digium.com/view.php?id=13504 for more information. 
+ * on why reference counting on the echo canceller modules is disabled
+ * currently.
+ */
+#undef USE_ECHOCAN_REFCOUNT 
+
 static int deftaps = 64;
 
 static int debug;
@@ -1075,7 +1082,6 @@ static const struct dahdi_echocan *find_echocan(const char *name)
 	const char *d;
 	char modname_buf[128] = "dahdi_echocan_";
 	unsigned int tried_once = 0;
-	int res;
 
 	for (c = name_upper, d = name; *d; c++, d++) {
 		*c = toupper(*d);
@@ -1088,13 +1094,18 @@ retry:
 
 	list_for_each_entry(cur, &echocan_list, list) {
 		if (!strcmp(name_upper, cur->ec->name)) {
-			if ((res = try_module_get(cur->owner))) {
+#ifdef USE_ECHOCAN_REFCOUNT
+			if (try_module_get(cur->owner)) {
 				read_unlock(&echocan_list_lock);
 				return cur->ec;
 			} else {
 				read_unlock(&echocan_list_lock);
 				return NULL;
 			}
+#else
+			read_unlock(&echocan_list_lock);
+			return cur->ec;
+#endif
 		}
 	}
 
@@ -1120,7 +1131,9 @@ retry:
 
 static void release_echocan(const struct dahdi_echocan *ec)
 {
+#ifdef USE_ECHOCAN_REFCOUNT
 	module_put(ec->owner);
+#endif
 }
 
 static void close_channel(struct dahdi_chan *chan)
@@ -4818,12 +4831,14 @@ static int ioctl_echocancel(struct dahdi_chan *chan, struct dahdi_echocanparams 
 			ecp->tap_length = deftaps;
 		}
 
+#ifdef USE_ECHOCAN_REFCOUNT
 		/* try to get another reference to the module providing
 		   this channel's echo canceler */
 		if (!try_module_get(chan->ec_factory->owner)) {
 			module_printk(KERN_ERR, "Cannot get a reference to the '%s' echo canceler\n", chan->ec_factory->name);
 			goto exit_with_free;
 		}
+#endif
 
 		/* got the reference, copy the pointer and use it for making
 		   an echo canceler instance if possible */
