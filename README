@@ -102,15 +102,13 @@ SUBDIRS_EXTRA:
 
 Installing the B410P drivers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-With Zaptel it was possible to install mISDN and the B410P driver by
-typing 'make b410p' from the command-line.  This is no longer possible
-with DAHDI as part of the changes to make DAHDI friendlier to binary
-packagers.  If you would like to install support for the B410P with
-asterisk you will need to install it manually. Please see
-http://www.misdn.org for more information, but the following sequence
-of steps is roughly equivalent to 'make b410p' from previous releases.
-NOTE:  At the time this was written, misdn-1.1.8 is not compatible the
-2.6.25 kernel.  Please use a kernel version 2.6.25 or earlier.
+With Zaptel it was possible to install mISDN and the B410P driver by typing
+'make b410p' from the command-line.  This is no longer possible with DAHDI as
+part of the changes to make DAHDI friendlier to binary packagers.  If you
+would like to install support for the B410P with asterisk you will need to
+install it manually. Please see http://www.misdn.org for more information, but
+the following sequence of steps is roughly equivalent to 'make b410p' from
+previous releases.
 
   wget http://www.misdn.org/downloads/releases/mISDN-1_1_8.tar.gz
   wget http://www.misdn.org/downloads/releases/mISDNuser-1_1_8.tar.gz
@@ -127,6 +125,9 @@ NOTE:  At the time this was written, misdn-1.1.8 is not compatible the
 You will then also want to make sure /etc/init.d/misdn-init is started
 automatically with either 'chkconfig --add misdn-init' or 'update-rc.d
 misdn-init defaults 15 30' depending on your distribution.
+
+NOTE:  At the time this was written, misdn-1.1.8 is not compatible the
+2.6.25 kernel.  Please use a kernel version 2.6.25 or earlier.
 
 
 Module Parameters
