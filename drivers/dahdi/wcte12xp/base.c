@@ -35,6 +35,7 @@
 #include <linux/pci.h>
 #include <linux/proc_fs.h>
 #include <linux/moduleparam.h>
+#include <linux/interrupt.h>
 
 #include <dahdi/kernel.h>
 
