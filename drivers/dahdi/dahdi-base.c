@@ -48,6 +48,7 @@
 #include <linux/kmod.h>
 #include <linux/moduleparam.h>
 #include <linux/list.h>
+#include <linux/interrupt.h>
 
 #ifdef CONFIG_DAHDI_NET
 #include <linux/netdevice.h>
@@ -867,7 +868,7 @@ static int dahdi_reallocbufs(struct dahdi_chan *ss, int j, int numbufs)
 
 	/* We need to allocate our buffers now */
 	if (j) {
-		if(!(newbuf = kcalloc(j * 2, numbufs, GFP_KERNEL)))
+		if(!(newbuf = kcalloc(j * 2, numbufs, (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL)))
 			return -ENOMEM;
 	} else
 		newbuf = NULL;
