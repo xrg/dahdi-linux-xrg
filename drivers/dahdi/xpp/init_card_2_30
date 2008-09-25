@@ -29,12 +29,12 @@ use strict;
 #	   accept settings for ALL SLICS).
 #	2. Command word:
 #		- RD	Read Direct register.
-#		- RI	Read Indirect register.
+#		- RS	Read Sub-register.
 #		- WD	Write Direct register.
-#		- WI	Write Indirect register.
+#		- WS	Write Sub-register.
 #	3. Register number in hexadecimal.
-#	4. Low data byte in hexadecimal. (for WD and WI commands).
-#	5. High data byte in hexadecimal. (for WI command only).
+#	4. Low data byte in hexadecimal. (for WD and WS commands).
+#	5. High data byte in hexadecimal. (for WS command only).
 #
 #
 
@@ -264,6 +264,7 @@ sub opermode_to_string($) {
 sub opermode_verify($) {
 	my $input = shift or die;
 	my %verification_table;
+	my %location_lines;
 	my $mismatches = 0;
 
 	open(F, $input) or die "$0: Failed opening '$input': $!\n";
@@ -277,13 +278,14 @@ sub opermode_verify($) {
 			my ($key, $val) = split(/=/, $p, 2);
 			$verification_table{$location}{$key} = $val;
 		}
+		$location_lines{$location} = $.;
 	}
 	close F;
 	# First test: check for missing data in our program
 	foreach my $location (sort keys %verification_table) {
 		my $mode = $opermode_table{$location};
 		if(! defined $mode) {
-			printf STDERR  "Missing from $0: '$location'\n";
+			printf STDERR  "Missing from $0: '$location' at $input:$location_lines{$location}\n";
 			$mismatches++;
 			next;
 		}
@@ -291,7 +293,7 @@ sub opermode_verify($) {
 		my $str1 = opermode_to_string($mode);
 		my $str2 = opermode_to_string($verify_mode);
 		if($str1 ne $str2) {
-			print STDERR  "DIFF: $location:\n";
+			print STDERR  "DIFF: '$location' at $input:$location_lines{$location}\n";
 			printf STDERR  "\t%-20s: %s\n", "program", $str1;
 			printf STDERR  "\t%-20s: %s\n", "verify", $str2;
 			$mismatches++;

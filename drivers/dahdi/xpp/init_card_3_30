@@ -43,12 +43,12 @@ use strict;
 #	1. CHIP select in decimal (ignored, taken from 3 LSB's of subunit number)
 #	2. Command word:
 #		- RD	Read Direct register.
-#		- RI	Read Indirect register.
+#		- RS	Read Sub-register.
 #		- WD	Write Direct register.
-#		- RI	Write Indirect register.
+#		- WS	Write Sub-register.
 #	3. Register number in hexadecimal.
-#	4. Subregister number in hexadecimal. (for RI and WI commands).
-#	5. Data byte in hexadecimal. (for WD and WI commands only).
+#	4. Subregister number in hexadecimal. (for RS and WS commands).
+#	5. Data byte in hexadecimal. (for WD and WS commands only).
 #
 
 package main;
@@ -288,20 +288,20 @@ sub xhfc_ph_command {
 	#main::logit "xhfc_ph_command(portnum=$portnum)";
 	if ("$cmd" eq "HFC_L1_ACTIVATE_TE") {
 		su_sel($portnum);	# Select port
-		BRI::gen "$portnum	WD	30	60";			# A_SU_WR_STA = (M_SU_ACT & 0x03)
-								# (set activation)
+		BRI::gen "$portnum	WD	30	60";		# A_SU_WR_STA = (M_SU_ACT & 0x03)
+									# (set activation)
 	} elsif ("$cmd" eq "HFC_L1_FORCE_DEACTIVATE_TE") {
 		su_sel($portnum);	# Select port
-		BRI::gen "$portnum	WD	30	40";			# A_SU_WR_STA = (M_SU_ACT & 0x02)
-								# (set deactivation)
+		BRI::gen "$portnum	WD	30	40";		# A_SU_WR_STA = (M_SU_ACT & 0x02)
+									# (set deactivation)
 	} elsif ("$cmd" eq "HFC_L1_ACTIVATE_NT") {
 		su_sel($portnum);	# Select port
-		BRI::gen "$portnum	WD	30	E0";			# A_SU_WR_STA = (M_SU_ACT & 0x03) | 0x80
-								# (set activation + NT)
+		BRI::gen "$portnum	WD	30	E0";		# A_SU_WR_STA = (M_SU_ACT & 0x03) | 0x80
+									# (set activation + NT)
 	} elsif ("$cmd" eq "HFC_L1_DEACTIVATE_NT") {
 		su_sel($portnum);	# Select port
-		BRI::gen "$portnum	WD	30	40";			# A_SU_WR_STA = (M_SU_ACT & 0x02)
-								# (set deactivation)
+		BRI::gen "$portnum	WD	30	40";		# A_SU_WR_STA = (M_SU_ACT & 0x02)
+									# (set deactivation)
 	}
 }
 
@@ -349,7 +349,7 @@ sub init_xhfc($) {
 	main::logit "init_xhfc($portnum)";
 	BRI::gen "#--------------------------- init_xhfc";
 	BRI::gen "$portnum	WD	0D	00";	# r_FIFO_MD: 16 fifos,
-					# 64 bytes for TX and RX each (FIFO mode config)
+							# 64 bytes for TX and RX each (FIFO mode config)
 
 	# software reset to enable R_FIFO_MD setting
 	BRI::gen "$portnum	WD	00	08";	# R_CIRM = M_SRES (soft reset)
@@ -358,29 +358,22 @@ sub init_xhfc($) {
 
 	# amplitude
 	BRI::gen "$portnum	WD	46	80";	# R_PWM_MD: (PWM output mode register)
-					#           PWM push to zero only
+							#           PWM push to zero only
 	BRI::gen "$portnum	WD	39	18";	# R_PWM1: (modulator register for PWM1)
-					#          set duty cycle
+							#          set duty cycle
 
 	BRI::gen "$portnum	WD	0C	11";	# R_FIFO_THRES: (FIFO fill lvl control register)
-					#               RX/TX threshold = 16 bytes
+							#               RX/TX threshold = 16 bytes
 
-	#	--> Wait until (R_STATUS & (M_BUSY | M_PCM_INIT))
- 	# M_BUSY status will be checked after fifo selection
-	BRI::gen "$portnum	WD	0F	80";
-	# set PCM !master mode
+	# set PCM bus mode to slave by default
 	BRI::gen "$portnum	WD	14	08";	# R_PCM_MD0 = PCM slave mode, F0IO duration is 2 HFC_PCLK's
+							# (C4IO, F0IO are inputs)
 
-					# (C4IO, F0IO are inputs)
-
-	# set pll adjust
-	#	WD	14	90	# R_PCM_MD0: Index value to select
-					#            the register at address 15
-	#	WD	15	2C	# R_PCM_MD1: V_PLL_ADJ (DPLL adjust speed), C4IO is 16.384MHz(128 time slots) 
-					#            in the last slot of PCM frame
-	BRI::gen "$portnum	WI	14	98	20";	# R_PCM_MD1: V_PLL_ADJ
-						#            (DPLL adjust speed) in the
-						#            last slot of PCM frame
+	BRI::gen "$portnum	WD	14	98";	# R_PCM_MD0: Index value to select
+							#            the register at address 15
+	BRI::gen "$portnum	WD	15	20";	# R_PCM_MD1: V_PLL_ADJ (DPLL adjust speed), 
+							#            in the last slot of PCM frame
+							#            V_PCM_DR, C4IO  is 16.384MHz(128 time slots) 
 
 	BRI::gen "$portnum	WD	4C	03";	# GPIOGPIO function (not PWM) on GPIO0 and GPIO1 pins
 	BRI::gen "$portnum	WD	4A	03";	# Output enable for GPIO0 and GPIO1 pins

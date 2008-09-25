@@ -46,6 +46,8 @@ static int proc_xpd_register_read(char *page, char **start, off_t off, int count
 	unsigned long		flags;
 	xpd_t			*xpd = data;
 	reg_cmd_t		*info;
+	bool			do_datah;
+	char			datah_str[50];
 
 	if(!xpd)
 		return -ENODEV;
@@ -54,16 +56,26 @@ static int proc_xpd_register_read(char *page, char **start, off_t off, int count
 	len += sprintf(page + len, "# Writing bad data into this file may damage your hardware!\n");
 	len += sprintf(page + len, "# Consult firmware docs first\n");
 	len += sprintf(page + len, "#\n");
+	do_datah = REG_FIELD(info, do_datah) ? 1 : 0;
+	if(do_datah) {
+		snprintf(datah_str, ARRAY_SIZE(datah_str), "\t%02X",
+			REG_FIELD(info, data_high));
+	} else
+		datah_str[0] = '\0';
 	if(REG_FIELD(info, do_subreg)) {
-		len += sprintf(page + len, "#CH\tOP\tReg.\tSub\tDL\n");
-		len += sprintf(page + len, "%2d\tRS\t%02X\t%02X\t%02X\n",
+		len += sprintf(page + len, "#CH\tOP\tReg.\tSub\tDL%s\n",
+				(do_datah) ? "\tDH" : "");
+		len += sprintf(page + len, "%2d\tRS\t%02X\t%02X\t%02X%s\n",
 				info->portnum,
-				REG_FIELD(info, regnum), REG_FIELD(info, subreg), REG_FIELD(info, data_low));
+				REG_FIELD(info, regnum), REG_FIELD(info, subreg),
+				REG_FIELD(info, data_low), datah_str);
 	} else {
-		len += sprintf(page + len, "#CH\tOP\tReg.\tDL\n");
-		len += sprintf(page + len, "%2d\tRD\t%02X\t%02X\n",
+		len += sprintf(page + len, "#CH\tOP\tReg.\tDL%s\n",
+				(do_datah) ? "\tDH" : "");
+		len += sprintf(page + len, "%2d\tRD\t%02X\t%02X%s\n",
 				info->portnum,
-				REG_FIELD(info, regnum), REG_FIELD(info, data_low));
+				REG_FIELD(info, regnum),
+				REG_FIELD(info, data_low), datah_str);
 	}
 	spin_unlock_irqrestore(&xpd->lock, flags);
 	if (len <= off+count)
@@ -96,7 +108,7 @@ static int execute_chip_command(xpd_t *xpd, const int argc, char *argv[])
 	bool			writing;
 	int			op;		/* [W]rite, [R]ead */
 	int			addr_mode;	/* [D]irect, [I]ndirect, [Mm]ulti */
-	bool			do_indirect = 0;
+	bool			do_subreg = 0;
 	int			regnum;
 	int			subreg;
 	int			data_low;
@@ -148,12 +160,15 @@ static int execute_chip_command(xpd_t *xpd, const int argc, char *argv[])
 	addr_mode = argv[argno][1];
 	switch(addr_mode) {
 		case 'I':
-			do_indirect = 1;
+			XPD_NOTICE(xpd, "'I' is deprecated in register commands. Use 'S' instead.\n");
+			/* fall through */
+		case 'S':
+			do_subreg = 1;
 			num_args += 2;	/* register + subreg */
-			//XPD_DBG(REGS, xpd, "INDIRECT\n");
+			//XPD_DBG(REGS, xpd, "SUBREG\n");
 			break;
 		case 'D':
-			do_indirect = 0;
+			do_subreg = 0;
 			num_args++;	/* register */
 			//XPD_DBG(REGS, xpd, "DIRECT\n");
 			break;
@@ -206,7 +221,7 @@ static int execute_chip_command(xpd_t *xpd, const int argc, char *argv[])
 	}
 	//XPD_DBG(REGS, xpd, "Register is %X\n", regnum);
 	argno++;
-	if(do_indirect) {
+	if(do_subreg) {
 		if(argno >= argc) {
 			XPD_ERR(xpd, "Missing subregister number\n");
 			goto out;
@@ -261,14 +276,14 @@ static int execute_chip_command(xpd_t *xpd, const int argc, char *argv[])
 			portno,		/* portno	*/
 			writing,	/* writing	*/
 			regnum,
-			do_indirect,	/* use subreg	*/
+			do_subreg,	/* use subreg	*/
 			subreg, 	/* subreg	*/
 			data_low,
 			do_datah,	/* use data_high*/
 			data_high);
 #endif
 	ret = xpp_register_request(xpd->xbus, xpd, portno,
-		writing, regnum, do_indirect, subreg,
+		writing, regnum, do_subreg, subreg,
 		data_low, do_datah, data_high, 1);
 out:
 	return ret;

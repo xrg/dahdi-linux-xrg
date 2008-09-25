@@ -29,12 +29,12 @@ use strict;
 #	   accept settings for ALL SLICS).
 #	2. Command word:
 #		- RD	Read Direct register.
-#		- RI	Read Indirect register.
+#		- RS	Read Sub-register.
 #		- WD	Write Direct register.
-#		- WI	Write Indirect register.
+#		- WS	Write Sub-register.
 #	3. Register number in hexadecimal.
-#	4. Low data byte in hexadecimal. (for WD and WI commands).
-#	5. High data byte in hexadecimal. (for WI command only).
+#	4. Low data byte in hexadecimal. (for WD and WS commands).
+#	5. High data byte in hexadecimal. (for WS command only).
 #
 #
 
@@ -147,7 +147,7 @@ sub read_reg($$$) {
 	close(SLICS);
 	die("Failed reading from '$chipregs' ($read_slic,$read_reg,$direct)")
 		unless @reply;
-	if ($direct eq 'I') {
+	if ($direct eq 'S') {
 		return @reply;
 	} else {
 		return $reply[0];
@@ -164,7 +164,7 @@ sub write_reg{#($$$$$) {
 	
 	my $str  = sprintf "%s W%s %02X %02X", 
 		$read_slic, $direct, $read_reg, $reg_val_low;
-	if ($direct eq 'I') {
+	if ($direct eq 'S') {
 		$str .= sprintf " %02X", $reg_val_hi;
 	}
 	write_to_slic_file($str);
@@ -182,72 +182,72 @@ sub log_calib_params() {
 
 sub init_indirect_registers() {
 	return write_to_slic_file("#
-*	WI	1E	00	C2	55
-*	WI	1E	01	E6	51
-*	WI	1E	02	85	4B
-*	WI	1E	03	37	49
+*	WS	1E	00	C2	55
+*	WS	1E	01	E6	51
+*	WS	1E	02	85	4B
+*	WS	1E	03	37	49
                           
-*	WI	1E	04	33	33
-*	WI	1E	05	02	02
-*	WI	1E	06	02	02
-*	WI	1E	07	98	01
+*	WS	1E	04	33	33
+*	WS	1E	05	02	02
+*	WS	1E	06	02	02
+*	WS	1E	07	98	01
                           
-*	WI	1E	08	98	01
-*	WI	1E	09	11	06
-*	WI	1E	0A	02	02
-*	WI	1E	0B	E5	00
+*	WS	1E	08	98	01
+*	WS	1E	09	11	06
+*	WS	1E	0A	02	02
+*	WS	1E	0B	E5	00
                           
-*	WI	1E	0C	1C	0A
-*	WI	1E	0D	30	7B
-*	WI	1E	0E	63	00
-*	WI	1E	0F	00	00
+*	WS	1E	0C	1C	0A
+*	WS	1E	0D	30	7B
+*	WS	1E	0E	63	00
+*	WS	1E	0F	00	00
                           
-*	WI	1E	10	70	78
-*	WI	1E	11	7D	00
-*	WI	1E	12	00	00
-*	WI	1E	13	00	00
+*	WS	1E	10	70	78
+*	WS	1E	11	7D	00
+*	WS	1E	12	00	00
+*	WS	1E	13	00	00
                           
-*	WI	1E	14	F0	7E
-*	WI	1E	15	C0	01
-*	WI	1E	16	00	00
-*	WI	1E	17	00	20
+*	WS	1E	14	F0	7E
+*	WS	1E	15	C0	01
+*	WS	1E	16	00	00
+*	WS	1E	17	00	20
                           
-*	WI	1E	18	00	20
-*	WI	1E	19	00	00
-*	WI	1E	1A	00	20
-*	WI	1E	1B	00	40
+*	WS	1E	18	00	20
+*	WS	1E	19	00	00
+*	WS	1E	1A	00	20
+*	WS	1E	1B	00	40
                           
-*	WI	1E	1C	00	10
-*	WI	1E	1D	00	36
-*	WI	1E	1E	00	10
-*	WI	1E	1F	00	02
+*	WS	1E	1C	00	10
+*	WS	1E	1D	00	36
+*	WS	1E	1E	00	10
+*	WS	1E	1F	00	02
                           
-*	WI	1E	20	C0	07
-*	WI	1E	21	00	26
-*	WI	1E	22	F4	0F
-*	WI	1E	23	00	80
+*	WS	1E	20	C0	07
+*	WS	1E	21	00	26
+*	WS	1E	22	F4	0F
+*	WS	1E	23	00	80
 
-#*	WI	1E	24	20	03
-#*	WI	1E	25	8C	08
-#*	WI	1E	26	00	01
-#*	WI	1E	27	10	00
+#*	WS	1E	24	20	03
+#*	WS	1E	25	8C	08
+#*	WS	1E	26	00	01
+#*	WS	1E	27	10	00
                           
-*	WI	1E	24	00	08
-*	WI	1E	25	00	08
-*	WI	1E	26	00	08
-*	WI	1E	27	00	08
+*	WS	1E	24	00	08
+*	WS	1E	25	00	08
+*	WS	1E	26	00	08
+*	WS	1E	27	00	08
                           
-*	WI	1E	28	00	0C
-*	WI	1E	29	00	0C
-*	WI	1E	2B	00	01
+*	WS	1E	28	00	0C
+*	WS	1E	29	00	0C
+*	WS	1E	2B	00	01
                           
-*	WI	1E	63	DA	00
-*	WI	1E	64	60	6B
-*	WI	1E	65	74	00
-*	WI	1E	66	C0	79
+*	WS	1E	63	DA	00
+*	WS	1E	64	60	6B
+*	WS	1E	65	74	00
+*	WS	1E	66	C0	79
                           
-*	WI	1E	67	20	11
-*	WI	1E	68	E0	3B	
+*	WS	1E	67	20	11
+*	WS	1E	68	E0	3B	
 #");
 }
 
@@ -266,8 +266,8 @@ sub save_indirect_filter_params() {
 	for my $slic (@SlicNums) {
 		for my $reg (35 .. 39) {
 			$FilterParams[$slic][$reg] = 
-				[read_reg($slic, $reg, 'I')];
-			write_reg($slic, $reg, 'I', 0, 0x80);
+				[read_reg($slic, $reg, 'S')];
+			write_reg($slic, $reg, 'S', 0, 0x80);
 		}
 	}
 	
@@ -276,7 +276,7 @@ sub save_indirect_filter_params() {
 sub restore_indirect_filter_params() {
 	for my $slic (@SlicNums) {
 		for my $reg (35 .. 39) {
-			write_reg($slic, $reg, 'I', 
+			write_reg($slic, $reg, 'S', 
 				@{$FilterParams[$slic][$reg]});
 		}
 	}
@@ -419,35 +419,35 @@ __DATA__
 *	WD	40	00
 
 # Flush out energy accumulators
-*	WI	1E	58	00 00
-*	WI	1E	59	00 00
-*	WI	1E	5A	00 00
-*	WI	1E	5B	00 00
-*	WI	1E	5C	00 00
-*	WI	1E	5D	00 00
-*	WI	1E	5E	00 00
-*	WI	1E	5F	00 00
-*	WI	1E	61	00 00
-*	WI	1E	58	00 00
-*	WI	1E	C1	00 00
-*	WI	1E	C2	00 00
-*	WI	1E	C3	00 00
-*	WI	1E	C4	00 00
-*	WI	1E	C5	00 00
-*	WI	1E	C6	00 00
-*	WI	1E	C7	00 00
-*	WI	1E	C8	00 00
-*	WI	1E	C9	00 00
-*	WI	1E	CA	00 00
-*	WI	1E	CB	00 00
-*	WI	1E	CC	00 00
-*	WI	1E	CD	00 00
-*	WI	1E	CE	00 00
-*	WI	1E	CF	00 00
-*	WI	1E	D0	00 00
-*	WI	1E	D1	00 00
-*	WI	1E	D2	00 00
-*	WI	1E	D3	00 00
+*	WS	1E	58	00 00
+*	WS	1E	59	00 00
+*	WS	1E	5A	00 00
+*	WS	1E	5B	00 00
+*	WS	1E	5C	00 00
+*	WS	1E	5D	00 00
+*	WS	1E	5E	00 00
+*	WS	1E	5F	00 00
+*	WS	1E	61	00 00
+*	WS	1E	58	00 00
+*	WS	1E	C1	00 00
+*	WS	1E	C2	00 00
+*	WS	1E	C3	00 00
+*	WS	1E	C4	00 00
+*	WS	1E	C5	00 00
+*	WS	1E	C6	00 00
+*	WS	1E	C7	00 00
+*	WS	1E	C8	00 00
+*	WS	1E	C9	00 00
+*	WS	1E	CA	00 00
+*	WS	1E	CB	00 00
+*	WS	1E	CC	00 00
+*	WS	1E	CD	00 00
+*	WS	1E	CE	00 00
+*	WS	1E	CF	00 00
+*	WS	1E	D0	00 00
+*	WS	1E	D1	00 00
+*	WS	1E	D2	00 00
+*	WS	1E	D3	00 00
                 
 # Setting of SLICs offsets
 # New card initialization
@@ -497,16 +497,16 @@ __DATA__
 
 *	WD	6C	01
 
-*	WI	1E	23	00 80
-*	WI	1E	24	20 03
-*	WI	1E	25	8C 08
-*	WI	1E	26	00 01
-*	WI	1E	27	10 00
+*	WS	1E	23	00 80
+*	WS	1E	24	20 03
+*	WS	1E	25	8C 08
+*	WS	1E	26	00 01
+*	WS	1E	27	10 00
 
 #------ Metering tone
-*	WI	1E	17	61 15	# Amplitue Ramp-up
-*	WI	1E	18	61 15	# Max Amplitude
-*	WI	1E	19	FB 30	# Frequency
+*	WS	1E	17	61 15	# Amplitue Ramp-up
+*	WS	1E	18	61 15	# Max Amplitude
+*	WS	1E	19	FB 30	# Frequency
 *	WD	2C	00	# Timer dL
 *	WD	2D	03	# Timer dH
 
