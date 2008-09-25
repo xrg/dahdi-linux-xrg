@@ -39,12 +39,12 @@ static DEF_PARM(uint, poll_battery_interval, 500, 0644, "Poll battery interval i
 static DEF_PARM(uint, poll_metering_interval, 500, 0644, "Poll metering interval in milliseconds (0 - disable)");
 #endif
 static DEF_PARM(int, ring_debounce, 50, 0644, "Number of ticks to debounce a false RING indication");
-static DEF_PARM(int, caller_id_style, 0, 0444, "Caller-Id detection style: 0 - [BELL], 1 - [BT], 2 - [PASS]");
+static DEF_PARM(int, caller_id_style, 0, 0444, "Caller-Id detection style: 0 - [BELL], 1 - [ETSI_FSK], 2 - [ETSI_DTMF]");
 
 enum cid_style {
 	CID_STYLE_BELL		= 0,	/* E.g: US (Bellcore) */
-	CID_STYLE_ETSI_POLREV	= 1,	/* E.g: UK (British Telecom) */
-	CID_STYLE_PASS_ALWAYS	= 2,	/* E.g: DK */
+	CID_STYLE_ETSI_FSK	= 1,	/* E.g: UK (British Telecom) */
+	CID_STYLE_ETSI_DTMF	= 2,	/* E.g: DK, Russia */
 };
 
 /* Signaling is opposite (fxs signalling for fxo card) */
@@ -143,6 +143,8 @@ struct FXO_priv_data {
 	ushort			power_denial_delay[CHANNELS_PERXPD];
 	ushort			power_denial_minimum[CHANNELS_PERXPD];
 	ushort			power_denial_safezone[CHANNELS_PERXPD];
+	xpp_line_t		cidfound;		/* 0 - OFF, 1 - ON */
+	unsigned int		cidtimer[CHANNELS_PERXPD];
 	xpp_line_t		ledstate[NUM_LEDS];	/* 0 - OFF, 1 - ON */
 	xpp_line_t		ledcontrol[NUM_LEDS];	/* 0 - OFF, 1 - ON */
 	int			led_counter[NUM_LEDS][CHANNELS_PERXPD];
@@ -298,12 +300,14 @@ static void mark_ring(xpd_t *xpd, lineno_t pos, bool on, bool update_dahdi)
 	if(on && !xpd->ringing[pos]) {
 		LINE_DBG(SIGNAL, xpd, pos, "START\n");
 		xpd->ringing[pos] = 1;
+		priv->cidtimer[pos] = xpd->timer_count;
 		MARK_BLINK(priv, pos, LED_GREEN, LED_BLINK_RING);
 		if(update_dahdi)
 			update_dahdi_ring(xpd, pos, on);
 	} else if(!on && xpd->ringing[pos]) {
 		LINE_DBG(SIGNAL, xpd, pos, "STOP\n");
 		xpd->ringing[pos] = 0;
+		priv->cidtimer[pos] = xpd->timer_count;
 		if(IS_BLINKING(priv, pos, LED_GREEN))
 			MARK_BLINK(priv, pos, LED_GREEN, 0);
 		if(update_dahdi)
@@ -344,7 +348,7 @@ static int do_sethook(xpd_t *xpd, int pos, bool to_offhook)
 	} else {
 		BIT_CLR(xpd->offhook, pos);
 	}
-	if(caller_id_style != CID_STYLE_PASS_ALWAYS) {
+	if(caller_id_style != CID_STYLE_ETSI_DTMF) {
 		LINE_DBG(SIGNAL, xpd, pos, "Caller-ID PCM: off\n");
 		BIT_CLR(xpd->cid_on, pos);
 	}
@@ -357,6 +361,7 @@ static int do_sethook(xpd_t *xpd, int pos, bool to_offhook)
 	priv->power_denial_safezone[pos] = (to_offhook) ? POWER_DENIAL_SAFEZONE : 0;
 	if(!to_offhook)
 		priv->power[pos] = POWER_UNKNOWN;
+	priv->cidtimer[pos] = xpd->timer_count;
 	spin_unlock_irqrestore(&xpd->lock, flags);
 	return ret;
 }
@@ -460,7 +465,7 @@ static int FXO_card_init(xbus_t *xbus, xpd_t *xpd)
 		priv->polarity[i] = POL_UNKNOWN;	/* will be updated on next battery sample */
 		priv->battery[i] = BATTERY_UNKNOWN;	/* will be updated on next battery sample */
 		priv->power[i] = POWER_UNKNOWN;	/* will be updated on next battery sample */
-		if(caller_id_style == CID_STYLE_PASS_ALWAYS)
+		if(caller_id_style == CID_STYLE_ETSI_DTMF)
 			BIT_SET(xpd->cid_on, i);
 	}
 	XPD_DBG(GENERAL, xpd, "done\n");
@@ -495,12 +500,14 @@ static int FXO_card_dahdi_preregistration(xpd_t *xpd, bool on)
 	xbus_t			*xbus;
 	struct FXO_priv_data	*priv;
 	int			i;
+	unsigned int		timer_count;
 
 	BUG_ON(!xpd);
 	xbus = xpd->xbus;
 	BUG_ON(!xbus);
 	priv = xpd->priv;
 	BUG_ON(!priv);
+	timer_count = xpd->timer_count;
 	XPD_DBG(GENERAL, xpd, "%s\n", (on)?"ON":"OFF");
 	xpd->span.spantype = "FXO";
 	for_each_line(xpd, i) {
@@ -517,6 +524,9 @@ static int FXO_card_dahdi_preregistration(xpd_t *xpd, bool on)
 		MARK_ON(priv, i, LED_GREEN);
 		msleep(4);
 		MARK_ON(priv, i, LED_RED);
+	}
+	for_each_line(xpd, i) {
+		priv->cidtimer[i] = timer_count;
 	}
 	return 0;
 }
@@ -693,6 +703,56 @@ static void handle_fxo_power_denial(xpd_t *xpd)
 	}
 }
 
+/*
+ * For caller-id CID_STYLE_ETSI_DTMF:
+ *   - No indication is passed before the CID
+ *   - We try to detect it and send "fake" polarity reversal.
+ *   - The zapata.conf should have cidstart=polarity
+ *   - Based on an idea in http://bugs.digium.com/view.php?id=9096
+ */
+static void check_etsi_dtmf(xpd_t *xpd) 
+{
+	struct FXO_priv_data	*priv;
+	int			portno;
+	unsigned int		timer_count;
+
+	if(!SPAN_REGISTERED(xpd))
+		return;
+	priv = xpd->priv;
+	BUG_ON(!priv);
+	timer_count = xpd->timer_count;
+	for_each_line(xpd, portno) {
+		/* Skip offhook and ringing ports */
+		if(IS_SET(xpd->offhook, portno) || xpd->ringing[portno])
+			continue;
+		if(IS_SET(priv->cidfound, portno)) {
+			if(timer_count > priv->cidtimer[portno] + 4000) {
+				/* reset flags if it's been a while */
+				priv->cidtimer[portno] = timer_count;
+				BIT_CLR(priv->cidfound, portno);
+				LINE_DBG(SIGNAL, xpd, portno, "Reset CID flag\n");
+			}
+			continue;
+		}
+		if(timer_count > priv->cidtimer[portno] + 400) {
+			struct dahdi_chan	*chan = xpd->span.chans[portno];
+			int			sample;
+			int			i;
+
+			for(i = 0; i < DAHDI_CHUNKSIZE; i++) {
+				sample = DAHDI_XLAW(chan->readchunk[i], chan);
+				if(sample > 16000 || sample < -16000) {
+					priv->cidtimer[portno] = timer_count;
+					BIT_SET(priv->cidfound, portno);
+					LINE_DBG(SIGNAL, xpd, portno, "Found DTMF CLIP (%d)\n", i);
+					dahdi_qevent_lock(chan, DAHDI_EVENT_POLARITY);
+					break;
+				}
+			}
+		}
+	}
+}
+
 static int FXO_card_tick(xbus_t *xbus, xpd_t *xpd)
 {
 	struct FXO_priv_data	*priv;
@@ -709,6 +769,8 @@ static int FXO_card_tick(xbus_t *xbus, xpd_t *xpd)
 	handle_fxo_leds(xpd);
 	handle_fxo_ring(xpd);
 	handle_fxo_power_denial(xpd);
+	if(caller_id_style == CID_STYLE_ETSI_DTMF && likely(xpd->card_present))
+		check_etsi_dtmf(xpd);
 	priv->poll_counter++;
 	return 0;
 }
@@ -923,7 +985,7 @@ static void update_battery_voltage(xpd_t *xpd, byte data_low, xportno_t portno)
 			 * 2. In some countries used to report caller-id during onhook
 			 *    but before first ring.
 			 */
-			if(caller_id_style == CID_STYLE_ETSI_POLREV) {
+			if(caller_id_style == CID_STYLE_ETSI_FSK) {
 				LINE_DBG(SIGNAL, xpd, portno, "Caller-ID PCM: on\n");
 				BIT_SET(xpd->cid_on, portno);	/* will be cleared on ring/offhook */
 			}
