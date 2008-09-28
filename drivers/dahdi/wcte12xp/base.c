@@ -1055,7 +1055,7 @@ static int t1xxp_echocan_with_params(struct dahdi_chan *chan, struct dahdi_echoc
 	struct adt_lec_params params;
 	struct t1 *wc = chan->pvt;
 	struct vpm150m *vpm150m = wc->vpm150m;
-	unsigned int flags;
+	unsigned long flags;
 	struct vpm150m_workentry *work;
 	unsigned int ret;
 
