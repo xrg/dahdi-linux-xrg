@@ -6484,7 +6484,7 @@ static inline void __dahdi_ec_chunk(struct dahdi_chan *ss, unsigned char *rxchun
 				rxlins[x] = DAHDI_XLAW(rxchunk[x], ss);
 				txlins[x] = DAHDI_XLAW(txchunk[x], ss);
 			}
-			ss->ec_current->echo_can_array_update(ss->ec_state, rxlins, txlins);
+			ss->ec_current->echo_can_array_update(ss->ec_state, txlins, rxlins);
 			for (x = 0; x < DAHDI_CHUNKSIZE; x++)
 				rxchunk[x] = DAHDI_LIN2X((int) rxlins[x], ss);
 		}

@@ -728,6 +728,7 @@ static void echo_can_update(struct echo_can_state *ec, short *iref, short *isig)
 	for (x = 0; x < DAHDI_CHUNKSIZE; x++) {
 		result = sample_update(ec, *iref, *isig);
 		*isig++ = result;
+		++iref;
 	}
 }
 
