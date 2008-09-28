@@ -771,7 +771,8 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 	if (!fxo->offhook) {
 		if (fwringdetect) {
 			res = wc->reg0shadow[card] & 0x60;
-			if (fxo->ringdebounce--) {
+			if (fxo->ringdebounce) {
+				--fxo->ringdebounce;
 				if (res && (res != fxo->lastrdtx) &&
 				    (fxo->battery == BATTERY_PRESENT)) {
 					if (!fxo->wasringing) {
