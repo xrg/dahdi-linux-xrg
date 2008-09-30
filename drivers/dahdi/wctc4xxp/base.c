@@ -3035,7 +3035,13 @@ wctc4xxp_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 		}
 	}
 
+#	if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
+	wc->watchdog.function = wctc4xxp_watchdog;
+	wc->watchdog.data = (unsigned long)wc;
+	init_timer(&wc->watchdog);
+#	else
 	setup_timer(&wc->watchdog, wctc4xxp_watchdog, (unsigned long)wc); 
+#	endif
 
 	/* ------------------------------------------------------------------
 	 * Load the firmware and start the DTE.
