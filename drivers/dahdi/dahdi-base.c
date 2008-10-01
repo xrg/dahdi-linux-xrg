@@ -4274,7 +4274,12 @@ static int dahdi_chanandpseudo_ioctl(struct inode *inode, struct file *file, uns
 			return -EINVAL;
 		if (stack.bi.bufsize * stack.bi.numbufs > DAHDI_MAX_BUF_SPACE)
 			return -EINVAL;
-		chan->rxbufpolicy = stack.bi.rxbufpolicy & 0x1;
+		/* It does not make sense to allow user mode to change the
+		 * receive buffering policy.  DAHDI always provides received
+		 * buffers to upper layers immediately.  Transmission is
+		 * different since we might want to allow the kernel to build
+		 * up a buffer in order to prevent underruns from the
+		 * interrupt context. */
 		chan->txbufpolicy = stack.bi.txbufpolicy & 0x1;
 		if ((rv = dahdi_reallocbufs(chan,  stack.bi.bufsize, stack.bi.numbufs)))
 			return (rv);
