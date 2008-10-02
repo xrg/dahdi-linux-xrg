@@ -1439,6 +1439,7 @@ wctc4xxp_cleanup_channel_private(struct wcdte *wc, struct channel_pvt *cpvt)
 
 	spin_lock_bh(&cpvt->lock);
 	list_splice_init(&cpvt->rx_queue, &local_list);
+	dahdi_tc_clear_data_waiting(dtc);
 	spin_unlock_bh(&cpvt->lock);
 
 	list_for_each_entry_safe(cmd, temp, &local_list, node) {
@@ -1491,7 +1492,6 @@ do_channel_allocate(struct dahdi_transcoder_channel *dtc)
 	DTE_DEBUG(DTE_DEBUG_CHANNEL_SETUP, 
 	          "Entering %s for channel %p.\n", __FUNCTION__, dtc);
 	/* Anything on the rx queue now is old news... */
-	dahdi_tc_clear_data_waiting(dtc);
 	wctc4xxp_cleanup_channel_private(wc, cpvt);
 	DTE_DEBUG(DTE_DEBUG_CHANNEL_SETUP, "Allocating a new channel: %p.\n", dtc);
 	wctc4xxp_srcfmt = wctc4xxp_dahdifmt_to_dtefmt(dtc->srcfmt);
