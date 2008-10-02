@@ -1940,8 +1940,8 @@ queue_rtp_packet(struct wcdte *wc, struct tcb *cmd)
 	cpvt = dtc->pvt;
 	spin_lock_bh(&cpvt->lock);
 	list_add_tail(&cmd->node, &cpvt->rx_queue);
-	spin_unlock_bh(&cpvt->lock);
 	dahdi_tc_set_data_waiting(dtc);
+	spin_unlock_bh(&cpvt->lock);
 	dahdi_transcoder_alert(dtc);
 	return;
 }
