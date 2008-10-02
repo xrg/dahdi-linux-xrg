@@ -1432,9 +1432,11 @@ wctc4xxp_getctl(struct wcdte *wc, unsigned int addr)
 }
 
 static void 
-wctc4xxp_cleanup_channel_private(struct wcdte *wc, struct channel_pvt *cpvt)
+wctc4xxp_cleanup_channel_private(struct wcdte *wc, struct
+	dahdi_transcoder_channel *dtc)
 {
 	struct tcb *cmd, *temp;
+	struct channel_pvt *cpvt = dtc->pvt;
 	LIST_HEAD(local_list);
 
 	spin_lock_bh(&cpvt->lock);
@@ -1474,7 +1476,7 @@ wctc4xxp_mark_channel_complement_built(struct wcdte *wc,
 	compl_cpvt->chan_in_num = cpvt->chan_out_num;
 	compl_cpvt->chan_out_num = cpvt->chan_in_num;
 	dahdi_tc_set_built(compl_dtc);
-	wctc4xxp_cleanup_channel_private(wc, compl_cpvt);
+	wctc4xxp_cleanup_channel_private(wc, dtc);
 
 	return 0;
 }
@@ -1492,7 +1494,7 @@ do_channel_allocate(struct dahdi_transcoder_channel *dtc)
 	DTE_DEBUG(DTE_DEBUG_CHANNEL_SETUP, 
 	          "Entering %s for channel %p.\n", __FUNCTION__, dtc);
 	/* Anything on the rx queue now is old news... */
-	wctc4xxp_cleanup_channel_private(wc, cpvt);
+	wctc4xxp_cleanup_channel_private(wc, dtc);
 	DTE_DEBUG(DTE_DEBUG_CHANNEL_SETUP, "Allocating a new channel: %p.\n", dtc);
 	wctc4xxp_srcfmt = wctc4xxp_dahdifmt_to_dtefmt(dtc->srcfmt);
 	wctc4xxp_dstfmt = wctc4xxp_dahdifmt_to_dtefmt(dtc->dstfmt);
@@ -1558,7 +1560,7 @@ wctc4xxp_operation_release(struct dahdi_transcoder_channel *dtc)
 		return -EINTR;
 	}
 	/* Remove any packets that are waiting on the outbound queue. */
-	wctc4xxp_cleanup_channel_private(wc, cpvt);
+	wctc4xxp_cleanup_channel_private(wc, dtc);
 	index = cpvt->timeslot_in_num/2;
 	BUG_ON(index >= wc->numchannels);
 	if (ENCODER == cpvt->encoder) {
@@ -3132,16 +3134,13 @@ static void wctc4xxp_cleanup_channels(struct wcdte *wc)
 {
 	int i;
 	struct dahdi_transcoder_channel *dtc_en, *dtc_de;
-	struct channel_pvt *cpvt;
 
 	for(i = 0; i < wc->numchannels; i++) {
 		dtc_en = &(wc->uencode->channels[i]);
-		cpvt = dtc_en->pvt;
-		wctc4xxp_cleanup_channel_private(wc, cpvt);
+		wctc4xxp_cleanup_channel_private(wc, dtc_en);
 		
 		dtc_de = &(wc->udecode->channels[i]);
-		cpvt = dtc_de->pvt;
-		wctc4xxp_cleanup_channel_private(wc, cpvt);
+		wctc4xxp_cleanup_channel_private(wc, dtc_de);
 	}
 }
 
