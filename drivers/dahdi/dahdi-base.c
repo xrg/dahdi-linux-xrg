@@ -1532,8 +1532,8 @@ static int dahdi_net_open(hdlc_device *hdlc)
 	if (res)
 		return res;
 
-	fasthdlc_init(&ms->rxhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
-	fasthdlc_init(&ms->txhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
+	fasthdlc_init(&ms->rxhdlc, (ms->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
+	fasthdlc_init(&ms->txhdlc, (ms->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
 	ms->infcs = PPP_INITFCS;
 
 	netif_start_queue(ztchan_to_dev(ms));
@@ -1637,7 +1637,7 @@ static struct dahdi_hdlc *dahdi_hdlc_alloc(void)
 	return kzalloc(sizeof(struct dahdi_hdlc), GFP_KERNEL);
 }
 
-static inline print_debug_writebuf(struct dahdi_chan* ss, struct sk_buff *skb,
+static inline void print_debug_writebuf(struct dahdi_chan* ss, struct sk_buff *skb,
 		int oldbuf)
 {
 #ifdef CONFIG_DAHDI_DEBUG
@@ -1711,7 +1711,7 @@ static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 		dev->trans_start = jiffies;
 		stats->tx_packets++;
 		stats->tx_bytes += ss->writen[oldbuf];
-		print_debug_writebuf(ss, skb, outbuf);
+		print_debug_writebuf(ss, skb, oldbuf);
 		retval = 0;
 		/* Free the SKB */
 		dev_kfree_skb_any(skb);
