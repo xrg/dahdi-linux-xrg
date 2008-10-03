@@ -2042,7 +2042,7 @@ static ssize_t dahdi_chan_write(struct file *file, const char *usrbuf, size_t co
 
 #ifdef CONFIG_DAHDI_DEBUG
 	module_printk(KERN_NOTICE, "dahdi_chan_write(unit: %d, res: %d, outwritebuf: %d amnt: %d\n",
-		      unit, chan->res, chan->outwritebuf, amnt);
+		      unit, res, chan->outwritebuf, amnt);
 #endif
 #if 0
  	if ((unit == 24) || (unit == 48) || (unit == 16) || (unit == 47)) {
@@ -3675,7 +3675,7 @@ static void recalc_slaves(struct dahdi_chan *chan)
 		if (chan->span->chans[x]->master == chan) {
 #ifdef CONFIG_DAHDI_DEBUG
 			module_printk(KERN_NOTICE, "Channel %s, slave to %s, last is %s, its next will be %d\n",
-				      chan->span->chans[x].name, chan->name, last->name, x);
+				      chan->span->chans[x]->name, chan->name, last->name, x);
 #endif
 			last->nextslave = x;
 			last = chan->span->chans[x];
@@ -3966,7 +3966,7 @@ static int dahdi_ctl_ioctl(struct inode *inode, struct file *file, unsigned int 
 			chans[ch.chan]->rxhooksig = DAHDI_RXSIG_INITIAL;
 		}
 #ifdef CONFIG_DAHDI_DEBUG
-		module_printk(KERN_NOTICE, "Configured channel %s, flags %04x, sig %04x\n", chans[ch.chan]->name, chans[ch.chan]->flags, chans[ch.chan]->sig);
+		module_printk(KERN_NOTICE, "Configured channel %s, flags %04lx, sig %04x\n", chans[ch.chan]->name, chans[ch.chan]->flags, chans[ch.chan]->sig);
 #endif
 		spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
 

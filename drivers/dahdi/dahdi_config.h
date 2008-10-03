@@ -112,6 +112,11 @@
 /* #define CONFIG_DAHDI_WATCHDOG */
 
 /*
+ * Uncomment the following to include extra debugging output.
+ */
+/* #define CONFIG_DAHDI_DEBUG */
+
+/*
  * Uncomment for Non-standard FXS groundstart start state (A=Low, B=Low)
  * particularly for CAC channel bank groundstart FXO ports.
  */
