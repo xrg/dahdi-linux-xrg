@@ -1888,7 +1888,9 @@ receive_csm_encaps_packet(struct wcdte *wc, struct tcb *cmd)
 				DTE_PRINTK(WARNING, 
 				   "DTE Failed self test (%04x).\n", 
 				   le16_to_cpu(hdr->params[0]));
-			} else if (hdr->params[1] != le16_to_cpu(0x000c)) {
+			} else if ((hdr->params[1] != le16_to_cpu(0x000c)) && 
+			           (hdr->params[1] != le16_to_cpu(0x010c))) 
+			{
 				DTE_PRINTK(WARNING, 
 				   "Unexpected ERAM status (%04x).\n", 
 				   le16_to_cpu(hdr->params[1]));
