@@ -7065,7 +7065,7 @@ out in the later versions, and is put back now. */
 		if (skb && (ms->flags & DAHDI_FLAG_NETDEV))
 #ifdef NEW_HDLC_INTERFACE
 		{
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22)
 			skb->mac.raw = skb->data;
 #else
 			skb_reset_mac_header(skb);
