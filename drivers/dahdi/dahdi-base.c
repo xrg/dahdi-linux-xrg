@@ -1807,7 +1807,7 @@ static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 			   some space for us */
 			ss->outwritebuf = oldbuf;
 		}
-		print_debug_writebuf(ss, skb, outbuf);
+		print_debug_writebuf(ss, skb, oldbuf);
 		retval = 1;
 	}
 	spin_unlock_irqrestore(&ss->lock, flags);
@@ -5011,7 +5011,7 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 					hw_echocancel_off(chan);
 
 					if (tec)
-						chan->ec->echo_can_free(tec);
+						chan->ec_current->echo_can_free(tec);
 				} else
 					return -ENOMEM;
 			}
