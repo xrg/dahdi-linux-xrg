@@ -1622,7 +1622,7 @@ module_param(clockextra, int, 0600);
 module_param(debug, int, 0600);
 module_param(j1mode, int, 0600);
 
-MODULE_DESCRIPTION("Wildcard TE110P DAHDI Driver");
+MODULE_DESCRIPTION("Wildcard TE110P Driver");
 MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
 MODULE_LICENSE("GPL v2");
 

@@ -89,7 +89,7 @@
 #define USB2420
 #endif
 
-struct ztdummy {
+struct dahdi_dummy {
 	struct dahdi_span span;
 	struct dahdi_chan _chan;
 	struct dahdi_chan *chan;
@@ -100,7 +100,7 @@ struct ztdummy {
 #endif
 };
 
-static struct ztdummy *ztd;
+static struct dahdi_dummy *ztd;
 
 static int debug = 0;
 
@@ -130,7 +130,7 @@ static struct timer_list timer;
 
 
 #ifdef USE_RTC
-static void update_rtc_rate(struct ztdummy *ztd)
+static void update_rtc_rate(struct dahdi_dummy *ztd)
 {
 	if (((rtc_rate & (rtc_rate - 1)) != 0) || (rtc_rate > 8192) || (rtc_rate < 2)) {
 		printk(KERN_NOTICE "Invalid RTC rate %d specified\n", rtc_rate);
@@ -138,7 +138,7 @@ static void update_rtc_rate(struct ztdummy *ztd)
 	}
 	if (!rtc_rate || (rtc_rate != current_rate)) {
 		rtc_control(&ztd->rtc_task, RTC_IRQP_SET, current_rate = (rtc_rate ? rtc_rate : 1024));	/* 1024 Hz */
-		printk(KERN_INFO "ztdummy: RTC rate is %d\n", rtc_rate);
+		printk(KERN_INFO "dahdi_dummy: RTC rate is %d\n", rtc_rate);
 		ztd->counter = 0;
 	}
 }
@@ -146,14 +146,14 @@ static void update_rtc_rate(struct ztdummy *ztd)
 static void ztd_tasklet(unsigned long data)
 {
 	if (taskletpending)
-		update_rtc_rate((struct ztdummy *)ztd);
+		update_rtc_rate((struct dahdi_dummy *)ztd);
 	taskletpending = 0;
 }
 
 /* rtc_interrupt - called at 1024Hz from hook in RTC handler */
-static void ztdummy_rtc_interrupt(void *private_data)
+static void dahdi_dummy_rtc_interrupt(void *private_data)
 {
-	struct ztdummy *ztd = private_data;
+	struct dahdi_dummy *ztd = private_data;
 	unsigned long flags;
 
 	/* Is spinlock required here??? */
@@ -172,7 +172,7 @@ static void ztdummy_rtc_interrupt(void *private_data)
 	spin_unlock_irqrestore(&ztd->rtclock, flags);
 }
 #elif defined(USE_HIGHRESTIMER)
-static enum hrtimer_restart ztdummy_hr_int(struct hrtimer *htmr)
+static enum hrtimer_restart dahdi_dummy_hr_int(struct hrtimer *htmr)
 {
 	unsigned long overrun;
 	
@@ -188,7 +188,7 @@ static enum hrtimer_restart ztdummy_hr_int(struct hrtimer *htmr)
 			ktime_set(0, DAHDI_TIME_NS));
 	if(overrun > 1) {
 		if(printk_ratelimit())
-			printk(KERN_NOTICE "ztdummy: HRTimer missed %lu ticks\n", 
+			printk(KERN_NOTICE "dahdi_dummy: HRTimer missed %lu ticks\n", 
 					overrun - 1);
 	}
 
@@ -197,7 +197,7 @@ static enum hrtimer_restart ztdummy_hr_int(struct hrtimer *htmr)
 		/* Printk every 5 seconds, good test to see if timer is 
 		 * running properly */
 		if (count++ % 5000 == 0)
-			printk(KERN_DEBUG "ztdummy: 5000 ticks from hrtimer\n");
+			printk(KERN_DEBUG "dahdi_dummy: 5000 ticks from hrtimer\n");
 	}
 
 	/* Always restart the timer */
@@ -205,7 +205,7 @@ static enum hrtimer_restart ztdummy_hr_int(struct hrtimer *htmr)
 }
 #else
 /* use kernel system tick timer if PC architecture RTC is not available */
-static void ztdummy_timer(unsigned long param)
+static void dahdi_dummy_timer(unsigned long param)
 {
 	timer.expires = jiffies + 1;
 	add_timer(&timer);
@@ -219,14 +219,14 @@ static void ztdummy_timer(unsigned long param)
 }
 #endif
 
-static int ztdummy_initialize(struct ztdummy *ztd)
+static int dahdi_dummy_initialize(struct dahdi_dummy *ztd)
 {
 	/* DAHDI stuff */
 	ztd->chan = &ztd->_chan;
 	sprintf(ztd->span.name, "DAHDI_DUMMY/1");
 	snprintf(ztd->span.desc, sizeof(ztd->span.desc) - 1, "%s (source: " CLOCK_SRC ") %d", ztd->span.name, 1);
 	sprintf(ztd->chan->name, "DAHDI_DUMMY/%d/%d", 1, 0);
-	dahdi_copy_string(ztd->span.devicetype, "DAHDI Dummy Timing Driver", sizeof(ztd->span.devicetype));
+	dahdi_copy_string(ztd->span.devicetype, "DAHDI Dummy Timing", sizeof(ztd->span.devicetype));
 	ztd->chan->chanpos = 1;
 	ztd->span.chans = &ztd->chan;
 	ztd->span.channels = 0;		/* no channels on our span */
@@ -246,16 +246,16 @@ int init_module(void)
 	int err;
 #endif
 
-	ztd = kmalloc(sizeof(struct ztdummy), GFP_KERNEL);
+	ztd = kmalloc(sizeof(struct dahdi_dummy), GFP_KERNEL);
 	if (ztd == NULL) {
-		printk(KERN_ERR "ztdummy: Unable to allocate memory\n");
+		printk(KERN_ERR "dahdi_dummy: Unable to allocate memory\n");
 		return -ENOMEM;
 	}
 
-	memset(ztd, 0x0, sizeof(struct ztdummy));
+	memset(ztd, 0x0, sizeof(struct dahdi_dummy));
 
-	if (ztdummy_initialize(ztd)) {
-		printk(KERN_ERR "ztdummy: Unable to intialize DAHDI driver\n");
+	if (dahdi_dummy_initialize(ztd)) {
+		printk(KERN_ERR "dahdi_dummy: Unable to intialize DAHDI driver\n");
 		kfree(ztd);
 		return -ENODEV;
 	}
@@ -263,11 +263,11 @@ int init_module(void)
 	ztd->counter = 0;
 #ifdef USE_RTC
 	ztd->rtclock = SPIN_LOCK_UNLOCKED;
-	ztd->rtc_task.func = ztdummy_rtc_interrupt;
+	ztd->rtc_task.func = dahdi_dummy_rtc_interrupt;
 	ztd->rtc_task.private_data = ztd;
 	err = rtc_register(&ztd->rtc_task);
 	if (err < 0) {
-		printk(KERN_ERR "ztdummy: Unable to register DAHDI rtc driver\n");
+		printk(KERN_ERR "dahdi_dummy: Unable to register DAHDI rtc driver\n");
 		dahdi_unregister(&ztd->span);
 		kfree(ztd);
 		return err;
@@ -279,25 +279,25 @@ int init_module(void)
 	rtc_control(&ztd->rtc_task, RTC_PIE_ON, 0);
 	tasklet_init(&ztd_tlet, ztd_tasklet, 0);
 #elif defined(USE_HIGHRESTIMER)
-	printk(KERN_DEBUG "ztdummy: Trying to load High Resolution Timer\n");
+	printk(KERN_DEBUG "dahdi_dummy: Trying to load High Resolution Timer\n");
 	hrtimer_init(&zaptimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	printk(KERN_DEBUG "ztdummy: Initialized High Resolution Timer\n");
+	printk(KERN_DEBUG "dahdi_dummy: Initialized High Resolution Timer\n");
 
 	/* Set timer callback function */
-	zaptimer.function = ztdummy_hr_int;
+	zaptimer.function = dahdi_dummy_hr_int;
 
-	printk(KERN_DEBUG "ztdummy: Starting High Resolution Timer\n");
+	printk(KERN_DEBUG "dahdi_dummy: Starting High Resolution Timer\n");
 	hrtimer_start(&zaptimer, ktime_set(0, DAHDI_TIME_NS), HRTIMER_MODE_REL);
-	printk(KERN_INFO "ztdummy: High Resolution Timer started, good to go\n");
+	printk(KERN_INFO "dahdi_dummy: High Resolution Timer started, good to go\n");
 #else
 	init_timer(&timer);
-	timer.function = ztdummy_timer;
+	timer.function = dahdi_dummy_timer;
 	timer.expires = jiffies + 1;
 	add_timer(&timer);
 #endif
 
 	if (debug)
-		printk(KERN_DEBUG "ztdummy: init() finished\n");
+		printk(KERN_DEBUG "dahdi_dummy: init() finished\n");
 	return 0;
 }
 
@@ -320,7 +320,7 @@ void cleanup_module(void)
 	dahdi_unregister(&ztd->span);
 	kfree(ztd);
 	if (debug)
-		printk(KERN_DEBUG "ztdummy: cleanup() finished\n");
+		printk(KERN_DEBUG "dahdi_dummy: cleanup() finished\n");
 }
 
 
@@ -330,6 +330,6 @@ module_param(debug, int, 0600);
 module_param(rtc_rate, int, 0600);
 #endif
 
-MODULE_DESCRIPTION("Dummy DAHDI Driver");
+MODULE_DESCRIPTION("Timing-Only Driver");
 MODULE_AUTHOR("Robert Pleh <robert.pleh@hermes.si>");
 MODULE_LICENSE("GPL v2");

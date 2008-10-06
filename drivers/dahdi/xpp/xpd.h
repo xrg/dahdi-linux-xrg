@@ -29,8 +29,13 @@
 #ifdef	__KERNEL__
 #include <linux/kernel.h>
 #include <linux/device.h>
+#include <linux/version.h>
 #include <asm/atomic.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
 #include <asm/semaphore.h>
+#endif
 #include <linux/moduleparam.h>
 #ifdef	XPP_DEBUGFS
 #ifndef	CONFIG_DEBUG_FS

@@ -45,7 +45,11 @@ Tx Gain - W/Pre-Emphasis: -23.99 to 0.00 db
 #include <linux/workqueue.h>
 #include <linux/delay.h>
 #include <linux/moduleparam.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
 #include <asm/semaphore.h>
+#endif
 
 #include <dahdi/kernel.h>
 #include <dahdi/wctdm_user.h>
@@ -191,6 +195,15 @@ static int nativebridge = 0;
 static int ringdebounce = DEFAULT_RING_DEBOUNCE;
 static int fwringdetect = 0;
 static int latency = VOICEBUS_DEFAULT_LATENCY;
+
+#define MS_PER_HOOKCHECK	(1)
+#define NEONMWI_ON_DEBOUNCE	(100/MS_PER_HOOKCHECK)
+static int neonmwi_monitor = 0; 	/* Note: this causes use of full wave ring detect */
+static int neonmwi_level = 75;		/* neon mwi trip voltage */
+static int neonmwi_envelope = 10;
+static int neonmwi_offlimit = 16000;  /* Time in milliseconds the monitor is checked before saying no message is waiting */
+static int neonmwi_offlimit_cycles;  /* Time in milliseconds the monitor is checked before saying no message is waiting */
+
 #ifdef VPM_SUPPORT
 static int vpmsupport = 1;
 static int vpmdtmfsupport = 0;
@@ -1127,6 +1140,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 
 	unsigned char res;
 	signed char b;
+	unsigned int abs_voltage;
 	struct fxo *fxo = &wc->mods[card].fxo;
 
 	/* Try to track issues that plague slot one FXO's */
@@ -1140,29 +1154,52 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 			wctdm_setreg_intr(wc, card, 5, 0x8);
 	}
 	if (!fxo->offhook) {
-		if (fwringdetect) {
+		if(fwringdetect || neonmwi_monitor) {
+			/* Look for ring status bits (Ring Detect Signal Negative and
+			* Ring Detect Signal Positive) to transition back and forth
+			* some number of times to indicate that a ring is occurring.
+			* Provide some number of samples to allow for the transitions
+			* to occur before ginving up.
+			* NOTE: neon mwi voltages will trigger one of these bits to go active
+			* but not to have transitions between the two bits (i.e. no negative
+			* to positive or positive to negative transversals )
+			*/
 			res =  wc->cmdq[card].isrshadow[0] & 0x60;
-			if (fxo->ringdebounce--) {
-				if (res && (res != fxo->lastrdtx) && (fxo->battery == 1)) {
-					if (!fxo->wasringing) {
+			if (0 == wc->mods[card].fxo.wasringing) {
+				if (res) {
+					/* Look for positive/negative crossings in ring status reg */
+					fxo->wasringing = 2;
+					fxo->ringdebounce = ringdebounce /16;
+					fxo->lastrdtx = res;
+					fxo->lastrdtx_count = 0;
+				}
+			} else if (2 == fxo->wasringing) {
+				/* If ring detect signal has transversed */
+				if (res && res != fxo->lastrdtx) {
+					/* if there are at least 3 ring polarity transversals */
+					if(++fxo->lastrdtx_count >= 2) {
 						fxo->wasringing = 1;
 						if (debug)
-							printk(KERN_DEBUG "RING on %d/%d!\n", wc->span.spanno, card + 1);
+							printk("FW RING on %d/%d!\n", wc->span.spanno, card + 1);
 						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_RING);
+						fxo->ringdebounce = ringdebounce / 16;
+					} else {
+						fxo->lastrdtx = res;
+						fxo->ringdebounce = ringdebounce / 16;
 					}
-					fxo->lastrdtx = res;
-					fxo->ringdebounce = 10;
-				} else if (!res) {
-					if ((fxo->ringdebounce == 0) && fxo->wasringing) {
-						fxo->wasringing = 0;
-						if (debug)
-							printk(KERN_DEBUG "NO RING on %d/%d!\n", wc->span.spanno, card + 1);
-						dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
-					}
+					/* ring indicator (positve or negative) has not transitioned, check debounce count */
+				} else if (--fxo->ringdebounce == 0) {
+					fxo->wasringing = 0;
 				}
-			} else if (res && (fxo->battery == BATTERY_PRESENT)) {
-				fxo->lastrdtx = res;
-				fxo->ringdebounce = 10;
+			} else {  /* I am in ring state */
+				if (res) { /* If any ringdetect bits are still active */
+					fxo->ringdebounce = ringdebounce / 16;
+				} else if (--fxo->ringdebounce == 0) {
+					fxo->wasringing = 0;
+					if (debug)
+						printk("FW NO RING on %d/%d!\n", wc->span.spanno, card + 1);
+					dahdi_hooksig(wc->chans[card], DAHDI_RXSIG_OFFHOOK);
+				}
 			}
 		} else {
 			res =  wc->cmdq[card].isrshadow[0];
@@ -1194,6 +1231,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 	}
 
 	b = wc->cmdq[card].isrshadow[1]; /* Voltage */
+	abs_voltage = abs(b);
 
 	if (fxovoltage) {
 		if (!(wc->intcount % 100)) {
@@ -1202,7 +1240,7 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 		}
 	}
 
-	if (abs(b) < battthresh) {
+	if (abs_voltage < battthresh) {
 		/* possible existing states:
 		   battery lost, no debounce timer
 		   battery lost, debounce timer (going to battery present)
@@ -1320,6 +1358,47 @@ static inline void wctdm_voicedaa_check_hook(struct wctdm *wc, int card)
 				dahdi_qevent_lock(wc->chans[card], DAHDI_EVENT_POLARITY);
 			fxo->polarity = fxo->lastpol;
 		    }
+		}
+	}
+	/* Look for neon mwi pulse */
+	if (neonmwi_monitor && !wc->mods[card].fxo.offhook) {
+		/* Look for 4 consecutive voltage readings
+		* where the voltage is over the neon limit but
+		* does not vary greatly from the last reading
+		*/
+		if (fxo->battery == 1 &&
+				  abs_voltage > neonmwi_level &&
+				  (0 == fxo->neonmwi_last_voltage ||
+				  (b >= fxo->neonmwi_last_voltage - neonmwi_envelope &&
+				  b <= fxo->neonmwi_last_voltage + neonmwi_envelope ))) {
+			fxo->neonmwi_last_voltage = b;
+			if (NEONMWI_ON_DEBOUNCE == fxo->neonmwi_debounce) {
+				fxo->neonmwi_offcounter = neonmwi_offlimit_cycles;
+				if(0 == fxo->neonmwi_state) {
+					dahdi_qevent_lock(wc->chans[card], DAHDI_EVENT_NEONMWI_ACTIVE);
+					fxo->neonmwi_state = 1;
+					if (debug)
+						printk("NEON MWI active for card %d\n", card+1);
+				}
+				fxo->neonmwi_debounce++;  /* terminate the processing */
+			} else if (NEONMWI_ON_DEBOUNCE > fxo->neonmwi_debounce) {
+				fxo->neonmwi_debounce++;
+			} else { /* Insure the count gets reset */
+				fxo->neonmwi_offcounter = neonmwi_offlimit_cycles;
+			}
+		} else {
+			fxo->neonmwi_debounce = 0;
+			fxo->neonmwi_last_voltage = 0;
+		}
+		/* If no neon mwi pulse for given period of time, indicte no neon mwi state */
+		if (fxo->neonmwi_state && 0 < fxo->neonmwi_offcounter ) {
+			fxo->neonmwi_offcounter--;
+			if (0 == fxo->neonmwi_offcounter) {
+				dahdi_qevent_lock(wc->chans[card], DAHDI_EVENT_NEONMWI_INACTIVE);
+				fxo->neonmwi_state = 0;
+				if (debug)
+					printk("NEON MWI cleared for card %d\n", card+1);
+			}
 		}
 	}
 #undef MS_PER_CHECK_HOOK
@@ -1874,7 +1953,7 @@ static int wctdm_init_voicedaa(struct wctdm *wc, int card, int fast, int manual,
 	reg16 |= (fxo_modes[_opermode].rt);
 	wctdm_setreg(wc, card, 16, reg16);
 
-	if(fwringdetect) {
+	if(fwringdetect || neonmwi_monitor) {
 		/* Enable ring detector full-wave rectifier mode */
 		wctdm_setreg(wc, card, 18, 2);
 		wctdm_setreg(wc, card, 24, 0);
@@ -2597,12 +2676,23 @@ static int wctdm_ioctl(struct dahdi_chan *chan, unsigned int cmd, unsigned long 
 static int wctdm_open(struct dahdi_chan *chan)
 {
 	struct wctdm *wc = chan->pvt;
+	int channo = chan->chanpos - 1;
+	unsigned long flags;
+
 	if (!(wc->cardflag & (1 << (chan->chanpos - 1))))
 		return -ENODEV;
 	if (wc->dead)
 		return -ENODEV;
 	wc->usecount++;
 	try_module_get(THIS_MODULE);
+	
+	/* Reset the mwi indicators */
+	spin_lock_irqsave(&wc->reglock, flags);
+	wc->mods[channo].fxo.neonmwi_debounce = 0;
+	wc->mods[channo].fxo.neonmwi_offcounter = 0;
+	wc->mods[channo].fxo.neonmwi_state = 0;
+	spin_unlock_irqrestore(&wc->reglock, flags);
+
 	return 0;
 }
 
@@ -3410,7 +3500,7 @@ static enum vpmadt032_init_result wctdm_vpm150m_init(struct wctdm *wc)
 		while (test_bit(VPM150M_HPIRESET, &vpm150m->control))
 			schluffen(&wc->regq);
 
-		printk(KERN_INFO "VPMADT032 Loading firwmare... ");
+		printk(KERN_INFO "VPMADT032 Loading firmware... ");
 		downloadstatus = gpakDownloadDsp(vpm150m->dspid, &fw);
 
 		if (firmware != &embedded_firmware)
@@ -3764,6 +3854,8 @@ static int __devinit wctdm_init_one(struct pci_dev *pdev, const struct pci_devic
 	int i;
 	int y;
 	int ret;
+	
+	neonmwi_offlimit_cycles = neonmwi_offlimit /MS_PER_HOOKCHECK;
 
 retry:
 	if (!(wc = kmalloc(sizeof(*wc), GFP_KERNEL))) {
@@ -4018,6 +4110,10 @@ module_param(fxsrxgain, int, 0600);
 module_param(ringdebounce, int, 0600);
 module_param(fwringdetect, int, 0600);
 module_param(latency, int, 0600);
+module_param(neonmwi_monitor, int, 0600);
+module_param(neonmwi_level, int, 0600);
+module_param(neonmwi_envelope, int, 0600);
+module_param(neonmwi_offlimit, int, 0600);
 #ifdef VPM_SUPPORT
 module_param(vpmsupport, int, 0600);
 module_param(vpmdtmfsupport, int, 0600);
@@ -4027,9 +4123,13 @@ module_param(vpmnlpthresh, int, 0600);
 module_param(vpmnlpmaxsupp, int, 0600);
 #endif
 
-MODULE_DESCRIPTION("Wildcard TDM2400P/TDM800P DAHDI Driver");
-MODULE_AUTHOR("Mark Spencer <markster@digium.com>");
+MODULE_DESCRIPTION("Wildcard VoiceBus Analog Card Driver");
+MODULE_AUTHOR("Digium Incorporated <support@digium.com>");
 MODULE_ALIAS("wctdm8xxp");
+MODULE_ALIAS("wctdm4xxp");
+MODULE_ALIAS("wcaex24xx");
+MODULE_ALIAS("wcaex8xx");
+MODULE_ALIAS("wcaex8xx");
 MODULE_LICENSE("GPL v2");
 
 module_init(wctdm_init);

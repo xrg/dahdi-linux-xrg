@@ -102,7 +102,7 @@ static struct dahdi_dynamic {
 	unsigned short txcnt;
 	unsigned short rxcnt;
 	struct dahdi_span span;
-	struct dahdi_chan **chans;
+	struct dahdi_chan *chans[DAHDI_DYNAMIC_MAX_CHANS];
 	struct dahdi_dynamic *next;
 	struct dahdi_dynamic_driver *driver;
 	void *pvt;
@@ -411,6 +411,8 @@ void dahdi_dynamic_receive(struct dahdi_span *span, unsigned char *msg, int msgl
 
 static void dynamic_destroy(struct dahdi_dynamic *z)
 {
+	unsigned int x;
+
 	/* Unregister span if appropriate */
 	if (z->span.flags & DAHDI_FLAG_REGISTERED)
 		dahdi_unregister(&z->span);
@@ -424,8 +426,10 @@ static void dynamic_destroy(struct dahdi_dynamic *z)
 		kfree(z->msgbuf);
 
 	/* Free channels */
-	if (z->chans)
-		vfree(z->chans);
+	for (x = 0; x < z->span.channels; x++) {
+		kfree(z->chans[x]);
+	}
+
 	/* Free z */
 	kfree(z);
 
@@ -563,22 +567,21 @@ static int create_dynamic(struct dahdi_dynamic_span *zds)
 
 
 	/* Allocate memory */
-	z = (struct dahdi_dynamic *)kmalloc(sizeof(struct dahdi_dynamic), GFP_KERNEL);
-	if (!z) 
-		return -ENOMEM;
-
-	/* Zero it out */
-	memset(z, 0, sizeof(struct dahdi_dynamic));
-
-	/* Allocate other memories */
-	z->chans = vmalloc(sizeof(struct dahdi_chan) * zds->numchans);
-	if (!z->chans) {
-		dynamic_destroy(z);
+	if (!(z = kmalloc(sizeof(*z), GFP_KERNEL))) {
 		return -ENOMEM;
 	}
 
-	/* Zero out channel stuff */
-	memset(z->chans, 0, sizeof(struct dahdi_chan) * zds->numchans);
+	/* Zero it out */
+	memset(z, 0, sizeof(*z));
+
+	for (x = 0; x < zds->numchans; x++) {
+		if (!(z->chans[x] = kmalloc(sizeof(*z->chans[x]), GFP_KERNEL))) {
+			dynamic_destroy(z);
+			return -ENOMEM;
+		}
+
+		memset(z->chans[x], 0, sizeof(*z->chans[x]));
+	}
 
 	/* Allocate message buffer with sample space and header space */
 	bufsize = zds->numchans * DAHDI_CHUNKSIZE + zds->numchans / 4 + 48;
@@ -597,7 +600,7 @@ static int create_dynamic(struct dahdi_dynamic_span *zds)
 	dahdi_copy_string(z->dname, zds->driver, sizeof(z->dname));
 	dahdi_copy_string(z->addr, zds->addr, sizeof(z->addr));
 	z->timing = zds->timing;
-	sprintf(z->span.name, "ZTD/%s/%s", zds->driver, zds->addr);
+	sprintf(z->span.name, "DYN/%s/%s", zds->driver, zds->addr);
 	sprintf(z->span.desc, "Dynamic '%s' span at '%s'", zds->driver, zds->addr);
 	z->span.channels = zds->numchans;
 	z->span.pvt = z;
@@ -608,8 +611,8 @@ static int create_dynamic(struct dahdi_dynamic_span *zds)
 	z->span.open = ztd_open;
 	z->span.close = ztd_close;
 	z->span.chanconfig = ztd_chanconfig;
-	for (x=0;x<zds->numchans;x++) {
-		sprintf(z->chans[x]->name, "ZTD/%s/%s/%d", zds->driver, zds->addr, x+1);
+	for (x=0; x < z->span.channels; x++) {
+		sprintf(z->chans[x]->name, "DYN/%s/%s/%d", zds->driver, zds->addr, x+1);
 		z->chans[x]->sigcap = DAHDI_SIG_EM | DAHDI_SIG_CLEAR | DAHDI_SIG_FXSLS |
 				      DAHDI_SIG_FXSKS | DAHDI_SIG_FXSGS | DAHDI_SIG_FXOLS |
 				      DAHDI_SIG_FXOKS | DAHDI_SIG_FXOGS | DAHDI_SIG_SF | 
@@ -621,11 +624,17 @@ static int create_dynamic(struct dahdi_dynamic_span *zds)
 	spin_lock_irqsave(&dlock, flags);
 	ztd = find_driver(zds->driver);
 	if (!ztd) {
-		/* Try loading the right module */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,70)
 		char fn[80];
+#endif
+
 		spin_unlock_irqrestore(&dlock, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,70)
+		request_module("dahdi_dynamic_%s", zds->driver);
+#else
 		sprintf(fn, "dahdi_dynamic_%s", zds->driver);
 		request_module(fn);
+#endif
 		spin_lock_irqsave(&dlock, flags);
 		ztd = find_driver(zds->driver);
 	}

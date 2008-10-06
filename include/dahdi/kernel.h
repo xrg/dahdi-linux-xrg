@@ -462,6 +462,7 @@ enum dahdi_rxsig {
 #define DAHDI_FLAG_NOSTDTXRX		(1 << 17)	/*!< Do NOT do standard transmit and receive on every interrupt */
 #define DAHDI_FLAG_LOOPED			(1 << 18)	/*!< Loopback the receive data from the channel to the transmit */
 #define DAHDI_FLAG_MTP2			(1 << 19)	/*!< Repeats last message in buffer and also discards repeating messages sent to us */
+#define DAHDI_FLAG_HDLC56			(1 << 20)	/*!< Sets the given channel (if in HDLC mode) to use 56K HDLC instead of 64K  */
 
 /*! This is a redefinition of the flags from above to allow use of the kernel atomic bit testing and changing routines.
  * See the above descriptions for DAHDI_FLAG_....  for documentation about function. */
@@ -486,6 +487,7 @@ enum {
 	DAHDI_FLAGBIT_NOSTDTXRX  = 17,
 	DAHDI_FLAGBIT_LOOPED     = 18,
 	DAHDI_FLAGBIT_MTP2       = 19,
+	DAHDI_FLAGBIT_HDLC56       = 20,
 };
 
 struct dahdi_span {
@@ -667,6 +669,7 @@ dahdi_tc_clear_data_waiting(struct dahdi_transcoder_channel *dtc) {
 
 struct dahdi_transcoder {
 	struct list_head node;
+	int pos;
 	char name[80];
 	int numchannels;
 	unsigned int srcfmts;

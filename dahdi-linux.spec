@@ -2,8 +2,8 @@
 %define git_head HEAD
 
 %define name dahdi-linux
-%define version 2.0
-%define release alpha
+%define version 2.0.0
+%define release rc2
 %define kernelrelease %(uname -r)
 
 %define build_modules 0

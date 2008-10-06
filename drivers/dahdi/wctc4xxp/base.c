@@ -441,7 +441,6 @@ struct wcdte {
 	char board_name[40];
 	const char *variety;
 	int pos;
-	int cards;
 	struct list_head node;
 	spinlock_t reglock;
 	wait_queue_head_t waitq;
@@ -1678,13 +1677,13 @@ wctc4xxp_read(struct file *file, char __user *frame, size_t count, loff_t *ppos)
 		cpvt->last_dte_seqno = be16_to_cpu(packet->rtphdr.seqno);
 	} else {
 		rtp_eseq = ++cpvt->last_dte_seqno;
-		if ( packet->rtphdr.seqno != rtp_eseq )
+		if ( be16_to_cpu(packet->rtphdr.seqno) != rtp_eseq )
 			DTE_DEBUG(DTE_DEBUG_GENERAL,
 			 "Bad seqno from DTE! [%04X][%d][%d][%d]\n", 
 			 be16_to_cpu(packet->rtphdr.seqno), 
 			 (be16_to_cpu(packet->udphdr.dest) - 0x5000),
 			 be16_to_cpu(packet->rtphdr.seqno), 
-			 cpvt->last_dte_seqno);
+			 rtp_eseq);
 
 		cpvt->last_dte_seqno = be16_to_cpu(packet->rtphdr.seqno);
 	}
@@ -1737,13 +1736,17 @@ wctc4xxp_write(struct file *file, const char __user *frame, size_t count, loff_t
 	}
 
 	if (DAHDI_FORMAT_G723_1 == dtc->srcfmt) {
-		if (G723_5K_BYTES != count) {
+		if ((G723_5K_BYTES != count) && (G723_6K_BYTES != count)) {
 			DTE_DEBUG(DTE_DEBUG_GENERAL, 
 			   "Trying to transcode packet into G723 format " \
 			   "that is %Zu bytes instead of the expected " \
-			   "%d bytes.\n", count, G723_5K_BYTES);
+			   "%d/%d bytes.\n", count, G723_5K_BYTES, G723_6K_BYTES);
 			return -EINVAL;
 		}
+		cpvt->timestamp = G723_SAMPLES;
+	} else {
+		/* Same for ulaw and alaw */
+		cpvt->timestamp = G729_SAMPLES; 
 	}
 
 	if (!(cmd = wctc4xxp_create_rtp_cmd(wc, dtc, count))) {
@@ -1756,7 +1759,6 @@ wctc4xxp_write(struct file *file, const char __user *frame, size_t count, loff_t
 		return -EFAULT;
 	}
 	cpvt->seqno += 1;
-	cpvt->timestamp += count;
 
 	DTE_DEBUG(DTE_DEBUG_RTP_TX, 
 	    "Sending packet of %Zu byte on channel (%p).\n", count, dtc);
@@ -2854,7 +2856,7 @@ wctc4xxp_watchdog(unsigned long data)
 }
 
 /**
- * 	Insert an struct wcdte on the global list in sorted order
+ * Insert an struct wcdte on the global list in sorted order
  *
  */
 static int __devinit
@@ -2867,12 +2869,16 @@ wctc4xxp_add_to_device_list(struct wcdte *wc)
 	list_for_each_entry(cur, &wctc4xxp_list, node) {
 		if (cur->pos != pos) {
 			/* Add the new entry before the one here */
-			list_add_tail(&wc->node, &wctc4xxp_list);
+			list_add_tail(&wc->node, &cur->node);
 			break;
 		}
 		else {
 			++pos;
 		}
+	}
+	/* If we didn't already add the new entry to the list, add it now */
+	if (list_empty(&wc->node)) {
+		list_add_tail(&wc->node, &wctc4xxp_list);
 	}
 	spin_unlock(&wctc4xxp_list_lock);
 	return pos;
@@ -3237,13 +3243,6 @@ static struct pci_driver wctc4xxp_driver = {
 int __init wctc4xxp_init(void)
 {
 	int res;
-#	ifndef CONFIG_WCDTE_NETWORK_IF
-	if (debug & (DTE_DEBUG_NETWORK_IF|DTE_DEBUG_NETWORK_EARLY)) {
-		printk(KERN_WARNING "%s: The Network interface was not compiled into the driver.\n", THIS_MODULE->name);
-		debug &= ~(DTE_DEBUG_NETWORK_IF|DTE_DEBUG_NETWORK_EARLY);
-	}
-#	endif
-
 #	if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,23)
 	cmd_cache = kmem_cache_create(THIS_MODULE->name, sizeof(struct tcb), 0, 
 	                              SLAB_HWCACHE_ALIGN, NULL, NULL);
@@ -3265,7 +3264,6 @@ int __init wctc4xxp_init(void)
 
 void __exit wctc4xxp_cleanup(void)
 {
-	WARN_ON(!list_empty(&wctc4xxp_list));
 	pci_unregister_driver(&wctc4xxp_driver);
 	kmem_cache_destroy(cmd_cache);
 }
@@ -3273,9 +3271,7 @@ void __exit wctc4xxp_cleanup(void)
 module_param(debug, int, S_IRUGO | S_IWUSR);
 MODULE_DESCRIPTION("Wildcard TC400P+TC400M Driver");
 MODULE_AUTHOR("Digium Incorporated <support@digium.com>");
-#ifdef MODULE_LICENSE
 MODULE_LICENSE("GPL");
-#endif
 
 module_init(wctc4xxp_init);
 module_exit(wctc4xxp_cleanup);

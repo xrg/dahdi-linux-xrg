@@ -28,7 +28,12 @@
  */
 
 #include <linux/delay.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
 #include <asm/semaphore.h>
+#endif
 #include <linux/pci.h> 
 #include <linux/firmware.h> 
 #include <linux/list.h> 
@@ -858,7 +863,7 @@ void t1_vpm150m_init(struct t1 *wc) {
 		while (test_bit(VPM150M_HPIRESET, &vpm150m->control))
 			schluffen(&wc->regq);
 
-		module_printk("VPMADT032 Loading firwmare... ");
+		module_printk("VPMADT032 Loading firmware... ");
 		downloadstatus = gpakDownloadDsp(vpm150m->dspid, &fw);
 
 		if (firmware != &embedded_firmware)

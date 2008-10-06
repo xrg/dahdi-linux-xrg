@@ -5,6 +5,9 @@ $Revision$, $Date$
 
 DAHDI stands for Digium Asterisk Hardware Device Interface.
 
+This package contains the kernel modules for DAHDI. For the required 
+userspace tools see the package dahdi-tools.
+
 Supported Hardware
 ------------------
 Digital Cards
@@ -25,17 +28,19 @@ Digital Cards
   * Digium E100P: PCI single-port E1
 - tor2: Tormenta quad-span T1/E1 card from the Zapata Telephony project
 
+
 Analog Cards
 ~~~~~~~~~~~~
 - wctdm24xxp: 
   * Digium TDM2400P/AEX2400: up to 24 analog ports
   * Digium TDM800P/AEX800: up to 8 analog ports
-  * Digium TDM410P: up to 4 analog ports
+  * Digium TDM410P/AEX410: up to 4 analog ports
 - wctdm:
   * Digium TDM400P: up to 4 analog ports
 - xpp: Xorcom Astribank: a USB connected unit of up to 32 ports
   (including the digital BRI and E1/T1 modules)
 - wcfxo: X100P, similar and clones. A simple single-port FXO card
+
 
 Other Drivers
 ~~~~~~~~~~~~~
@@ -46,20 +51,25 @@ Other Drivers
 - dahdi_dummy: A dummy driver that only provides a DAHDI timing source.
 
 Build System
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~
 gcc and friends. Generally you will need to install the package gcc.
 There may be cases where you will need a specific version of gcc to build
 kernel modules.
 
+
 Installation
 ~~~~~~~~~~~~
 Note: If using `sudo` to build/install, you may need to add /sbin to your PATH.
-----------------------------------
-# make
-# make install
 
-Building to a Subtree
-~~~~~~~~~~~~~~~~~~~~~
+  make
+  make install
+
+Note that you'll need the unilities provided in the package dahdi-tools
+to configure DAHDI devices on your system.
+
+
+Installing to a Subtree
+^^^^^^^^^^^^^^^^^^^^^^^
 The following may be useful when testing the package or when preparing a
 package for a binary distribution (such as an rpm package) installing
 onto a subtree rather than on th real system. 
@@ -79,27 +89,16 @@ attempting to generate device files. In that case, try:
 
   make install DESTDIR=$PWD/target DYNFS=
 
-Configuration
-~~~~~~~~~~~~~
-Configuration for DAHDI resides under /etc/dahdi . 
 
-/etc/dahdi/system.conf
-~~~~~~~~~~~~~~~~~~~~~~
-The main method to configure DAHDI devices is using the utility
-*dahdi_cfg*. dahdi_cfg reads data from the configuration file 
-/etc/dahdi/system.conf , figures out what configuration to send to 
-channels, and send it to the kernel.
+Extra Modules
+^^^^^^^^^^^^^
+To build extra modules / modules directory not included in the DAHDI 
+distribution, use the optional variables MODULES_EXTRA and
+SUBDIRS_EXTRA:
 
-A sample annotated system.conf is included in this directory and
-installed by default. Edit it to suit your configuration. Alternatively 
-use the script dahdi_genconf to generate one that should work with your 
-system.
+  make MODULES_EXTRA="mod1 mod2"
+  make MODULES_EXTRA="mod1 mod2" SUBDIRS_EXTRA="subdir1/ subdir1/"
 
-/etc/dahdi/init.conf
-~~~~~~~~~~~~~~~~~~~~
-The configuration file of the dahdi init.d script is
-/etc/dahdi/init.conf . That file is used to override defaults that are 
-set at the beginning of the init.d script.
 
 Module Parameters
 ~~~~~~~~~~~~~~~~~
@@ -185,6 +184,7 @@ For the xpp modules this will also include the description and default
 value of the module. You can find a list of useful xpp module parameters
 in README.Astribank .
 
+
 Internals
 ---------
 DAHDI Device Files
@@ -209,6 +209,7 @@ or dynamically through the udev system.
   it, a new DAHDI channel is created. That DAHDI channel is "pseudo" -
   DAHDI recieves no data in it, and only sends garbage data with the
   same timing as the DAHDI timing master device.
+
 
 DAHDI Timing
 ~~~~~~~~~~~~~
@@ -246,6 +247,7 @@ Or even run:
 
   strings dahdi.ko | grep source:
 
+
 Spans and Channels
 ~~~~~~~~~~~~~~~~~~
 DAHDI provides telephony *channels* to the userspace applications. 
@@ -259,6 +261,7 @@ represents a PCI adapter or a similar logical unit.
 Both channels and spans are identified by enumerating numbers (beginning
 with 1). The number of the channel is the lowest unused one when it is
 generated, and ditto for spans.
+
 
 PROCFS Interface: /proc/dahdi
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -322,7 +325,7 @@ struct zt_example {
 	int sample;
 }
 
-#define ZT_EXAMPLE     _IOWR (ZT_CODE, 62, struct zt_example)
+#define DAHDI_EXAMPLE     _IOWR (DAHDI_CODE, 62, struct zt_example)
 ----------------------------------
 
 And we want to add the field 'int onemore', we won't just add it to the
@@ -339,12 +342,13 @@ struct zt_example {
 	int onemore;
 }
 
-#define ZT_EXAMPLE_V1  _IOWR (ZT_CODE, 62, struct zt_example_v1)
-#define ZT_EXAMPLE     _IOWR (ZT_CODE, 62, struct zt_example)
+#define DAHDI_EXAMPLE_V1  _IOWR (DAHDI_CODE, 62, struct zt_example_v1)
+#define DAHDI_EXAMPLE     _IOWR (DAHDI_CODE, 62, struct zt_example)
 ------------------------------------
-We actually have here two different ioctls: the old ZT_EXAMPLE would be
-0xC0044A3E . ZT_EXAMPLE_V1 would have the same value. But the new value
-of ZT_EXAMPLE would be 0xC0084A3E .
+We actually have here two different ioctls: the old DAHDI_EXAMPLE would be
+0xC0044A3E . DAHDI_EXAMPLE_V1 would have the same value. But the new value
+of DAHDI_EXAMPLE would be 0xC0084A3E .
+(TODO: fix ioctl values)
 
 Programs built with the original dahdi/user.h (before the change) use the
 original ioctl, whether or not the kernel code is actually of the newer
@@ -352,7 +356,7 @@ version. Thus in most cases there are no compatibility issues.
 
 When can we have compatibility issues? If we have code built with the new
 dahdi/user.h, but the loaded kernel code (modules) are of the older version.
-Thus the userspace program will try to use the newer ZT_EXAMPLE (0xC0084A3E).
+Thus the userspace program will try to use the newer DAHDI_EXAMPLE (0xC0084A3E).
 But the kernel code has no handler for that ioctl. The result: the error 25,
 ENOTTY, which means "Inappropriate ioctl for device".
 
@@ -382,6 +386,6 @@ Links
 -----
 - http://asterisk.org/[] - The Asterisk PBX
 - http://voip-info.org/[]
-- http://voip-info.org/wiki/view/Asterisk+Zaptel+Installation[]
-- http://docs.tzafrir.org.il/dahdi/README.html[Up-to-date HTML version
+- http://voip-info.org/wiki/view/DAHDI[]
+- http://docs.tzafrir.org.il/dahdi-linux/README.html[Up-to-date HTML version
   of this file]

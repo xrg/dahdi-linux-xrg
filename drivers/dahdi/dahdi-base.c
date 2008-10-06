@@ -152,7 +152,10 @@ EXPORT_SYMBOL(dahdi_set_hpec_ioctl);
 static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS];
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
+#define CLASS_DEV_CREATE(class, devt, device, name) \
+	device_create(class, device, devt, NULL, "%s", name)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
 #define CLASS_DEV_CREATE(class, devt, device, name) \
 	device_create(class, device, devt, name)
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
@@ -172,6 +175,9 @@ static struct proc_dir_entry *proc_entries[DAHDI_MAX_SPANS];
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
 #define CLASS_DEV_DESTROY(class, devt) \
 	class_device_destroy(class, devt)
+#elif LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,9)
+#define CLASS_DEV_DESTROY(class, devt) \
+	class_simple_device_remove(devt)
 #else
 #define CLASS_DEV_DESTROY(class, devt) \
 	class_simple_device_remove(class, devt)
@@ -1512,8 +1518,8 @@ static int dahdi_net_open(hdlc_device *hdlc)
 	if (res)
 		return res;
 
-	fasthdlc_init(&ms->rxhdlc);
-	fasthdlc_init(&ms->txhdlc);
+	fasthdlc_init(&ms->rxhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
+	fasthdlc_init(&ms->txhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
 	ms->infcs = PPP_INITFCS;
 
 	netif_start_queue(ztchan_to_dev(ms));
@@ -1691,7 +1697,7 @@ static int dahdi_xmit(hdlc_device *hdlc, struct sk_buff *skb)
 		dev->trans_start = jiffies;
 		stats->tx_packets++;
 		stats->tx_bytes += ss->writen[oldbuf];
-		print_debug_writebuf(ss, skb, outbug);
+		print_debug_writebuf(ss, skb, outbuf);
 		retval = 0;
 		/* Free the SKB */
 		dev_kfree_skb_any(skb);
@@ -1787,7 +1793,7 @@ static int dahdi_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 			   some space for us */
 			ss->outwritebuf = oldbuf;
 		}
-		print_debug_writebuf(ss, skb, outbug);
+		print_debug_writebuf(ss, skb, outbuf);
 		retval = 1;
 	}
 	spin_unlock_irqrestore(&ss->lock, flags);
@@ -2370,8 +2376,8 @@ static int initialize_channel(struct dahdi_chan *chan)
 	chan->firstcadencepos = 0; /* By default loop back to first cadence position */
 
 	/* HDLC & FCS stuff */
-	fasthdlc_init(&chan->rxhdlc);
-	fasthdlc_init(&chan->txhdlc);
+	fasthdlc_init(&chan->rxhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
+	fasthdlc_init(&chan->txhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
 	chan->infcs = PPP_INITFCS;
 
 	/* Timings for RBS */
@@ -3474,7 +3480,7 @@ static int dahdi_common_ioctl(struct inode *node, struct file *file, unsigned in
 		if ((i < 0) || (i > DAHDI_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
 		if (!(chans[i]->flags & DAHDI_FLAG_AUDIO)) return (-EINVAL);
 
-		if (!(rxgain = kzalloc(512, GFP_KERNEL)))
+		if (!(rxgain = kmalloc(512, GFP_KERNEL)))
 			return -ENOMEM;
 
 		stack.gain.chan = i; /* put the span # in here */
@@ -5009,8 +5015,8 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 		chan->flags &= ~(DAHDI_FLAG_AUDIO | DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS);
 		if (j) {
 			chan->flags |= DAHDI_FLAG_HDLC;
-			fasthdlc_init(&chan->rxhdlc);
-			fasthdlc_init(&chan->txhdlc);
+			fasthdlc_init(&chan->rxhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
+			fasthdlc_init(&chan->txhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
 		}
 		break;
 	case DAHDI_HDLCFCSMODE:
@@ -5019,9 +5025,20 @@ static int dahdi_chan_ioctl(struct inode *inode, struct file *file, unsigned int
 		chan->flags &= ~(DAHDI_FLAG_AUDIO | DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS);
 		if (j) {
 			chan->flags |= DAHDI_FLAG_HDLC | DAHDI_FLAG_FCS;
-			fasthdlc_init(&chan->rxhdlc);
-			fasthdlc_init(&chan->txhdlc);
+			fasthdlc_init(&chan->rxhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
+			fasthdlc_init(&chan->txhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
 		}
+		break;
+	case DAHDI_HDLC_RATE:
+		get_user(j, (int *) data);
+		if (j == 56) {
+			chan->flags |= DAHDI_FLAG_HDLC56;
+		} else {
+			chan->flags &= ~DAHDI_FLAG_HDLC56;
+		}
+
+		fasthdlc_init(&chan->rxhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
+		fasthdlc_init(&chan->txhdlc, (chan->flags & DAHDI_FLAG_HDLC56) ? FASTHDLC_MODE_56 : FASTHDLC_MODE_64);
 		break;
 	case DAHDI_ECHOCANCEL_PARAMS:
 	{
@@ -5857,7 +5874,7 @@ static inline void __dahdi_getbuf_chunk(struct dahdi_chan *ss, unsigned char *tx
 				/* If this is an HDLC channel we only send a byte of
 				   HDLC. */
 				for(x=0;x<left;x++) {
-					if (ms->txhdlc.bits < 8)
+					if (fasthdlc_tx_need_data(&ms->txhdlc))
 						/* Load a byte of data only if needed */
 						fasthdlc_tx_load_nocheck(&ms->txhdlc, buf[ms->writeidx[ms->outwritebuf]++]);
 					*(txb++) = fasthdlc_tx_run_nocheck(&ms->txhdlc);
@@ -5968,7 +5985,7 @@ out in the later versions, and is put back now. */
 		} else if (ms->flags & DAHDI_FLAG_HDLC) {
 			for (x=0;x<bytes;x++) {
 				/* Okay, if we're HDLC, then transmit a flag by default */
-				if (ms->txhdlc.bits < 8)
+				if (fasthdlc_tx_need_data(&ms->txhdlc))
 					fasthdlc_tx_frame_nocheck(&ms->txhdlc);
 				*(txb++) = fasthdlc_tx_run_nocheck(&ms->txhdlc);
 			}
@@ -6242,7 +6259,7 @@ static void __dahdi_hooksig_pvt(struct dahdi_chan *chan, enum dahdi_rxsig rxsig)
 		}
 		break;
 	   case DAHDI_SIG_FXSKS:  /* FXS Kewlstart */
-		  /* ignore a bit poopy if loop not closed and stable */
+		  /* ignore a bit error if loop not closed and stable */
 		if (chan->txstate != DAHDI_TXSTATE_OFFHOOK) break;
 #ifdef	FXSFLASH
 		if (rxsig == DAHDI_RXSIG_ONHOOK) {
