@@ -317,7 +317,8 @@ struct csm_create_channel_cmd {
 	0x00,0x01, s&0x0F, 0x01, ((c&0xFF00)>>8),(c&0x00FF), 0x0A, 0x00, 0x00,0x02,0x5B,0x80, 0x00,0x00, \
 	0x00,0x00, 0x00,0x00 }
 
-#define SFRAME_SIZE 320 
+#define MAX_FRAME_SIZE 1518
+#define SFRAME_SIZE MAX_FRAME_SIZE 
 
 /* Transcoder buffer (tcb) */
 struct tcb {
@@ -1002,9 +1003,9 @@ wctc4xxp_submit(struct wctc4xxp_descriptor_ring* dr, struct tcb *c)
 
 	WARN_ON(!c);
 	len = (c->data_len < MIN_PACKET_LEN) ? MIN_PACKET_LEN : c->data_len;
-	if (c->data_len > 1518) {
+	if (c->data_len > MAX_FRAME_SIZE) {
 		WARN_ON_ONCE(!"Invalid command length passed\n");
-		c->data_len = 1518;
+		c->data_len = MAX_FRAME_SIZE;
 	}
 
 	spin_lock_bh(&dr->lock);
@@ -1980,12 +1981,14 @@ static inline void service_dte(struct wcdte *wc)
 		if(!(newcmd = __alloc_cmd(ALLOC_FLAGS, 0))) {
 			DTE_PRINTK(ERR, "Out of memory in %s.\n", __FUNCTION__);
 		} else {
-			newcmd->data = kmalloc(1518, ALLOC_FLAGS);
-			if (!newcmd->data) {
-				DTE_PRINTK(ERR, "out of memory in %s " \
-				    "again.\n", __FUNCTION__);
+			if (newcmd->data_len < MAX_FRAME_SIZE) {
+				newcmd->data = kmalloc(MAX_FRAME_SIZE, ALLOC_FLAGS);
+				if (!newcmd->data) {
+					DTE_PRINTK(ERR, "out of memory in %s " \
+					    "again.\n", __FUNCTION__);
+				}
+				newcmd->data_len = MAX_FRAME_SIZE;
 			}
-			newcmd->data_len = 1518;
 			if (wctc4xxp_submit(wc->rxd, newcmd)) {
 				DTE_PRINTK(ERR, "Failed submit in %s\n", __FUNCTION__);
 				free_cmd(newcmd);
@@ -2001,9 +2004,10 @@ static inline void service_dte(struct wcdte *wc)
 	 */
 	while((cmd = wctc4xxp_retrieve(wc->txd))) {
 		if (!(cmd->flags & (__WAIT_FOR_ACK | __WAIT_FOR_RESPONSE))) {
-			spin_lock_bh(&wc->cmd_list_lock);
-			list_del_init(&cmd->node);
-			spin_unlock_bh(&wc->cmd_list_lock);
+			/* If we're not waiting for an ACK or Response from
+			 * the DTE, this message should not be sitting on any
+			 * lists. */
+			WARN_ON(!list_empty(&cmd->node));
 			if (DO_NOT_AUTO_FREE & cmd->flags) {
 				complete(&cmd->complete);
 			} else {
@@ -2351,13 +2355,13 @@ wctc4xxp_load_firmware(struct wcdte *wc, const struct firmware *firmware)
 	if (!(cmd = alloc_cmd())) {
 		return -ENOMEM;
 	}	
-	if (1518 > cmd->data_len) {
-		cmd->data = kmalloc(1518, GFP_KERNEL);
+	if (MAX_FRAME_SIZE > cmd->data_len) {
+		cmd->data = kmalloc(MAX_FRAME_SIZE, GFP_KERNEL);
 		if (!(cmd->data)) {
 			free_cmd(cmd);
 			return -ENOMEM;
 		}
-		cmd->data_len = 1518;
+		cmd->data_len = MAX_FRAME_SIZE;
 	}
 	while (byteloc < (firmware->size-20)) {
 		last_byteloc = byteloc;
@@ -2829,7 +2833,8 @@ wctc4xxp_watchdog(unsigned long data)
 					set_bit(DTE_SHUTDOWN, &wc->flags);
 					spin_unlock(&wc->cmd_list_lock);
 					wctc4xxp_stop_dma(wc);
-					DTE_PRINTK(ERR, "Board malfunctioning.  Halting operation.\n");
+					DTE_PRINTK(ERR, "Board malfunctioning.  " \
+					           "Halting operation.\n");
 					return;
 				}
 				/* ERROR:  We've retried the command and haven't
